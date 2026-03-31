@@ -40,3 +40,6 @@ pip install -r requirements-basic.txt
 # later:
 pip install -r requirements.txt
 ```
+
+Note: do not paste both install lines as one command block in the terminal.
+If pasted together, both commands will run sequentially in the same session.

@@ -1,5 +1,6 @@
 # Virtual environment
 .venv/
+.venv-gpu/
 
 # Python cache
 __pycache__/
@@ -29,6 +30,8 @@ outputs/predictions/*
 !outputs/predictions/.gitkeep
 outputs/figures/*
 !outputs/figures/.gitkeep
+unsloth_compiled_cache/
+gpu_env_report.txt
 
 # OS files
 .DS_Store
