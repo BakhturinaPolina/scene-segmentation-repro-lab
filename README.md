@@ -33,6 +33,10 @@ Initial repository setup only.
 
 Ubuntu + Cursor IDE + project-local `.venv`.
 
-## Next Step
+## Install Order
 
-Use `PROJECT_PLAN.md` as execution context for later Cursor AI work.
+```bash
+pip install -r requirements-basic.txt
+# later:
+pip install -r requirements.txt
+```

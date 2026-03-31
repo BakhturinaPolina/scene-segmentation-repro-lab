@@ -1,0 +1,12 @@
+# Minimal dependency set for early smoke tests.
+# Install this first in `.venv` before full requirements.
+
+pip
+setuptools
+wheel
+
+torch
+transformers
+datasets
+scikit-learn
+loguru

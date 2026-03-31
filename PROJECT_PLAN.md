@@ -55,24 +55,36 @@ Completed / current phase:
 
 ## Phase 1 - Inspect and Clone Target Repository
 
-Future step:
+Goal of the first run:
+baseline reproducibility, not optimization.
 
-- clone `LSX-UniWue/scene-segmentation` into a controlled subfolder
-- inspect structure:
-  - `ssc/`
-  - `prompting/`
-  - `llama/`
-  - `data/`
-  - `utils/`
-- identify actual entry points and expected configs
-- document commands and assumptions before running anything
+Answer four questions only:
+
+1. does the code run at all?
+2. which parts run locally without modification?
+3. which parts require API tokens or external services?
+4. where do failures occur (`install`, `import`, `path`, `config`, `GPU`, `API`)?
+
+Environment strategy for smoke tests (single `.venv` only):
+
+- keep one interpreter at `.venv`
+- use staged installs instead of multiple environments:
+  - install `requirements-basic.txt` first for fast validation of non-heavy workflows
+  - install full dependencies later for complete reproduction, including heavy fine-tuning stack
+
+Clone and structure verification checklist (immediately after clone):
+
+- repository opens in Cursor
+- folders exist: `ssc`, `prompting`, `llama`, `data`, `utils`
+- Cursor interpreter points to `.venv`
+- imports resolve from project root
 
 ## Phase 2 - Smoke Test the Target Code As-Is
 
 Goal:
 verify that the target code works before any customization.
 
-Subgoals:
+Scope for this phase:
 
 1. verify imports
 2. verify paths and expected data structure
@@ -91,8 +103,7 @@ Expected order of testing:
 3. `llama/`
 
 Reason:
-`ssc` is likely the simplest baseline to test locally, `prompting` depends on
-API configuration, and `llama` is the heaviest environment-dependent workflow.
+smallest surface area first, API-dependent second, heaviest/GPU-sensitive last.
 
 ## Phase 3 - Baseline Execution As-Is
 
