@@ -55,6 +55,8 @@ Completed / current phase:
 
 ## Phase 1 - Inspect and Clone Target Repository
 
+**Status: COMPLETED (2026-03-31)**
+
 Goal of the first run:
 baseline reproducibility, not optimization.
 
@@ -65,21 +67,28 @@ Answer four questions only:
 3. which parts require API tokens or external services?
 4. where do failures occur (`install`, `import`, `path`, `config`, `GPU`, `API`)?
 
-Environment strategy for smoke tests (single `.venv` only):
+Environment strategy (revised from single `.venv` to dual-environment):
 
-- keep one interpreter at `.venv`
-- use staged installs instead of multiple environments:
-  - install `requirements-basic.txt` first for fast validation of non-heavy workflows
-  - install full dependencies later for complete reproduction, including heavy fine-tuning stack
+- `.venv` — CPU-only smoke tests with pinned compatible versions
+- `.venv-gpu` — GPU training with Unsloth stack
+
+Reason for revision: SSC smoke tests require `transformers==4.46.3`; Unsloth requires `transformers>=4.51.3`. These are incompatible in one environment.
 
 Clone and structure verification checklist (immediately after clone):
 
-- repository opens in Cursor
-- folders exist: `ssc`, `prompting`, `llama`, `data`, `utils`
-- Cursor interpreter points to `.venv`
-- imports resolve from project root
+- [x] repository opens in Cursor
+- [x] folders exist: `ssc`, `prompting`, `llama`, `data`, `utils`
+- [x] Cursor interpreter points to `.venv`
+- [x] imports resolve from clone root (not wrapper root)
+
+Documentation:
+
+- `ENVIRONMENT_SETUP.md` — full setup instructions and system specs
+- `PHASE2_PHASE3_NOTES.md` — detailed smoke test logs and compatibility fixes
 
 ## Phase 2 - Smoke Test the Target Code As-Is
+
+**Status: COMPLETED (2026-03-31)**
 
 Goal:
 verify that the target code works before any customization.
@@ -104,6 +113,25 @@ Expected order of testing:
 
 Reason:
 smallest surface area first, API-dependent second, heaviest/GPU-sensitive last.
+
+### Results summary
+
+| Module | Import test | Script startup | Blocking issue |
+|--------|-------------|----------------|----------------|
+| `ssc.model` | PASS (CPU env) | — | — |
+| `ssc.dataset` | FAIL | FAIL | Unsloth GPU requirement |
+| `prompting.classify` | PASS (CPU env) | FAIL | `utils` path resolution |
+| `ssc.main` | — | FAIL | Unsloth GPU requirement |
+| `ssc.train` | — | FAIL | Unsloth GPU requirement |
+
+### Key findings
+
+1. **Dependency compatibility**: Required `transformers==4.46.3` and `langchain==0.1.9` for imports to pass.
+2. **Working directory sensitivity**: Must run from clone root, not wrapper root.
+3. **GPU requirement**: Unsloth blocks all `ssc.dataset` and downstream paths on CPU-only torch.
+4. **API/auth**: Not reached; prompting import passes but script fails on path resolution first.
+
+Full details: `PHASE2_PHASE3_NOTES.md`
 
 ## Phase 3 - Baseline Execution As-Is
 
