@@ -1,12 +1,17 @@
 # Minimal dependency set for early smoke tests.
 # Install this first in `.venv` before full requirements.
+# Use CPU-only PyTorch to keep the basic stage lightweight.
 
-pip
-setuptools
-wheel
+--extra-index-url https://download.pytorch.org/whl/cpu
 
-torch
-transformers
-datasets
-scikit-learn
-loguru
+pip==24.0
+setuptools==81.0.0
+wheel==0.45.1
+
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+transformers==4.46.3
+datasets==4.8.4
+scikit-learn==1.8.0
+loguru==0.7.3
+langchain==0.1.9
