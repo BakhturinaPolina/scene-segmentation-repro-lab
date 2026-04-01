@@ -1,0 +1,45 @@
+---
+description: Research logging discipline — enforces structured run/artifact/issue/decision/sync notes for every meaningful action. Applies to all agent interactions in this project.
+globs:
+alwaysApply: true
+---
+
+# Research Logging Rules
+
+This project follows strict research logging rules defined in `rule.md` at the project root.
+
+## Quick reference
+
+Before any run, confirm: track, goal, environment, output folder, baseline vs experiment, varying factor.
+
+After any run, produce: logs, config/command, run note, artifact note(s), issue note (if failure), decision note (if standards changed), sync note.
+
+## Note locations
+
+| Type        | Folder                        | Template                                          |
+|-------------|-------------------------------|---------------------------------------------------|
+| Run         | `research_log/runs/`          | `research_log/templates/run_template.md`          |
+| Experiment  | `research_log/experiments/`   | `research_log/templates/experiment_template.md`   |
+| Artifact    | `research_log/artifacts/`     | `research_log/templates/artifact_template.md`     |
+| Issue       | `research_log/issues/`        | `research_log/templates/issue_template.md`        |
+| Decision    | `research_log/decisions/`     | `research_log/templates/decision_template.md`     |
+| Sync note   | `research_log/sync_notes/`    | `research_log/templates/sync_note_template.md`    |
+
+## File naming
+
+- Runs: `YYYY-MM-DD__track__run-type__short-name.md`
+- Experiments: `experiment__track__factor__short-name.md`
+- Artifacts: `artifact__run-short-name__artifact-type.md`
+- Issues: `issue__category__short-name.md`
+- Decisions: `decision__short-name.md`
+- Sync notes: `sync__YYYY-MM-DD__short-name.md`
+
+## Key constraints
+
+- One factor at a time in controlled experiments.
+- Failed runs must still be logged.
+- Every baseline change requires a decision note.
+- Every result must be reproducible from the run note alone.
+- All notes use YAML frontmatter matching the schemas in `rule.md`.
+
+For the full specification, read `rule.md`.

@@ -18,6 +18,7 @@ dist/
 # IDE
 .vscode/
 .cursor/
+!.cursor/rules/
 
 # Environment / secrets
 .env
