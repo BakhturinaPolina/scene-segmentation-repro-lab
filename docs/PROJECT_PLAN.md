@@ -83,8 +83,8 @@ Clone and structure verification checklist (immediately after clone):
 
 Documentation:
 
-- `ENVIRONMENT_SETUP.md` — full setup instructions and system specs
-- `PHASE2_PHASE3_NOTES.md` — detailed smoke test logs and compatibility fixes
+- `docs/ENVIRONMENT_SETUP.md` — full setup instructions and system specs
+- `docs/PHASE2_PHASE3_NOTES.md` — detailed smoke test logs and compatibility fixes
 
 ## Phase 2 - Smoke Test the Target Code As-Is
 
@@ -131,7 +131,7 @@ smallest surface area first, API-dependent second, heaviest/GPU-sensitive last.
 3. **GPU requirement**: Unsloth blocks all `ssc.dataset` and downstream paths on CPU-only torch.
 4. **API/auth**: Not reached; prompting import passes but script fails on path resolution first.
 
-Full details: `PHASE2_PHASE3_NOTES.md`
+Full details: `docs/PHASE2_PHASE3_NOTES.md`
 
 ## Phase 3 - Baseline Execution As-Is
 
@@ -273,5 +273,5 @@ When acting in this repository:
 - prefer small reproducible tests first
 - log every important command in markdown
 - separate baseline reproduction from experimental customization
-- treat `PROJECT_PLAN.md` as the project roadmap
+- treat `docs/PROJECT_PLAN.md` as the project roadmap
 - update this file when later phases begin

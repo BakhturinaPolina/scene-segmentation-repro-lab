@@ -1,36 +1,68 @@
 # Scene Segmentation Research Workspace
 
 This repository is a research workspace for testing and extending
-`LSX-UniWue/scene-segmentation`.
+[LSX-UniWue/scene-segmentation](https://github.com/LSX-UniWue/scene-segmentation).
 
 ## Goals
 
-- create a clean reproducible local environment in Cursor on Ubuntu
-- document setup and execution steps
-- test the original repository as-is
-- later run controlled experiments on:
+- Create a clean reproducible local environment in Cursor on Ubuntu
+- Document setup and execution steps
+- Test the original repository as-is
+- Run controlled experiments on:
   - SSC models
-  - prompting-based segmentation
-  - model backbones and embedding choices
+  - Prompting-based segmentation
+  - Model backbones and embedding choices
   - LLM choices via OpenRouter
-  - prompt schemas
-  - labeling schemas
+  - Prompt schemas
+  - Labeling schemas
 
 ## Current Stage
 
 Phase 2 (smoke tests) completed. Environment preparation documented.
+Next: Phase 3 baseline execution.
 
 ## Repository Structure
 
-- `PROJECT_PLAN.md` - full project roadmap
-- `ENVIRONMENT_SETUP.md` - environment setup instructions and system specs
-- `PHASE2_PHASE3_NOTES.md` - detailed smoke test logs and compatibility fixes
-- `upstream/` - cloned target repository (git-ignored contents)
-- `src/` - helper scripts and wrappers
-- `notebooks/` - exploration notebooks
-- `data/` - raw/interim/processed data
-- `outputs/` - logs, figures, predictions
-- `tests/` - test scripts
+```
+.
+├── README.md
+├── rule.md                  # Research logging rules (strict YAML version)
+├── requirements.txt         # Base pip/setuptools/wheel
+├── requirements-basic.txt   # Pinned CPU smoke-test dependencies
+├── docs/
+│   ├── PROJECT_PLAN.md      # Full project roadmap
+│   ├── ENVIRONMENT_SETUP.md # Environment setup and system specs
+│   └── PHASE2_PHASE3_NOTES.md # Smoke test logs and compatibility fixes
+├── research_log/
+│   ├── runs/                # Structured run notes (YAML frontmatter)
+│   ├── experiments/         # Experiment comparison notes
+│   ├── artifacts/           # Artifact descriptions
+│   ├── issues/              # Technical issue notes
+│   ├── decisions/           # Standardization decision notes
+│   ├── sync_notes/          # End-of-block Notion sync notes
+│   └── templates/           # Note templates for each type
+├── data/                    # Raw / interim / processed data
+├── outputs/                 # Logs, figures, predictions
+├── src/                     # Helper scripts and wrappers
+├── notebooks/               # Exploration notebooks
+├── tests/                   # Test scripts
+└── upstream/                # Cloned target repository (git-ignored)
+```
+
+## Research Log
+
+All research activity is documented in `research_log/` using structured markdown notes with YAML frontmatter. See `rule.md` for the full specification.
+
+The log is designed to sync with a Notion research hub. Each note type maps to a Notion database:
+
+| Note type | Folder | Notion target |
+|-----------|--------|---------------|
+| Run | `research_log/runs/` | Runs |
+| Experiment | `research_log/experiments/` | Experiments |
+| Artifact | `research_log/artifacts/` | Artifacts |
+| Issue | `research_log/issues/` | Issues |
+| Decision | `research_log/decisions/` | Decisions |
+| Sync note | `research_log/sync_notes/` | Roadmap / daily summary |
 
 ## Environment
 
@@ -41,7 +73,7 @@ Ubuntu 24.04 + Cursor IDE + dual virtual environments:
 | `.venv` | CPU smoke tests | `source .venv/bin/activate` |
 | `.venv-gpu` | GPU training (Unsloth) | `source .venv-gpu/bin/activate` |
 
-See `ENVIRONMENT_SETUP.md` for full details.
+See `docs/ENVIRONMENT_SETUP.md` for full details.
 
 ## Quick Start
 
@@ -71,7 +103,7 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 
 ## Working Directory
 
-Commands must run from the **clone root**:
+Commands that use the upstream code must run from the **clone root**:
 
 ```bash
 cd upstream/scene-segmentation
@@ -79,14 +111,3 @@ python -c "import ssc.model; print('OK')"
 ```
 
 Running from the wrapper root will cause `ModuleNotFoundError: No module named 'ssc'`.
-
-## Install Order (legacy note)
-
-```bash
-pip install -r requirements-basic.txt
-# later:
-pip install -r requirements.txt
-```
-
-Note: do not paste both install lines as one command block in the terminal.
-If pasted together, both commands will run sequentially in the same session.

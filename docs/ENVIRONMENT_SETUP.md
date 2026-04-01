@@ -1,7 +1,9 @@
 # Environment Setup Documentation
 
+> `$PROJECT_ROOT` refers to the local clone of this repository.
+
 Date: 2026-03-31  
-Workspace: `/home/polina/Documents/Cursor_Projects/scene-segmentation-research`
+Workspace: `$PROJECT_ROOT`
 
 This document records the environment preparation work for Phases 1–2 of the project plan.
 
@@ -59,7 +61,7 @@ Fast smoke testing of SSC and prompting imports without GPU dependencies.
 ### Creation
 
 ```bash
-cd /home/polina/Documents/Cursor_Projects/scene-segmentation-research
+cd $PROJECT_ROOT
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-basic.txt
@@ -115,7 +117,7 @@ GPU-accelerated training and Unsloth fine-tuning workflows.
 ### Creation
 
 ```bash
-cd /home/polina/Documents/Cursor_Projects/scene-segmentation-research
+cd $PROJECT_ROOT
 python3 -m venv .venv-gpu
 source .venv-gpu/bin/activate
 pip install --upgrade pip setuptools wheel
@@ -184,17 +186,17 @@ python -c "import transformers,trl,peft,accelerate,bitsandbytes; print(transform
 All commands must be run from the **clone root**, not the wrapper root:
 
 ```bash
-cd /home/polina/Documents/Cursor_Projects/scene-segmentation-research/upstream/scene-segmentation
+cd $PROJECT_ROOT/upstream/scene-segmentation
 ```
 
-Running from `/home/polina/Documents/Cursor_Projects/scene-segmentation-research` will cause:
+Running from `$PROJECT_ROOT` will cause:
 ```
 ModuleNotFoundError: No module named 'ssc'
 ```
 
 Alternative: set `PYTHONPATH`:
 ```bash
-export PYTHONPATH="/home/polina/Documents/Cursor_Projects/scene-segmentation-research/upstream/scene-segmentation:$PYTHONPATH"
+export PYTHONPATH="$PROJECT_ROOT/upstream/scene-segmentation:$PYTHONPATH"
 ```
 
 ---
@@ -217,7 +219,7 @@ gpu_env_report.txt
 The target repository (`LSX-UniWue/scene-segmentation`) is cloned to:
 
 ```
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/upstream/scene-segmentation
+$PROJECT_ROOT/upstream/scene-segmentation
 ```
 
 This isolation keeps wrapper files and upstream code separate.
@@ -239,13 +241,13 @@ This isolation keeps wrapper files and upstream code separate.
 
 ### Activate CPU environment
 ```bash
-cd /home/polina/Documents/Cursor_Projects/scene-segmentation-research
+cd $PROJECT_ROOT
 source .venv/bin/activate
 ```
 
 ### Activate GPU environment
 ```bash
-cd /home/polina/Documents/Cursor_Projects/scene-segmentation-research
+cd $PROJECT_ROOT
 source .venv-gpu/bin/activate
 ```
 

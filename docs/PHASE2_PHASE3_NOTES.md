@@ -1,21 +1,23 @@
 # Phase 2 and Phase 3 Notes
 
+> `$PROJECT_ROOT` refers to the local clone of this repository.
+
 Date: 2026-03-31  
-Workspace: `/home/polina/Documents/Cursor_Projects/scene-segmentation-research`
+Workspace: `$PROJECT_ROOT`
 
 ## Scope
 
 - Performed only Phase 2 (clone + integrity checks) and Phase 3 (smoke tests).
 - No training, tuning, customization, or repository rewrites were performed.
 - All Python commands were run with the project-local interpreter:
-  - `/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python`
+  - `$PROJECT_ROOT/.venv/bin/python`
 
 ## Phase 2 - Clone and Structure Verification
 
 ### Clone location
 
 - Target cloned to:
-  - `/home/polina/Documents/Cursor_Projects/scene-segmentation-research/upstream/scene-segmentation`
+  - `$PROJECT_ROOT/upstream/scene-segmentation`
 - Wrapper/planning files at workspace root were preserved.
 
 ### Observed repository structure
@@ -37,7 +39,7 @@ Additional top-level files/folders observed:
 ### Interpreter used
 
 - Verified `.venv` interpreter path and version:
-  - executable: `/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python`
+  - executable: `$PROJECT_ROOT/.venv/bin/python`
   - version: `3.12.3`
 
 ### Cursor/editor import-resolution check (pre-execution)
@@ -72,15 +74,15 @@ Local package discoverability checks:
 
 All tests were executed from:
 
-- cwd: `/home/polina/Documents/Cursor_Projects/scene-segmentation-research/upstream/scene-segmentation`
-- interpreter: `/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python`
+- cwd: `$PROJECT_ROOT/upstream/scene-segmentation`
+- interpreter: `$PROJECT_ROOT/.venv/bin/python`
 
 ### Import test results
 
 1. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import ssc.model; print('OK ssc.model')"
+$PROJECT_ROOT/.venv/bin/python -c "import ssc.model; print('OK ssc.model')"
 ```
 
 Result: **failed**  
@@ -90,7 +92,7 @@ Likely cause: missing dependency (`peft`) required at import-time by `ssc/model.
 2. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import ssc.dataset; print('OK ssc.dataset')"
+$PROJECT_ROOT/.venv/bin/python -c "import ssc.dataset; print('OK ssc.dataset')"
 ```
 
 Result: **failed**  
@@ -100,7 +102,7 @@ Likely cause: missing dependency (`wuenlp`) required at import-time by `ssc/data
 3. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import prompting.classify; print('OK prompting.classify')"
+$PROJECT_ROOT/.venv/bin/python -c "import prompting.classify; print('OK prompting.classify')"
 ```
 
 Result: **failed**  
@@ -110,8 +112,8 @@ Likely cause: missing dependency (`langchain`) required at import-time by `promp
 Control check for cwd assumptions:
 
 ```bash
-cd /home/polina/Documents/Cursor_Projects/scene-segmentation-research
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import ssc.model"
+cd $PROJECT_ROOT
+$PROJECT_ROOT/.venv/bin/python -c "import ssc.model"
 ```
 
 Result: **failed** with `ModuleNotFoundError: No module named 'ssc'`  
@@ -124,7 +126,7 @@ All tests were executed from clone root with `.venv` Python.
 1. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m ssc.main --help
+$PROJECT_ROOT/.venv/bin/python -m ssc.main --help
 ```
 
 Starts? **No**  
@@ -134,7 +136,7 @@ Stop classification: **problematic** (import-level environment issue, script log
 2. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m ssc.train --help
+$PROJECT_ROOT/.venv/bin/python -m ssc.train --help
 ```
 
 Starts? **No**  
@@ -144,7 +146,7 @@ Stop classification: **problematic** (import-level environment issue, script log
 3. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python prompting/classify.py
+$PROJECT_ROOT/.venv/bin/python prompting/classify.py
 ```
 
 Starts? **No**  
@@ -244,7 +246,7 @@ This update installs only the three previously missing modules and re-runs the s
 Baseline check command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m pip show peft langchain wuenlp
+$PROJECT_ROOT/.venv/bin/python -m pip show peft langchain wuenlp
 ```
 
 Baseline result:
@@ -255,7 +257,7 @@ Baseline result:
 Install command used:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m pip install peft langchain "git+https://wuenlp.professor-x.de"
+$PROJECT_ROOT/.venv/bin/python -m pip install peft langchain "git+https://wuenlp.professor-x.de"
 ```
 
 Installed package versions (post-install):
@@ -267,12 +269,12 @@ Installed package versions (post-install):
 ### Re-run of same import smoke commands
 
 All re-tests were run from clone root:
-`/home/polina/Documents/Cursor_Projects/scene-segmentation-research/upstream/scene-segmentation`
+`$PROJECT_ROOT/upstream/scene-segmentation`
 
 1. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import ssc.model; print('OK ssc.model')"
+$PROJECT_ROOT/.venv/bin/python -c "import ssc.model; print('OK ssc.model')"
 ```
 
 Result: **failed**  
@@ -285,7 +287,7 @@ Interpretation:
 2. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import ssc.dataset; print('OK ssc.dataset')"
+$PROJECT_ROOT/.venv/bin/python -c "import ssc.dataset; print('OK ssc.dataset')"
 ```
 
 Result: **failed**  
@@ -298,7 +300,7 @@ Interpretation:
 3. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import prompting.classify; print('OK prompting.classify')"
+$PROJECT_ROOT/.venv/bin/python -c "import prompting.classify; print('OK prompting.classify')"
 ```
 
 Result: **failed**  
@@ -312,7 +314,7 @@ Interpretation:
 1. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m ssc.main --help
+$PROJECT_ROOT/.venv/bin/python -m ssc.main --help
 ```
 
 Result: **failed**  
@@ -322,7 +324,7 @@ Classification: problematic stop before script logic.
 2. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m ssc.train --help
+$PROJECT_ROOT/.venv/bin/python -m ssc.train --help
 ```
 
 Result: **failed**  
@@ -332,7 +334,7 @@ Classification: problematic stop before script logic.
 3. Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python prompting/classify.py
+$PROJECT_ROOT/.venv/bin/python prompting/classify.py
 ```
 
 Result: **failed**  
@@ -414,7 +416,7 @@ Requested action: install exactly from upstream requirements and re-run the same
 Command:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m pip install -r "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/upstream/scene-segmentation/requirements.txt"
+$PROJECT_ROOT/.venv/bin/python -m pip install -r "$PROJECT_ROOT/upstream/scene-segmentation/requirements.txt"
 ```
 
 Result: **completed successfully** (`exit_code: 0`, elapsed about 312s).
@@ -441,7 +443,7 @@ All tests run from clone root with `.venv` Python.
 1. `import ssc.model`:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import ssc.model; print('OK ssc.model')"
+$PROJECT_ROOT/.venv/bin/python -c "import ssc.model; print('OK ssc.model')"
 ```
 
 Result: **failed**
@@ -457,7 +459,7 @@ Likely cause:
 2. `import ssc.dataset`:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import ssc.dataset; print('OK ssc.dataset')"
+$PROJECT_ROOT/.venv/bin/python -c "import ssc.dataset; print('OK ssc.dataset')"
 ```
 
 Result: **failed** with same `torchvision::nms`/`PreTrainedModel` import chain (via `ssc.model`).
@@ -465,7 +467,7 @@ Result: **failed** with same `torchvision::nms`/`PreTrainedModel` import chain (
 3. `import prompting.classify`:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -c "import prompting.classify; print('OK prompting.classify')"
+$PROJECT_ROOT/.venv/bin/python -c "import prompting.classify; print('OK prompting.classify')"
 ```
 
 Result: **failed**
@@ -481,7 +483,7 @@ Likely cause:
 1. `python -m ssc.main --help`:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m ssc.main --help
+$PROJECT_ROOT/.venv/bin/python -m ssc.main --help
 ```
 
 Result: **failed** before script logic.
@@ -494,7 +496,7 @@ Classification: problematic import-time environment failure.
 2. `python -m ssc.train --help`:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python -m ssc.train --help
+$PROJECT_ROOT/.venv/bin/python -m ssc.train --help
 ```
 
 Result: **failed** before script logic.
@@ -507,7 +509,7 @@ Classification: problematic import-time environment failure.
 3. `python prompting/classify.py`:
 
 ```bash
-/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv/bin/python prompting/classify.py
+$PROJECT_ROOT/.venv/bin/python prompting/classify.py
 ```
 
 Result: **failed** before script logic.
@@ -692,7 +694,7 @@ Results:
 ### Environment creation
 
 ```bash
-cd /home/polina/Documents/Cursor_Projects/scene-segmentation-research
+cd $PROJECT_ROOT
 python3 -m venv .venv-gpu
 source .venv-gpu/bin/activate
 pip install --upgrade pip setuptools wheel
@@ -789,4 +791,4 @@ gpu_env_report.txt
 
 This separation avoids dependency conflicts between SSC smoke-test compatibility requirements and Unsloth training requirements.
 
-See `ENVIRONMENT_SETUP.md` for full setup instructions and quick reference commands.
+See `docs/ENVIRONMENT_SETUP.md` for full setup instructions and quick reference commands.
