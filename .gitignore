@@ -38,6 +38,10 @@ outputs/predictions/*
 !outputs/predictions/.gitkeep
 outputs/figures/*
 !outputs/figures/.gitkeep
+# Heavy training checkpoints and API caches (paths still documented in research_log)
+outputs/ssc/
+outputs/llama/
+outputs/prompting/
 
 # OS files
 .DS_Store

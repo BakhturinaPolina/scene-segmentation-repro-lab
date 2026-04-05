@@ -5,7 +5,7 @@ title: "All upstream imports fail unless cwd is clone root"
 date_opened: 2026-03-31
 category: config
 severity: medium
-status: open
+status: resolved
 first_seen_in_run: "run_20260331_initial_import_tests"
 environment: "all"
 track: cross-project
