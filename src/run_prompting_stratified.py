@@ -26,6 +26,7 @@ import sys
 import time
 from datetime import date, datetime
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "upstream" / "scene-segmentation"))
 
@@ -34,6 +35,14 @@ from prompting.classify import (
     build_sentence_sample, get_chain, Model, prompt_classify, prompt_classify_cot,
 )
 from utils.constants import Label
+from prompt_runtime import (
+    PROMPT_FAMILIES,
+    build_openrouter_model_kwargs,
+    get_template_text,
+    load_prompt_registry,
+    parse_family_output,
+    render_prompt_for_family,
+)
 
 DEFAULT_MODEL = Model("qwen/qwen3.6-plus", int(512 * 0.8), json=False, openai=False, openrouter=True)
 
@@ -134,6 +143,15 @@ def build_stratified_sample(doc, seed, max_per_class=0):
     return sample
 
 
+def build_full_sample(doc):
+    """Return all sentences with gold labels (full-eval mode)."""
+    sample = []
+    for i, sent in enumerate(doc.sentences):
+        lab = get_label_simple(sent, coarse=True)
+        sample.append((i, sent, "BORDER" if lab == Label.BORDER else "NOBORDER"))
+    return sample
+
+
 # ---------------------------------------------------------------------------
 # Evaluation (mirrors upstream ssc/evaluation.py but works on sparse samples)
 # ---------------------------------------------------------------------------
@@ -183,8 +201,18 @@ def evaluate_sampled(sampled_indices, sampled_preds, full_gold_labels, tolerance
 # Classification loop
 # ---------------------------------------------------------------------------
 
-def classify_sample(sample, doc, chain, model, cache_path, dry_run=0,
-                     prompt_mode="no-cot"):
+def classify_sample(
+    sample,
+    doc,
+    chain,
+    model,
+    cache_path,
+    dry_run=0,
+    prompt_mode="no-cot",
+    prompt_family: Optional[str] = None,
+    template_text: str = "",
+    few_shot_examples: str = "",
+):
     """Classify each sentence in the stratified sample. Resumes from cache."""
     if cache_path.exists():
         with open(cache_path, encoding="utf-8") as f:
@@ -209,9 +237,21 @@ def classify_sample(sample, doc, chain, model, cache_path, dry_run=0,
 
         sent_preview = sentence.text[:80].replace("\n", " ")
         log(f"  [{count+1}/{total}] idx={orig_idx} start (gold={gold}) :: {sent_preview}")
-        text_sample = build_sentence_sample(sentence, model)
+        base_sample = build_sentence_sample(sentence, model)
+        if prompt_family:
+            text_sample = render_prompt_for_family(
+                prompt_family,
+                template_text,
+                base_sample,
+                few_shot_examples=few_shot_examples,
+            )
+        else:
+            text_sample = base_sample
         scene_change = None
         reason = ""
+        parse_ok = False
+        parse_error = ""
+        output_chars = 0
         retry_count = 0
         sent_t0 = time.time()
 
@@ -234,7 +274,25 @@ def classify_sample(sample, doc, chain, model, cache_path, dry_run=0,
 
             chain.memory.chat_memory.messages = chain.memory.chat_memory.messages[:-2]
             text = response["text"]
-            scene_change, reason = parse_response(text, prompt_mode)
+            output_chars = len(text)
+            if prompt_family:
+                parsed = parse_family_output(prompt_family, text)
+                parse_ok = parsed.is_valid
+                parse_error = parsed.error
+                reason = text
+                if parsed.label in ("BORDER", "NOBORDER"):
+                    scene_change = parsed.label == "BORDER"
+                elif prompt_family in {"H", "I"} and parsed.is_valid:
+                    # Scaffold behavior only; chunk families require a chunk runner.
+                    scene_change = False
+                    parse_error = "family_scaffold_no_sentence_label"
+                    parse_ok = False
+                else:
+                    scene_change = None
+            else:
+                scene_change, reason = parse_response(text, prompt_mode)
+                parse_ok = scene_change is not None
+                parse_error = "" if parse_ok else "parse_response_none"
             if scene_change is None:
                 retry_count += 1
                 first_line = text.split("\n")[0]
@@ -244,6 +302,9 @@ def classify_sample(sample, doc, chain, model, cache_path, dry_run=0,
         if scene_change is None:
             scene_change = False
             reason = "FAILED_TO_CLASSIFY"
+            parse_ok = False
+            if not parse_error:
+                parse_error = "failed_to_classify"
 
         pred_str = "BORDER" if scene_change else "NOBORDER"
         match = "OK" if pred_str == gold else "MISS"
@@ -258,6 +319,10 @@ def classify_sample(sample, doc, chain, model, cache_path, dry_run=0,
             "reason": reason,
             "gold": gold,
             "sentence": sentence.text[:200],
+            "parse_ok": parse_ok,
+            "parse_error": parse_error,
+            "output_chars": output_chars,
+            "latency_seconds": round(time.time() - sent_t0, 4),
         }
 
         cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -286,10 +351,37 @@ def main():
                         help="OpenRouter model name (default: qwen/qwen3.6-plus)")
     parser.add_argument("--prompt", choices=["no-cot", "cot-list"], default="no-cot",
                         help="Prompt style: no-cot (default) or cot-list (step-by-step)")
-    parser.add_argument("--reasoning", choices=["on", "off"], default="on",
+    parser.add_argument("--reasoning", choices=["on", "off", "low"], default="on",
                         help="Model-level thinking/reasoning: on (default) or off")
     parser.add_argument("--context_size", type=int, default=None,
                         help="Context window in tokens (default: 409 = 512*0.8)")
+    parser.add_argument("--full_eval", action="store_true",
+                        help="Evaluate all sentences (natural distribution) instead of stratified sample")
+    parser.add_argument("--prompt_family", choices=list(PROMPT_FAMILIES), default=None,
+                        help="Prompt template family ID from src/prompts (A..J)")
+    parser.add_argument("--prompts_dir", type=Path,
+                        default=Path(__file__).resolve().parent / "prompts",
+                        help="Directory containing prompt templates and registry.json")
+    parser.add_argument("--few_shot_file", type=Path, default=None,
+                        help="Path to few-shot examples text inserted into D/E templates")
+    parser.add_argument("--temperature", type=float, default=0.0,
+                        help="Decoding temperature (default: 0.0)")
+    parser.add_argument("--top_p", type=float, default=1.0,
+                        help="Decoding top_p (default: 1.0)")
+    parser.add_argument("--top_k", type=int, default=None,
+                        help="Optional top_k (provider/model dependent)")
+    parser.add_argument("--min_p", type=float, default=None,
+                        help="Optional min_p (provider/model dependent)")
+    parser.add_argument("--seed", type=int, default=SEED,
+                        help=f"Random seed for sampling/requests (default: {SEED})")
+    parser.add_argument("--max_tokens", type=int, default=256,
+                        help="Max output tokens per request (default: 256)")
+    parser.add_argument("--stop", action="append", default=[],
+                        help="Optional stop sequence(s); may be provided multiple times")
+    parser.add_argument("--response_format", choices=["none", "json_object", "json_schema"], default="none",
+                        help="Structured output mode when supported by model/provider")
+    parser.add_argument("--schema_file", type=Path, default=None,
+                        help="Optional JSON schema file used when --response_format=json_schema")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -304,26 +396,57 @@ def main():
     elif args.context_size:
         model = Model(model.name, ctx, json=model.json, openai=model.openai, openrouter=model.openrouter)
 
-    prompt_text = prompt_classify if args.prompt == "no-cot" else prompt_classify_cot
-    reasoning_kwargs = {
-        "extra_body": {
-            "reasoning": {"effort": "high"} if args.reasoning == "on"
-            else {"effort": "none"},
-        }
-    }
+    prompt_family = args.prompt_family
+    template_text = ""
+    few_shot_examples = ""
+    if prompt_family:
+        registry = load_prompt_registry(args.prompts_dir)
+        template_text = get_template_text(args.prompts_dir, prompt_family, registry)
+        if args.few_shot_file:
+            few_shot_examples = args.few_shot_file.read_text(encoding="utf-8")
+        if prompt_family in {"H", "I"}:
+            log("ERROR: Families H/I are chunk-level and not supported in sentence-wise runner yet.")
+            sys.exit(1)
+        prompt_text = (
+            "You are a precise scene segmentation assistant. "
+            "Follow the requested output format exactly."
+        )
+    else:
+        prompt_text = prompt_classify if args.prompt == "no-cot" else prompt_classify_cot
+
+    json_schema = None
+    if args.response_format == "json_schema" and args.schema_file:
+        json_schema = json.loads(args.schema_file.read_text(encoding="utf-8"))
+    model_kwargs = build_openrouter_model_kwargs(
+        reasoning=args.reasoning,
+        temperature=args.temperature,
+        top_p=args.top_p,
+        top_k=args.top_k,
+        min_p=args.min_p,
+        seed=args.seed,
+        max_tokens=args.max_tokens,
+        stop=args.stop or None,
+        response_format=args.response_format,
+        json_schema=json_schema,
+    )
 
     run_date = args.date or date.today().isoformat()
     model_slug = model.name.replace("/", "_").replace(":", "_")
-    prompt_tag = args.prompt.replace("-", "")
+    prompt_tag = f"family{prompt_family}" if prompt_family else args.prompt.replace("-", "")
     reasoning_tag = f"reasoning-{args.reasoning}"
+    mode_tag = "full" if args.full_eval else "strat"
     output_dir = (Path(__file__).resolve().parent.parent
                   / "outputs" / "prompting" / run_date
-                  / f"stratified_{model_slug}_{prompt_tag}_{reasoning_tag}")
+                  / f"{mode_tag}_{model_slug}_{prompt_tag}_{reasoning_tag}")
     output_dir.mkdir(parents=True, exist_ok=True)
     log(f"Model: {model.name}")
     log(f"Context size: {model.context_size} tokens")
     log(f"Prompt: {args.prompt}")
+    if prompt_family:
+        log(f"Prompt family: {prompt_family}")
     log(f"Reasoning: {args.reasoning}")
+    log(f"Eval mode: {'full_eval' if args.full_eval else 'stratified'}")
+    log(f"Decode: temp={args.temperature}, top_p={args.top_p}, max_tokens={args.max_tokens}")
     log(f"Output: {output_dir}")
 
     xmi_files = sorted(DATA_DIR.glob("*.xmi.zip"))
@@ -349,7 +472,10 @@ def main():
         full_gold = [get_label_simple(s, coarse=True).value for s in sentences]
         n_gold_borders = sum(1 for g in full_gold if g == "BORDER")
 
-        sample = build_stratified_sample(doc, SEED, max_per_class=args.max_per_class)
+        if args.full_eval:
+            sample = build_full_sample(doc)
+        else:
+            sample = build_stratified_sample(doc, args.seed, max_per_class=args.max_per_class)
         n_border_sampled = sum(1 for _, _, g in sample if g == "BORDER")
         n_noborder_sampled = sum(1 for _, _, g in sample if g == "NOBORDER")
 
@@ -358,15 +484,22 @@ def main():
         log(f"  Sampled: {len(sample)} ({n_border_sampled} BORDER + {n_noborder_sampled} NOBORDER)")
 
         cache_path = output_dir / f"cache_{stem.replace(' ', '_')}.json"
-        chain = get_chain(model, prompt_text, extra_model_kwargs=reasoning_kwargs)
+        chain = get_chain(model, prompt_text, extra_model_kwargs=model_kwargs)
         cache = classify_sample(sample, doc, chain, model, cache_path,
-                                dry_run=args.dry_run, prompt_mode=args.prompt)
+                                dry_run=args.dry_run, prompt_mode=args.prompt,
+                                prompt_family=prompt_family,
+                                template_text=template_text,
+                                few_shot_examples=few_shot_examples)
 
         sampled_indices = []
         sampled_preds = []
         sampled_golds = []
         reasons = []
         sent_texts = []
+        parse_flags = []
+        parse_errors = []
+        output_chars_list = []
+        latencies = []
 
         for orig_idx, _sent, gold in sample:
             key = str(orig_idx)
@@ -378,9 +511,17 @@ def main():
             sampled_golds.append(entry["gold"])
             reasons.append(entry["reason"])
             sent_texts.append(entry["sentence"])
+            parse_flags.append(bool(entry.get("parse_ok", False)))
+            parse_errors.append(entry.get("parse_error", ""))
+            output_chars_list.append(float(entry.get("output_chars", 0) or 0))
+            latencies.append(float(entry.get("latency_seconds", 0) or 0))
 
         n_classified = len(sampled_indices)
         n_correct = sum(1 for p, g in zip(sampled_preds, sampled_golds) if p == g)
+        parse_failure_count = sum(1 for ok in parse_flags if not ok)
+        parse_failure_rate = (parse_failure_count / n_classified) if n_classified else 0.0
+        avg_output_chars = (sum(output_chars_list) / len(output_chars_list)) if output_chars_list else 0.0
+        avg_latency_seconds = (sum(latencies) / len(latencies)) if latencies else 0.0
 
         metrics = {}
         for tol in (0, 1, 3):
@@ -391,10 +532,15 @@ def main():
             "file": xmi_path.name,
             "total_sentences": total_sents,
             "gold_borders": n_gold_borders,
+            "sample_mode": "full_eval" if args.full_eval else "stratified",
             "sampled": n_classified,
             "sampled_borders": sum(1 for g in sampled_golds if g == "BORDER"),
             "sampled_noborders": sum(1 for g in sampled_golds if g == "NOBORDER"),
             "accuracy": round(n_correct / n_classified, 4) if n_classified else 0,
+            "parse_failure_count": parse_failure_count,
+            "parse_failure_rate": round(parse_failure_rate, 4),
+            "avg_output_chars": round(avg_output_chars, 2),
+            "avg_latency_seconds": round(avg_latency_seconds, 3),
             "metrics": metrics,
         }
         all_doc_results[stem] = doc_result
@@ -410,12 +556,21 @@ def main():
             "ground_truth": sampled_golds,
             "reasons": reasons,
             "sentences": sent_texts,
+            "parse_ok": parse_flags,
+            "parse_error": parse_errors,
+            "output_chars": output_chars_list,
+            "latency_seconds": latencies,
             "metrics": metrics,
         }
         results_path.write_text(json.dumps(results_data, indent=2, ensure_ascii=False))
 
         log(f"  Results for {stem}:")
         log(f"    Classified: {n_classified}, Accuracy: {doc_result['accuracy']:.1%}")
+        log(
+            f"    Parse failures: {parse_failure_count}/{n_classified} "
+            f"({parse_failure_rate:.1%}), avg chars={avg_output_chars:.1f}, "
+            f"avg latency={avg_latency_seconds:.2f}s"
+        )
         for tol_key, m in metrics.items():
             log(
                 f"    {tol_key}: P={m['precision']:.3f} R={m['recall']:.3f} F1={m['f1']:.3f}"
@@ -426,9 +581,20 @@ def main():
     summary = {
         "model": model.name,
         "provider": "openrouter",
+        "prompt_family": prompt_family,
         "prompt_mode": args.prompt,
         "reasoning": args.reasoning,
-        "seed": SEED,
+        "seed": args.seed,
+        "full_eval": args.full_eval,
+        "decode": {
+            "temperature": args.temperature,
+            "top_p": args.top_p,
+            "top_k": args.top_k,
+            "min_p": args.min_p,
+            "max_tokens": args.max_tokens,
+            "stop": args.stop,
+            "response_format": args.response_format,
+        },
         "date": run_date,
         "documents": all_doc_results,
     }
@@ -443,6 +609,15 @@ def main():
                 "recall": round(sum(v["recall"] for v in vals) / len(vals), 4),
                 "f1": round(sum(v["f1"] for v in vals) / len(vals), 4),
             }
+        summary["avg_parse_failure_rate"] = round(
+            sum(d.get("parse_failure_rate", 0.0) for d in all_doc_results.values()) / len(all_doc_results), 4
+        )
+        summary["avg_output_chars"] = round(
+            sum(d.get("avg_output_chars", 0.0) for d in all_doc_results.values()) / len(all_doc_results), 2
+        )
+        summary["avg_latency_seconds"] = round(
+            sum(d.get("avg_latency_seconds", 0.0) for d in all_doc_results.values()) / len(all_doc_results), 3
+        )
 
     summary_path = output_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2))
