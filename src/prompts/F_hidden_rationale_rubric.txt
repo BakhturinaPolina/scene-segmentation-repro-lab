@@ -1,0 +1,27 @@
+Decide whether the marked sentence starts a new event/scene segment.
+
+Internally evaluate these dimensions:
+- time
+- location
+- participating characters
+- ongoing action
+
+Minor progression is not enough; the shift must be narratively meaningful.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Only output JSON:
+{
+  "time_shift": true or false,
+  "location_shift": true or false,
+  "character_shift": true or false,
+  "action_shift": true or false,
+  "label": "BORDER" or "NOBORDER"
+}

@@ -1,0 +1,14 @@
+Below is a short text chunk split into numbered sentences.
+
+Assign each sentence a boundary score from 0 to 100.
+A high score means the sentence likely starts a new event/scene segment.
+
+Return JSON only:
+[
+  {"sentence_id": 1, "score": 0},
+  {"sentence_id": 2, "score": 0},
+  {"sentence_id": 3, "score": 0}
+]
+
+Text:
+{chunk_sentences}

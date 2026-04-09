@@ -1,0 +1,32 @@
+Task has two stages.
+
+Stage 1:
+For the marked sentence, identify whether there is a change in:
+- time
+- location
+- characters
+- action
+
+Stage 2:
+Decide whether the total change is large enough to count as a new event/scene
+segment.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "changes": {
+    "time": "none/minor/significant",
+    "location": "none/minor/significant",
+    "characters": "none/minor/significant",
+    "action": "none/minor/significant"
+  },
+  "label": "BORDER" or "NOBORDER"
+}

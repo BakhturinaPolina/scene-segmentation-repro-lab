@@ -1,0 +1,30 @@
+You are solving event/scene segmentation.
+
+Decision rule:
+A new segment starts only when there is a significant narrative-level shift in
+time, location, participating characters, or ongoing action.
+
+Important:
+Do not label minor shifts as BORDER. Use contrastive examples to learn the
+significance threshold.
+
+Contrastive examples:
+
+{few_shot_examples}
+
+Now solve the new case.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "label": "BORDER" or "NOBORDER",
+  "reason": "one short sentence"
+}

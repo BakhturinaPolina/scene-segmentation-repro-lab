@@ -1,0 +1,25 @@
+You are solving event/scene segmentation.
+
+A new segment starts when there is a significant change in time, location,
+participating characters, or ongoing action. Minor progression does not count.
+
+Use the balanced examples below as guidance:
+
+{few_shot_examples}
+
+Now solve the new case.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "label": "BORDER" or "NOBORDER",
+  "reason": "one short sentence"
+}

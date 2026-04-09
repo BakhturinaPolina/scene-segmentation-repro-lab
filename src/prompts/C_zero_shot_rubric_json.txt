@@ -1,0 +1,29 @@
+Task: Decide whether the marked sentence starts a new event/scene segment.
+
+A new segment starts when there is a significant change in one or more
+dimensions:
+- time
+- location
+- participating characters
+- ongoing action
+
+Minor progression does not count. The shift must be narratively meaningful at
+segment level.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "time_shift": true or false,
+  "location_shift": true or false,
+  "character_shift": true or false,
+  "action_shift": true or false,
+  "label": "BORDER" or "NOBORDER"
+}

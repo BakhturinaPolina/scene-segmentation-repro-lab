@@ -137,37 +137,33 @@ Full details: `docs/PHASE2_PHASE3_NOTES.md`
 
 ### 3.1 SSC Baseline
 
-Goal:
-run the sequential sentence classification workflow without modifications.
+**Status: COMPLETED (2026-04-05) — training failure, needs rerun**
 
-Tasks:
-- identify entry script (`main.py`, `train.py`, or another launcher)
-- verify required input paths
-- run a minimal training or inference pass
-- confirm that outputs are written correctly
-- log runtime, device, and result files
+BERT-German-cased trained on upstream data. Macro F1 = 0.009 on STSS-Test-2 (model predicts only 1 BORDER per novel). Paper's GBERT-Large achieves 0.66. Cause: likely undertrained or label-imbalance issue. Needs proper hyperparameter tuning before this baseline is meaningful.
+
+Run log: `research_log/runs/2026-04-05__ssc__baseline__bert-german-cased.md`
 
 ### 3.2 Prompting Baseline
 
-Goal:
-run `prompting/classify.py` as-is on a small text sample.
+**Status: COMPLETED (2026-04-05 -- 2026-04-08)**
 
-Tasks:
-- provide API credentials/config where required
-- use one default LLM only
-- verify request formatting
-- verify response parsing
-- verify saved outputs
+Pipeline validated with Qwen3.6-Plus (20 sentences), then free-model sweep (8 models x 10 sentences). Full stratified evaluation completed for Nemotron-3-Super-120b (n=892) and GPT-OSS-120b pilot (n=60). Nemotron selected as best model (F1=0.753 at tol=0 on stratified sample).
+
+Critical caveat: stratified sampling inflates precision. Corrected F1 estimate: ~0.38 (tol=0). See `docs/PROGRESS_REPORT.md` for details.
+
+Run logs:
+- `research_log/runs/2026-04-05__prompting__baseline__qwen3-openrouter.md`
+- `research_log/runs/2026-04-08__prompting__baseline__gptoss120b-stratified.md`
+- `research_log/runs/2026-04-08__prompting__baseline__nemotron-stratified.md`
+- `research_log/experiments/experiment__prompting__model__free-120b-comparison.md`
 
 ### 3.3 LLaMA Baseline
 
-Goal:
-check whether the fine-tuning environment can be installed and started.
+**Status: BLOCKED (2026-04-05) — OOM**
 
-Tasks:
-- install heavy dependencies only after simpler workflows are tested
-- verify whether local hardware/software supports the required stack
-- do a dry run if full training is too heavy
+LLaMA-3 8B dry run via Unsloth: out-of-memory on RTX 2070 (8 GB VRAM). Needs larger GPU, quantization, or cloud compute.
+
+Run log: `research_log/runs/2026-04-05__llama__dry-run__unsloth-8b.md`
 
 ## Phase 4 - Stabilization and Reproducibility
 
@@ -184,7 +180,7 @@ Tasks:
 
 ## Phase 5 - Controlled Experiments
 
-Only after the baseline works.
+Only after the baseline works. One factor at a time.
 
 ### 5.1 Encoder / Backbone Experiments for SSC
 
@@ -201,33 +197,118 @@ Possible variants:
 Important rule:
 change one variable at a time.
 
-### 5.2 LLM Experiments via OpenRouter
+### 5.2 Prompting Experiments (OpenRouter Baseline-First)
 
-Hypothesis:
-different LLMs may perform differently on scene/event segmentation.
+**Status: IN PROGRESS (2026-04-09)**
 
-Possible comparisons:
-- one strong instruction-following model
-- one smaller cheaper fast model
-- one model already used successfully in prior literary work
-- one or more models often associated with creative writing or roleplay
+This section is the ground-truth protocol for ongoing prompting experiments.
 
-Important rule:
-keep prompt and evaluation constant while changing model.
+#### Data and comparability constraints
 
-### 5.3 Prompt Schema Experiments
+- Available evaluation data: STSS-Test-2 only (2 novels, ~11k sentences total)
+- Test-Full from the paper is not yet available locally
+- All comparisons to the paper should clearly state dataset mismatch when relevant
 
-Hypothesis:
-task wording and output format may strongly affect results.
+#### Prerequisite (must be completed first)
 
-Possible variations:
-- binary boundary decision
-- explicit instructions to track changes in time, place, characters, action
-- JSON output vs label list
-- short context window vs larger context window
-- reasoning-allowed vs no-reasoning output
+Implement full-eval mode in `src/run_prompting_stratified.py` so evaluation can
+run on ALL sentences with natural class distribution (about 4% BORDER), not only
+balanced stratified subsets.
 
-### 5.4 Label Schema Experiments
+#### Fixed controls for prompt comparisons
+
+The following must remain fixed inside each comparison block:
+
+- same left/right context size
+- same sentence marker format
+- same output schema per prompt family
+- same evaluation script and tolerance setup
+- same decoding defaults unless that factor is being tested
+
+Recommended decoding defaults:
+
+- `temperature = 0`
+- fixed `seed` when the provider/model supports it
+- short response budget via `max_tokens`
+- JSON output when supported (`json_object` or `json_schema`)
+
+#### Model-bucket strategy (OpenRouter free)
+
+Phase A uses OpenRouter free routing and broad prompt-family screening:
+
+1. `openrouter/free` moving baseline
+2. one small fast instruct model
+3. one larger free instruct model
+4. one free reasoning-capable model
+
+Phase B narrows to pinned models from current free inventory.
+
+Phase C continues only with top 1–2 performing model/prompt combinations.
+
+#### Prompt family grid (A–J)
+
+Run these prompt families in the first full sweep:
+
+| Family | Name | Output style |
+|---|---|---|
+| A | Zero-shot, label only | single label |
+| B | Zero-shot, JSON only | JSON |
+| C | Zero-shot, rubric JSON | JSON |
+| D | Few-shot, balanced examples | JSON |
+| E | Few-shot, contrastive minimal pairs | JSON |
+| F | Hidden-rationale rubric | JSON |
+| G | Visible CoT rubric | JSON |
+| H | Boundary localization over short chunk | sentence id / NONE |
+| I | Boundary scoring over short chunk | JSON array |
+| J | Two-stage classify-after-analysis | JSON |
+
+Templates for all A–J families are maintained in `src/prompts/`.
+
+#### Experimental phases
+
+| Phase | Purpose | Scope | Keep / Drop policy |
+|---|---|---|---|
+| Phase A | Prompt search | Run A–J on `openrouter/free` | Keep top 2–3 prompt families |
+| Phase B | Model search | Run kept prompts on 3–5 pinned free models | Keep top 1–2 model/prompt combos |
+| Phase C | Focused iteration | Deepen best combos (context, temperature, few-shot) | Stop exploring weaker branches |
+
+#### Follow-up axes (one factor at a time, after full-eval)
+
+| ID | Factor | Values |
+|---|---|---|
+| E1 | Prompt family | A–J |
+| E2 | Model bucket/model | router + pinned free models |
+| E3 | Context window | 409, 1024, 2048, 4096 |
+| E4 | Temperature | 0.0, 0.3, 1.0 |
+| E5 | Few-shot count | 0-shot, 2-shot, 4-shot |
+| E6 | Reasoning mode | off, low, on |
+
+#### Metrics and logging requirements
+
+Always log:
+
+- precision / recall / F1 at tolerance 0/1/3
+- parse failure rate
+- average output length
+- average latency
+- error tags:
+  - minor shift false positive
+  - implicit shift false negative
+  - non-scene confusion
+  - early/late but near-correct boundary
+
+#### Operational sequence
+
+```
+1. Implement full-eval mode
+2. Run prompt-family sweep A–J with openrouter/free
+3. Keep top 2–3 prompt families
+4. Run those on pinned free-model buckets
+5. Keep top 1–2 model/prompt combinations
+6. Run focused experiments (context, temperature, few-shot, reasoning)
+```
+
+### 5.3 Label Schema Experiments
 
 Hypothesis:
 richer labels may improve interpretability but increase complexity.

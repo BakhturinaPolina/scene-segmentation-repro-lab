@@ -1,0 +1,28 @@
+Decide whether the marked sentence starts a new event/scene segment.
+
+Think step by step:
+1. Is there a significant change in time?
+2. Is there a significant change in location?
+3. Is there a significant change in participating characters?
+4. Is there a significant change in ongoing action?
+5. Based on these, does the sentence start a new segment?
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "analysis": {
+    "time": "...",
+    "location": "...",
+    "characters": "...",
+    "action": "..."
+  },
+  "label": "BORDER" or "NOBORDER"
+}

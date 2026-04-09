@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "default_decode": {
+    "temperature": 0,
+    "max_tokens": 256,
+    "response_format": "json_object_when_supported"
+  },
+  "templates": [
+    {
+      "id": "A",
+      "file": "A_zero_shot_label_only.txt",
+      "family": "zero_shot_label_only",
+      "schema": "label_only",
+      "placeholders": ["left_context", "target_sentence", "right_context"]
+    },
+    {
+      "id": "B",
+      "file": "B_zero_shot_json.txt",
+      "family": "zero_shot_json",
+      "schema": "json_label_confidence",
+      "placeholders": ["left_context", "target_sentence", "right_context"]
+    },
+    {
+      "id": "C",
+      "file": "C_zero_shot_rubric_json.txt",
+      "family": "zero_shot_rubric_json",
+      "schema": "json_rubric_label",
+      "placeholders": ["left_context", "target_sentence", "right_context"]
+    },
+    {
+      "id": "D",
+      "file": "D_few_shot_balanced.txt",
+      "family": "few_shot_balanced",
+      "schema": "json_label_reason",
+      "placeholders": ["few_shot_examples", "left_context", "target_sentence", "right_context"]
+    },
+    {
+      "id": "E",
+      "file": "E_few_shot_contrastive_pairs.txt",
+      "family": "few_shot_contrastive_pairs",
+      "schema": "json_label_reason",
+      "placeholders": ["few_shot_examples", "left_context", "target_sentence", "right_context"]
+    },
+    {
+      "id": "F",
+      "file": "F_hidden_rationale_rubric.txt",
+      "family": "hidden_rationale_rubric",
+      "schema": "json_rubric_label",
+      "placeholders": ["left_context", "target_sentence", "right_context"]
+    },
+    {
+      "id": "G",
+      "file": "G_visible_cot_rubric.txt",
+      "family": "visible_cot_rubric",
+      "schema": "json_analysis_label",
+      "placeholders": ["left_context", "target_sentence", "right_context"]
+    },
+    {
+      "id": "H",
+      "file": "H_boundary_localization_chunk.txt",
+      "family": "boundary_localization_chunk",
+      "schema": "sentence_id_or_none",
+      "placeholders": ["chunk_sentences"]
+    },
+    {
+      "id": "I",
+      "file": "I_boundary_scoring_chunk.txt",
+      "family": "boundary_scoring_chunk",
+      "schema": "json_array_scores",
+      "placeholders": ["chunk_sentences"]
+    },
+    {
+      "id": "J",
+      "file": "J_two_stage_classify_after_analysis.txt",
+      "family": "two_stage_classify_after_analysis",
+      "schema": "json_changes_label",
+      "placeholders": ["left_context", "target_sentence", "right_context"]
+    }
+  ]
+}

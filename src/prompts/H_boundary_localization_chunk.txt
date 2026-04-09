@@ -1,0 +1,10 @@
+Below is a short text chunk split into numbered sentences.
+
+Choose which sentence starts a new event/scene segment.
+
+Return exactly one of:
+- a sentence number
+- NONE
+
+Text:
+{chunk_sentences}
