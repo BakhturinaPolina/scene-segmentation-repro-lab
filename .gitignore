@@ -31,6 +31,23 @@ upstream/
 unsloth_compiled_cache/
 gpu_env_report.txt
 
+# Test / lint / coverage caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.log
+
+# Data artifacts (keep folder structure only)
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
 # Run outputs (keep structure, ignore contents)
 outputs/logs/*
 !outputs/logs/.gitkeep

@@ -63,6 +63,16 @@ def main() -> None:
     run_date = args.date or date.today().isoformat()
     root = Path(__file__).resolve().parent.parent
     stratified_script = root / "src" / "run_prompting_stratified.py"
+    requested_reasoning = args.reasoning
+    effective_reasoning = requested_reasoning
+    if args.model == "openrouter/free" and requested_reasoning == "off":
+        # OpenRouter free endpoint requires reasoning to be enabled.
+        effective_reasoning = "low"
+        print(
+            "Phase A note: openrouter/free rejects '--reasoning off'; "
+            "using '--reasoning low' instead.",
+            flush=True,
+        )
 
     manifest = {
         "phase": "A",
@@ -73,7 +83,8 @@ def main() -> None:
             "dry_run": args.dry_run,
             "max_per_class": args.max_per_class,
             "full_eval": args.full_eval,
-            "reasoning": args.reasoning,
+            "reasoning_requested": requested_reasoning,
+            "reasoning_effective": effective_reasoning,
             "temperature": args.temperature,
             "top_p": args.top_p,
             "max_tokens": args.max_tokens,
@@ -91,7 +102,7 @@ def main() -> None:
             "--model", args.model,
             "--date", run_date,
             "--prompt_family", family,
-            "--reasoning", args.reasoning,
+            "--reasoning", effective_reasoning,
             "--temperature", str(args.temperature),
             "--top_p", str(args.top_p),
             "--max_tokens", str(args.max_tokens),
