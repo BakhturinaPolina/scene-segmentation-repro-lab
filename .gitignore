@@ -42,6 +42,9 @@ outputs/figures/*
 outputs/ssc/
 outputs/llama/
 outputs/prompting/
+# Human-review markdown files (German and English translation) are small and worth tracking
+!outputs/review/
+!outputs/review/en/
 
 # OS files
 .DS_Store
