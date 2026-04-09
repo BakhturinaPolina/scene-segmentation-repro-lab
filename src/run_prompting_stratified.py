@@ -152,6 +152,56 @@ def build_full_sample(doc):
     return sample
 
 
+def build_chunk_sentences(sentences, center_idx, chunk_window):
+    start = max(0, center_idx - chunk_window)
+    end = min(len(sentences), center_idx + chunk_window + 1)
+    lines = []
+    for idx in range(start, end):
+        local_id = idx - start + 1
+        sent_text = sentences[idx].text.replace("\n", " ").strip()
+        lines.append(f"{local_id}. {sent_text}")
+    target_local_id = center_idx - start + 1
+    return "\n".join(lines), target_local_id
+
+
+def infer_chunk_family_label(family, parsed_payload, target_local_id, score_threshold):
+    if family == "H":
+        token = str(parsed_payload).strip()
+        if token.upper() == "NONE":
+            return False, ""
+        try:
+            pred_local_id = int(token)
+        except ValueError:
+            return None, "invalid_sentence_id"
+        return pred_local_id == target_local_id, ""
+
+    if family == "I":
+        if not isinstance(parsed_payload, list):
+            return None, "scores_not_array"
+        target_score = None
+        for item in parsed_payload:
+            if not isinstance(item, dict):
+                continue
+            sid = item.get("sentence_id")
+            if sid is None:
+                continue
+            try:
+                sid_int = int(sid)
+            except (TypeError, ValueError):
+                continue
+            if sid_int == target_local_id:
+                try:
+                    target_score = float(item.get("score"))
+                except (TypeError, ValueError):
+                    return None, "invalid_target_score"
+                break
+        if target_score is None:
+            return None, "missing_target_score"
+        return target_score >= score_threshold, ""
+
+    return None, "unsupported_chunk_family"
+
+
 # ---------------------------------------------------------------------------
 # Evaluation (mirrors upstream ssc/evaluation.py but works on sparse samples)
 # ---------------------------------------------------------------------------
@@ -212,6 +262,8 @@ def classify_sample(
     prompt_family: Optional[str] = None,
     template_text: str = "",
     few_shot_examples: str = "",
+    chunk_window: int = 2,
+    score_threshold: float = 50.0,
 ):
     """Classify each sentence in the stratified sample. Resumes from cache."""
     if cache_path.exists():
@@ -226,6 +278,7 @@ def classify_sample(
     if dry_run > 0:
         total = min(total, dry_run)
     log(f"Classifying up to {total} sampled sentences")
+    all_sentences = list(doc.sentences)
 
     for count, (orig_idx, sentence, gold) in enumerate(sample):
         if count >= total:
@@ -237,16 +290,29 @@ def classify_sample(
 
         sent_preview = sentence.text[:80].replace("\n", " ")
         log(f"  [{count+1}/{total}] idx={orig_idx} start (gold={gold}) :: {sent_preview}")
-        base_sample = build_sentence_sample(sentence, model)
-        if prompt_family:
+        if prompt_family in {"H", "I"}:
+            chunk_sentences, target_local_id = build_chunk_sentences(
+                all_sentences, orig_idx, chunk_window
+            )
             text_sample = render_prompt_for_family(
                 prompt_family,
                 template_text,
-                base_sample,
+                "",
                 few_shot_examples=few_shot_examples,
+                chunk_sentences=chunk_sentences,
             )
         else:
-            text_sample = base_sample
+            target_local_id = None
+            base_sample = build_sentence_sample(sentence, model)
+            if prompt_family:
+                text_sample = render_prompt_for_family(
+                    prompt_family,
+                    template_text,
+                    base_sample,
+                    few_shot_examples=few_shot_examples,
+                )
+            else:
+                text_sample = base_sample
         scene_change = None
         reason = ""
         parse_ok = False
@@ -283,10 +349,20 @@ def classify_sample(
                 if parsed.label in ("BORDER", "NOBORDER"):
                     scene_change = parsed.label == "BORDER"
                 elif prompt_family in {"H", "I"} and parsed.is_valid:
-                    # Scaffold behavior only; chunk families require a chunk runner.
-                    scene_change = False
-                    parse_error = "family_scaffold_no_sentence_label"
-                    parse_ok = False
+                    inferred, infer_error = infer_chunk_family_label(
+                        prompt_family,
+                        parsed.payload,
+                        target_local_id=target_local_id if target_local_id is not None else 1,
+                        score_threshold=score_threshold,
+                    )
+                    if inferred is None:
+                        scene_change = None
+                        parse_ok = False
+                        parse_error = infer_error
+                    else:
+                        scene_change = inferred
+                        parse_ok = True
+                        parse_error = ""
                 else:
                     scene_change = None
             else:
@@ -323,6 +399,7 @@ def classify_sample(
             "parse_error": parse_error,
             "output_chars": output_chars,
             "latency_seconds": round(time.time() - sent_t0, 4),
+            "chunk_target_local_id": target_local_id,
         }
 
         cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -382,6 +459,10 @@ def main():
                         help="Structured output mode when supported by model/provider")
     parser.add_argument("--schema_file", type=Path, default=None,
                         help="Optional JSON schema file used when --response_format=json_schema")
+    parser.add_argument("--chunk_window", type=int, default=2,
+                        help="Chunk half-window (sentences on each side) for H/I families")
+    parser.add_argument("--score_threshold", type=float, default=50.0,
+                        help="Boundary threshold for I family score mode (0-100)")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -404,9 +485,6 @@ def main():
         template_text = get_template_text(args.prompts_dir, prompt_family, registry)
         if args.few_shot_file:
             few_shot_examples = args.few_shot_file.read_text(encoding="utf-8")
-        if prompt_family in {"H", "I"}:
-            log("ERROR: Families H/I are chunk-level and not supported in sentence-wise runner yet.")
-            sys.exit(1)
         prompt_text = (
             "You are a precise scene segmentation assistant. "
             "Follow the requested output format exactly."
@@ -447,6 +525,8 @@ def main():
     log(f"Reasoning: {args.reasoning}")
     log(f"Eval mode: {'full_eval' if args.full_eval else 'stratified'}")
     log(f"Decode: temp={args.temperature}, top_p={args.top_p}, max_tokens={args.max_tokens}")
+    if prompt_family in {"H", "I"}:
+        log(f"Chunk mode: window={args.chunk_window}, score_threshold={args.score_threshold}")
     log(f"Output: {output_dir}")
 
     xmi_files = sorted(DATA_DIR.glob("*.xmi.zip"))
@@ -489,7 +569,9 @@ def main():
                                 dry_run=args.dry_run, prompt_mode=args.prompt,
                                 prompt_family=prompt_family,
                                 template_text=template_text,
-                                few_shot_examples=few_shot_examples)
+                                few_shot_examples=few_shot_examples,
+                                chunk_window=args.chunk_window,
+                                score_threshold=args.score_threshold)
 
         sampled_indices = []
         sampled_preds = []
