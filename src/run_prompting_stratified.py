@@ -14,11 +14,14 @@ Options:
     --max_per_class N   Max BORDER (and NOBORDER) sentences per novel (0 = all)
     --dry_run N         Classify only N sentences total then stop (for testing)
     --date YYYY-MM-DD   Override the output date folder (default: today)
+    --prompt {no-cot,cot-list}  Prompt style (default: no-cot)
+    --reasoning {on,off}        Model-level thinking (default: on)
 """
 import argparse
 import json
 import os
 import random
+import re
 import sys
 import time
 from datetime import date, datetime
@@ -27,7 +30,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "upstream" / "scene-segmentation"))
 
 from wuenlp.impl.UIMANLPStructs import UIMADocument, UIMAScene, UIMASentence
-from prompting.classify import build_sentence_sample, get_chain, Model, prompt_classify
+from prompting.classify import (
+    build_sentence_sample, get_chain, Model, prompt_classify, prompt_classify_cot,
+)
 from utils.constants import Label
 
 DEFAULT_MODEL = Model("qwen/qwen3.6-plus", int(512 * 0.8), json=False, openai=False, openrouter=True)
@@ -40,6 +45,39 @@ def log(msg):
     """Timestamped, unbuffered terminal logging."""
     ts = datetime.now().strftime("%H:%M:%S")
     print(f"[{ts}] {msg}", flush=True)
+
+
+_ANSWER_YES_RE = re.compile(r"\bAnswer\s*:\s*Yes\b", re.IGNORECASE)
+_ANSWER_NO_RE = re.compile(r"\bAnswer\s*:\s*No\b", re.IGNORECASE)
+_NOT_START_RE = re.compile(
+    r"\b(?:does\s+(?:\*{0,2})not(?:\*{0,2})|doesn't)\s+"
+    r"(?:start|introduce|mark\b)", re.IGNORECASE)
+_STARTS_RE = re.compile(
+    r"\b(?:starts?|introduces?|marks?)\s+(?:a\s+new\s+scene|the\s+beginning)",
+    re.IGNORECASE)
+
+
+def parse_response(text, prompt_mode):
+    """Return (scene_change: bool|None, reason: str) from model output."""
+    if prompt_mode == "cot-list":
+        if _ANSWER_NO_RE.search(text):
+            return False, text
+        if _ANSWER_YES_RE.search(text):
+            return True, text
+        if _NOT_START_RE.search(text):
+            return False, text
+        if _STARTS_RE.search(text):
+            return True, text
+    first_line = text.split("\n")[0]
+    if "True" in first_line:
+        return True, text
+    if "False" in first_line:
+        return False, text
+    if first_line.strip().startswith("Yes"):
+        return True, text
+    if first_line.strip().startswith("No"):
+        return False, text
+    return None, text
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +183,8 @@ def evaluate_sampled(sampled_indices, sampled_preds, full_gold_labels, tolerance
 # Classification loop
 # ---------------------------------------------------------------------------
 
-def classify_sample(sample, doc, chain, model, cache_path, dry_run=0):
+def classify_sample(sample, doc, chain, model, cache_path, dry_run=0,
+                     prompt_mode="no-cot"):
     """Classify each sentence in the stratified sample. Resumes from cache."""
     if cache_path.exists():
         with open(cache_path, encoding="utf-8") as f:
@@ -195,15 +234,10 @@ def classify_sample(sample, doc, chain, model, cache_path, dry_run=0):
 
             chain.memory.chat_memory.messages = chain.memory.chat_memory.messages[:-2]
             text = response["text"]
-            first_line = text.split("\n")[0]
-            if "True" in first_line:
-                scene_change = True
-                reason = text
-            elif "False" in first_line:
-                scene_change = False
-                reason = text
-            else:
+            scene_change, reason = parse_response(text, prompt_mode)
+            if scene_change is None:
                 retry_count += 1
+                first_line = text.split("\n")[0]
                 log(f"  [retry {retry_count}] idx={orig_idx} invalid response: {first_line[:80]}")
                 time.sleep(1)
 
@@ -250,6 +284,12 @@ def main():
                         help="Override output date folder (default: today)")
     parser.add_argument("--model", type=str, default=None,
                         help="OpenRouter model name (default: qwen/qwen3.6-plus)")
+    parser.add_argument("--prompt", choices=["no-cot", "cot-list"], default="no-cot",
+                        help="Prompt style: no-cot (default) or cot-list (step-by-step)")
+    parser.add_argument("--reasoning", choices=["on", "off"], default="on",
+                        help="Model-level thinking/reasoning: on (default) or off")
+    parser.add_argument("--context_size", type=int, default=None,
+                        help="Context window in tokens (default: 409 = 512*0.8)")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -257,16 +297,33 @@ def main():
         log("ERROR: Set OPENROUTER_API_KEY environment variable")
         sys.exit(1)
 
+    ctx = args.context_size or int(512 * 0.8)
     model = DEFAULT_MODEL
     if args.model:
-        model = Model(args.model, int(512 * 0.8), json=False, openai=False, openrouter=True)
+        model = Model(args.model, ctx, json=False, openai=False, openrouter=True)
+    elif args.context_size:
+        model = Model(model.name, ctx, json=model.json, openai=model.openai, openrouter=model.openrouter)
+
+    prompt_text = prompt_classify if args.prompt == "no-cot" else prompt_classify_cot
+    reasoning_kwargs = {
+        "extra_body": {
+            "reasoning": {"effort": "high"} if args.reasoning == "on"
+            else {"effort": "none"},
+        }
+    }
 
     run_date = args.date or date.today().isoformat()
     model_slug = model.name.replace("/", "_").replace(":", "_")
+    prompt_tag = args.prompt.replace("-", "")
+    reasoning_tag = f"reasoning-{args.reasoning}"
     output_dir = (Path(__file__).resolve().parent.parent
-                  / "outputs" / "prompting" / run_date / f"stratified_{model_slug}")
+                  / "outputs" / "prompting" / run_date
+                  / f"stratified_{model_slug}_{prompt_tag}_{reasoning_tag}")
     output_dir.mkdir(parents=True, exist_ok=True)
     log(f"Model: {model.name}")
+    log(f"Context size: {model.context_size} tokens")
+    log(f"Prompt: {args.prompt}")
+    log(f"Reasoning: {args.reasoning}")
     log(f"Output: {output_dir}")
 
     xmi_files = sorted(DATA_DIR.glob("*.xmi.zip"))
@@ -301,8 +358,9 @@ def main():
         log(f"  Sampled: {len(sample)} ({n_border_sampled} BORDER + {n_noborder_sampled} NOBORDER)")
 
         cache_path = output_dir / f"cache_{stem.replace(' ', '_')}.json"
-        chain = get_chain(model, prompt_classify)
-        cache = classify_sample(sample, doc, chain, model, cache_path, dry_run=args.dry_run)
+        chain = get_chain(model, prompt_text, extra_model_kwargs=reasoning_kwargs)
+        cache = classify_sample(sample, doc, chain, model, cache_path,
+                                dry_run=args.dry_run, prompt_mode=args.prompt)
 
         sampled_indices = []
         sampled_preds = []
@@ -368,6 +426,8 @@ def main():
     summary = {
         "model": model.name,
         "provider": "openrouter",
+        "prompt_mode": args.prompt,
+        "reasoning": args.reasoning,
         "seed": SEED,
         "date": run_date,
         "documents": all_doc_results,

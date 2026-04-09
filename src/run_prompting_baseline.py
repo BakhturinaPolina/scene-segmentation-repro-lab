@@ -5,10 +5,15 @@ on a small subset of sentences from an XMI file.
 
 Run from project root:
     OPENROUTER_API_KEY=sk-or-... python src/run_prompting_baseline.py
+
+Options:
+    --prompt {no-cot,cot-list}  Prompt style (default: no-cot)
+    --reasoning {on,off}        Model-level thinking (default: on)
 """
 import json
 import argparse
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -18,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "upstream" / "sc
 
 from wuenlp.impl.UIMANLPStructs import UIMADocument
 from prompting.classify import (
-    build_sentence_sample, get_chain, qwen3_plus, prompt_classify, Model
+    build_sentence_sample, get_chain, qwen3_plus, prompt_classify, prompt_classify_cot, Model
 )
 from utils.constants import Label, SCENE_TYPES, NONSCENE_TYPES
 
@@ -49,6 +54,39 @@ def log(msg):
     print(f"[{ts}] {msg}", flush=True)
 
 
+_ANSWER_YES_RE = re.compile(r"\bAnswer\s*:\s*Yes\b", re.IGNORECASE)
+_ANSWER_NO_RE = re.compile(r"\bAnswer\s*:\s*No\b", re.IGNORECASE)
+_NOT_START_RE = re.compile(
+    r"\b(?:does\s+(?:\*{0,2})not(?:\*{0,2})|doesn't)\s+"
+    r"(?:start|introduce|mark\b)", re.IGNORECASE)
+_STARTS_RE = re.compile(
+    r"\b(?:starts?|introduces?|marks?)\s+(?:a\s+new\s+scene|the\s+beginning)",
+    re.IGNORECASE)
+
+
+def parse_response(text, prompt_mode):
+    """Return (scene_change: bool|None, reason: str) from model output."""
+    if prompt_mode == "cot-list":
+        if _ANSWER_NO_RE.search(text):
+            return False, text
+        if _ANSWER_YES_RE.search(text):
+            return True, text
+        if _NOT_START_RE.search(text):
+            return False, text
+        if _STARTS_RE.search(text):
+            return True, text
+    first_line = text.split("\n")[0]
+    if "True" in first_line:
+        return True, text
+    if "False" in first_line:
+        return False, text
+    if first_line.strip().startswith("Yes"):
+        return True, text
+    if first_line.strip().startswith("No"):
+        return False, text
+    return None, text
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run prompting baseline on first N sentences.")
     parser.add_argument("--model", type=str, default=None, help="OpenRouter model name override.")
@@ -59,6 +97,12 @@ def main():
                         help="Max retries per sentence when API fails (default: 10).")
     parser.add_argument("--max_wait", type=int, default=30,
                         help="Max rate-limit wait seconds per retry (default: 30).")
+    parser.add_argument("--prompt", choices=["no-cot", "cot-list"], default="no-cot",
+                        help="Prompt style: no-cot (default) or cot-list (step-by-step)")
+    parser.add_argument("--reasoning", choices=["on", "off"], default="on",
+                        help="Model-level thinking/reasoning: on (default) or off")
+    parser.add_argument("--context_size", type=int, default=None,
+                        help="Context window in tokens (default: 409 = 512*0.8)")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -71,12 +115,27 @@ def main():
         log(f"ERROR: File not found: {xmi_file}")
         sys.exit(1)
 
+    ctx = args.context_size or int(512 * 0.8)
     model = qwen3_plus
     if args.model:
-        model = Model(args.model, int(512 * 0.8), json=False, openai=False, openrouter=True)
+        model = Model(args.model, ctx, json=False, openai=False, openrouter=True)
+    elif args.context_size:
+        model = Model(model.name, ctx, json=model.json, openai=model.openai, openrouter=model.openrouter)
+
+    prompt_text = prompt_classify if args.prompt == "no-cot" else prompt_classify_cot
+    reasoning_kwargs = {
+        "extra_body": {
+            "reasoning": {"effort": "high"} if args.reasoning == "on"
+            else {"effort": "none"},
+        }
+    }
+
     out_dir = args.output_dir or OUTPUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     log(f"Model: {model.name}")
+    log(f"Context size: {model.context_size} tokens")
+    log(f"Prompt: {args.prompt}")
+    log(f"Reasoning: {args.reasoning}")
     log(f"Output dir: {out_dir}")
 
     log(f"Loading document: {xmi_file.name}")
@@ -87,7 +146,7 @@ def main():
     max_sentences = max(1, min(args.max_sentences, total_sentences))
     log(f"Document has {total_sentences} sentences, classifying first {max_sentences}")
 
-    chain = get_chain(model, prompt_classify)
+    chain = get_chain(model, prompt_text, extra_model_kwargs=reasoning_kwargs)
     results = {"labels": [], "reasons": [], "ground_truth": [], "sentences": []}
     t0 = time.time()
 
@@ -117,16 +176,11 @@ def main():
                     continue
             chain.memory.chat_memory.messages = chain.memory.chat_memory.messages[:-2]
             text = response["text"]
-            lines = text.split("\n")
-            if "True" in lines[0]:
-                scene_change = True
-                reason = text
-            elif "False" in lines[0]:
-                scene_change = False
-                reason = text
-            else:
+            scene_change, reason = parse_response(text, args.prompt)
+            if scene_change is None:
                 retry_count += 1
-                log(f"  [retry {retry_count}] invalid response: {lines[0][:80]}")
+                first_line = text.split("\n")[0]
+                log(f"  [retry {retry_count}] invalid response: {first_line[:80]}")
 
         if scene_change is None:
             scene_change = False
@@ -155,6 +209,8 @@ def main():
     summary = {
         "model": model.name,
         "provider": "openrouter",
+        "prompt_mode": args.prompt,
+        "reasoning": args.reasoning,
         "file": xmi_file.name,
         "total_sentences_in_doc": total_sentences,
         "sentences_classified": len(results["labels"]),
