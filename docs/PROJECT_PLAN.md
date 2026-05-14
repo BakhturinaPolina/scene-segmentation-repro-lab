@@ -167,6 +167,8 @@ Run log: `research_log/runs/2026-04-05__llama__dry-run__unsloth-8b.md`
 
 ## Phase 4 - Stabilization and Reproducibility
 
+**Status: IN PROGRESS (2026-05-14)**
+
 Goal:
 turn the baseline into a reproducible workflow.
 
@@ -177,6 +179,14 @@ Tasks:
 - save logs and outputs
 - create short "known issues" notes
 - define what counts as "working" for each workflow
+
+Bounded runtime policy for reproducible STSS-Test-2 verification:
+
+- heavy-step timeout is fixed at `1800s` (30 minutes) for SSC and LLaMA wrapper runs.
+- this policy is documented in `docs/PHASE4_STABILIZATION.md` and should remain unchanged across comparable bounded runs.
+
+Execution and validation checklist:
+- `docs/PHASE4_STABILIZATION.md`
 
 ## Phase 5 - Controlled Experiments
 

@@ -364,7 +364,7 @@ def render_prompting(results_json: Path, out_dir: Path) -> Path:
     n_gold_border = sum(1 for g in ground_truth if g == "BORDER")
 
     doc_name = data.get("file", "")
-    model_name = data.get("model", "qwen/qwen3.6-plus:free")
+    model_name = data.get("model", "nvidia/nemotron-3-super-120b-a12b:free")
 
     lines = [
         f"# Prompting Review — {model_name} (OpenRouter)",

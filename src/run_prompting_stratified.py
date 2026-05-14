@@ -1,7 +1,7 @@
 """Stratified prompting evaluation on full corpus.
 
 Classifies a stratified sample (all BORDERs + matched NOBORDERs) from each
-novel in data/full/stss_test_2 using qwen/qwen3.6-plus via OpenRouter,
+novel in data/full/stss_test_2 using Nemotron via OpenRouter free tier,
 then computes precision/recall/F1 at tolerance 0, 1, and 3.
 
 Supports resume: intermediate results are cached per-document so the run can
@@ -43,10 +43,12 @@ from prompt_runtime import (
     parse_family_output,
     render_prompt_for_family,
 )
+from workflow_runtime import project_root, stss_test2_data_dir, write_repro_files
 
-DEFAULT_MODEL = Model("qwen/qwen3.6-plus", int(512 * 0.8), json=False, openai=False, openrouter=True)
+DEFAULT_MODEL = Model("nvidia/nemotron-3-super-120b-a12b:free", int(512 * 0.8), json=False, openai=False, openrouter=True)
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "upstream" / "scene-segmentation" / "data" / "full" / "stss_test_2"
+ROOT_DIR = project_root(Path(__file__))
+DATA_DIR = stss_test2_data_dir(ROOT_DIR)
 SEED = 1337
 
 
@@ -56,18 +58,47 @@ def log(msg):
     print(f"[{ts}] {msg}", flush=True)
 
 
+def progress_bar(done: int, total: int, width: int = 20) -> str:
+    total = max(1, total)
+    done = max(0, min(done, total))
+    filled = int((done / total) * width)
+    return "[" + ("#" * filled) + ("-" * (width - filled)) + f"] {done}/{total}"
+
+
 _ANSWER_YES_RE = re.compile(r"\bAnswer\s*:\s*Yes\b", re.IGNORECASE)
 _ANSWER_NO_RE = re.compile(r"\bAnswer\s*:\s*No\b", re.IGNORECASE)
+_ANSWER_BORDER_RE = re.compile(r"\b(?:Answer|Final\s*Answer)\s*:\s*BORDER\b", re.IGNORECASE)
+_ANSWER_NOBORDER_RE = re.compile(r"\b(?:Answer|Final\s*Answer)\s*:\s*NOBORDER\b", re.IGNORECASE)
+_FINAL_BORDER_RE = re.compile(r"\b(?:BORDER|Yes|True)\b", re.IGNORECASE)
+_FINAL_NOBORDER_RE = re.compile(r"\b(?:NOBORDER|No|False)\b", re.IGNORECASE)
 _NOT_START_RE = re.compile(
     r"\b(?:does\s+(?:\*{0,2})not(?:\*{0,2})|doesn't)\s+"
     r"(?:start|introduce|mark\b)", re.IGNORECASE)
 _STARTS_RE = re.compile(
     r"\b(?:starts?|introduces?|marks?)\s+(?:a\s+new\s+scene|the\s+beginning)",
     re.IGNORECASE)
+_STRICT_SUFFIX = (
+    "\n\nReturn your final decision as exactly one token on the last line: "
+    "BORDER or NOBORDER."
+)
 
 
 def parse_response(text, prompt_mode):
     """Return (scene_change: bool|None, reason: str) from model output."""
+    stripped = text.strip()
+    first_line = stripped.split("\n")[0] if stripped else ""
+    line_norm = re.sub(r"[^\w]+", "", first_line).lower()
+
+    # High-confidence explicit formats.
+    if line_norm in {"border", "yes", "true"}:
+        return True, text
+    if line_norm in {"noborder", "no", "false"}:
+        return False, text
+    if _ANSWER_BORDER_RE.search(text):
+        return True, text
+    if _ANSWER_NOBORDER_RE.search(text):
+        return False, text
+
     if prompt_mode == "cot-list":
         if _ANSWER_NO_RE.search(text):
             return False, text
@@ -77,7 +108,6 @@ def parse_response(text, prompt_mode):
             return False, text
         if _STARTS_RE.search(text):
             return True, text
-    first_line = text.split("\n")[0]
     if "True" in first_line:
         return True, text
     if "False" in first_line:
@@ -87,6 +117,32 @@ def parse_response(text, prompt_mode):
     if first_line.strip().startswith("No"):
         return False, text
     return None, text
+
+
+def parse_response_loose(text: str) -> bool | None:
+    """Fallback parser for verbose outputs when strict parsing fails."""
+    stripped = text.strip()
+    if not stripped:
+        return None
+    lines = [ln.strip() for ln in stripped.splitlines() if ln.strip()]
+    candidates = []
+    if lines:
+        candidates.append(lines[-1])
+    candidates.append(stripped)
+    for chunk in candidates:
+        if _ANSWER_BORDER_RE.search(chunk):
+            return True
+        if _ANSWER_NOBORDER_RE.search(chunk):
+            return False
+        if _FINAL_BORDER_RE.fullmatch(chunk):
+            return True
+        if _FINAL_NOBORDER_RE.fullmatch(chunk):
+            return False
+        if _NOT_START_RE.search(chunk):
+            return False
+        if _STARTS_RE.search(chunk):
+            return True
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -285,11 +341,11 @@ def classify_sample(
             break
         key = str(orig_idx)
         if key in cache:
-            log(f"  [{count+1}/{total}] idx={orig_idx} already cached, skipping")
+            log(f"{progress_bar(count + 1, total)} idx={orig_idx} already cached, skipping")
             continue
 
         sent_preview = sentence.text[:80].replace("\n", " ")
-        log(f"  [{count+1}/{total}] idx={orig_idx} start (gold={gold}) :: {sent_preview}")
+        log(f"{progress_bar(count + 1, total)} idx={orig_idx} start (gold={gold}) :: {sent_preview}")
         if prompt_family in {"H", "I"}:
             chunk_sentences, target_local_id = build_chunk_sentences(
                 all_sentences, orig_idx, chunk_window
@@ -322,8 +378,11 @@ def classify_sample(
         sent_t0 = time.time()
 
         while scene_change is None and retry_count < 15:
+            active_sample = text_sample
+            if retry_count >= 2 and prompt_family in {None, "A"}:
+                active_sample = text_sample + _STRICT_SUFFIX
             try:
-                response = chain(text_sample)
+                response = chain(active_sample)
             except Exception as e:
                 err_str = str(e)
                 if "429" in err_str or "rate" in err_str.lower():
@@ -364,11 +423,23 @@ def classify_sample(
                         parse_ok = True
                         parse_error = ""
                 else:
-                    scene_change = None
+                    loose = parse_response_loose(text)
+                    if loose is not None:
+                        scene_change = loose
+                        parse_ok = True
+                        parse_error = ""
+                    else:
+                        scene_change = None
             else:
                 scene_change, reason = parse_response(text, prompt_mode)
                 parse_ok = scene_change is not None
                 parse_error = "" if parse_ok else "parse_response_none"
+                if scene_change is None:
+                    loose = parse_response_loose(text)
+                    if loose is not None:
+                        scene_change = loose
+                        parse_ok = True
+                        parse_error = ""
             if scene_change is None:
                 retry_count += 1
                 first_line = text.split("\n")[0]
@@ -384,11 +455,9 @@ def classify_sample(
 
         pred_str = "BORDER" if scene_change else "NOBORDER"
         match = "OK" if pred_str == gold else "MISS"
-        log(
-            f"  [{count+1}/{total}] idx={orig_idx} done "
+        log(f"{progress_bar(count + 1, total)} idx={orig_idx} done "
             f"pred={pred_str} gold={gold} {match} "
-            f"(elapsed {time.time() - sent_t0:.1f}s)"
-        )
+            f"(elapsed {time.time() - sent_t0:.1f}s)")
 
         cache[key] = {
             "pred": pred_str,
@@ -405,7 +474,7 @@ def classify_sample(
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(cache, f, indent=2, ensure_ascii=False)
-        log(f"  [{count+1}/{total}] checkpoint saved ({len(cache)} cached)")
+        log(f"{progress_bar(count + 1, total)} checkpoint saved ({len(cache)} cached)")
 
     log(f"Finished classification loop ({len(cache)} cached entries total)")
     return cache
@@ -425,7 +494,7 @@ def main():
     parser.add_argument("--date", type=str, default=None,
                         help="Override output date folder (default: today)")
     parser.add_argument("--model", type=str, default=None,
-                        help="OpenRouter model name (default: qwen/qwen3.6-plus)")
+                        help="OpenRouter model name (default: nvidia/nemotron-3-super-120b-a12b:free)")
     parser.add_argument("--prompt", choices=["no-cot", "cot-list"], default="no-cot",
                         help="Prompt style: no-cot (default) or cot-list (step-by-step)")
     parser.add_argument("--reasoning", choices=["on", "off", "low"], default="on",
@@ -513,10 +582,37 @@ def main():
     prompt_tag = f"family{prompt_family}" if prompt_family else args.prompt.replace("-", "")
     reasoning_tag = f"reasoning-{args.reasoning}"
     mode_tag = "full" if args.full_eval else "strat"
-    output_dir = (Path(__file__).resolve().parent.parent
+    output_dir = (ROOT_DIR
                   / "outputs" / "prompting" / run_date
                   / f"{mode_tag}_{model_slug}_{prompt_tag}_{reasoning_tag}")
     output_dir.mkdir(parents=True, exist_ok=True)
+    run_config = {
+        "max_per_class": args.max_per_class,
+        "dry_run": args.dry_run,
+        "date": run_date,
+        "model": model.name,
+        "prompt": args.prompt,
+        "reasoning": args.reasoning,
+        "context_size": model.context_size,
+        "full_eval": args.full_eval,
+        "prompt_family": args.prompt_family,
+        "prompts_dir": str(args.prompts_dir),
+        "few_shot_file": str(args.few_shot_file) if args.few_shot_file else None,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "top_k": args.top_k,
+        "min_p": args.min_p,
+        "seed": args.seed,
+        "max_tokens": args.max_tokens,
+        "stop": args.stop,
+        "response_format": args.response_format,
+        "schema_file": str(args.schema_file) if args.schema_file else None,
+        "chunk_window": args.chunk_window,
+        "score_threshold": args.score_threshold,
+        "output_dir": str(output_dir),
+        "data_dir": str(DATA_DIR),
+    }
+    write_repro_files(output_dir, sys.argv, run_config)
     log(f"Model: {model.name}")
     log(f"Context size: {model.context_size} tokens")
     log(f"Prompt: {args.prompt}")

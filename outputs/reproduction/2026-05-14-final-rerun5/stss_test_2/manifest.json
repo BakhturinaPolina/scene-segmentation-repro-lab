@@ -1,0 +1,116 @@
+{
+  "date": "2026-05-14-final-rerun5",
+  "scope": "stss_test_2_only",
+  "steps": [
+    {
+      "name": "verify_data_manifest",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/verify_data_manifest.py"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 1.0,
+      "status": "success"
+    },
+    {
+      "name": "unit_tests",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 1.0,
+      "status": "success"
+    },
+    {
+      "name": "prompting_baseline_smoke",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/run_prompting_baseline.py",
+        "--model",
+        "nvidia/nemotron-3-super-120b-a12b:free",
+        "--max_sentences",
+        "5",
+        "--reasoning",
+        "low"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 102.02,
+      "status": "success"
+    },
+    {
+      "name": "prompting_stratified_smoke",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/run_prompting_stratified.py",
+        "--model",
+        "nvidia/nemotron-3-super-120b-a12b:free",
+        "--dry_run",
+        "3",
+        "--max_per_class",
+        "2",
+        "--reasoning",
+        "low"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 208.03,
+      "status": "success"
+    },
+    {
+      "name": "prompting_phase_a_smoke",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/run_prompting_phase_a.py",
+        "--families",
+        "A",
+        "--model",
+        "nvidia/nemotron-3-super-120b-a12b:free",
+        "--dry_run",
+        "1",
+        "--max_per_class",
+        "1",
+        "--reasoning",
+        "low"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 207.03,
+      "status": "success"
+    },
+    {
+      "name": "ssc_baseline",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/run_ssc_baseline.py",
+        "--timeout_seconds",
+        "1800"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 124,
+      "elapsed_seconds": 1802.25,
+      "status": "failed"
+    },
+    {
+      "name": "llama_baseline",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/run_llama_baseline.py",
+        "--timeout_seconds",
+        "1800"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 1,
+      "elapsed_seconds": 1366.19,
+      "status": "failed"
+    }
+  ]
+}

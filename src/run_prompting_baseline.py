@@ -1,7 +1,7 @@
 """Minimal prompting baseline runner for Phase 3.2.
 
-Uses OpenRouter with qwen/qwen3-235b-a22b:free to classify scene boundaries
-on a small subset of sentences from an XMI file.
+Uses OpenRouter with nvidia/nemotron-3-super-120b-a12b:free to classify scene
+boundaries on a small subset of sentences from an XMI file.
 
 Run from project root:
     OPENROUTER_API_KEY=sk-or-... python src/run_prompting_baseline.py
@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "upstream" / "sc
 
 from wuenlp.impl.UIMANLPStructs import UIMADocument
 from prompting.classify import (
-    build_sentence_sample, get_chain, qwen3_plus, prompt_classify, prompt_classify_cot, Model
+    build_sentence_sample, get_chain, nemotron, prompt_classify, prompt_classify_cot, Model
 )
 from utils.constants import Label, SCENE_TYPES, NONSCENE_TYPES
 from prompt_runtime import (
@@ -35,6 +35,7 @@ from prompt_runtime import (
     parse_family_output,
     render_prompt_for_family,
 )
+from workflow_runtime import output_dir_for, project_root, stss_test2_data_dir, write_repro_files
 
 
 def get_label_simple(sentence, coarse=True):
@@ -51,8 +52,8 @@ def get_label_simple(sentence, coarse=True):
             return Label.BORDER
     return Label.NOBORDER
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "upstream" / "scene-segmentation" / "data" / "full" / "stss_test_2"
-OUTPUT_DIR = Path(__file__).resolve().parent.parent / "outputs" / "prompting" / "2026-04-05" / "baseline_qwen3"
+ROOT_DIR = project_root(Path(__file__))
+DATA_DIR = stss_test2_data_dir(ROOT_DIR)
 
 MAX_SENTENCES = 20
 
@@ -63,18 +64,47 @@ def log(msg):
     print(f"[{ts}] {msg}", flush=True)
 
 
+def progress_bar(done: int, total: int, width: int = 20) -> str:
+    total = max(1, total)
+    done = max(0, min(done, total))
+    filled = int((done / total) * width)
+    return "[" + ("#" * filled) + ("-" * (width - filled)) + f"] {done}/{total}"
+
+
 _ANSWER_YES_RE = re.compile(r"\bAnswer\s*:\s*Yes\b", re.IGNORECASE)
 _ANSWER_NO_RE = re.compile(r"\bAnswer\s*:\s*No\b", re.IGNORECASE)
+_ANSWER_BORDER_RE = re.compile(r"\b(?:Answer|Final\s*Answer)\s*:\s*BORDER\b", re.IGNORECASE)
+_ANSWER_NOBORDER_RE = re.compile(r"\b(?:Answer|Final\s*Answer)\s*:\s*NOBORDER\b", re.IGNORECASE)
+_FINAL_BORDER_RE = re.compile(r"\b(?:BORDER|Yes|True)\b", re.IGNORECASE)
+_FINAL_NOBORDER_RE = re.compile(r"\b(?:NOBORDER|No|False)\b", re.IGNORECASE)
 _NOT_START_RE = re.compile(
     r"\b(?:does\s+(?:\*{0,2})not(?:\*{0,2})|doesn't)\s+"
     r"(?:start|introduce|mark\b)", re.IGNORECASE)
 _STARTS_RE = re.compile(
     r"\b(?:starts?|introduces?|marks?)\s+(?:a\s+new\s+scene|the\s+beginning)",
     re.IGNORECASE)
+_STRICT_SUFFIX = (
+    "\n\nReturn your final decision as exactly one token on the last line: "
+    "BORDER or NOBORDER."
+)
 
 
 def parse_response(text, prompt_mode):
     """Return (scene_change: bool|None, reason: str) from model output."""
+    stripped = text.strip()
+    first_line = stripped.split("\n")[0] if stripped else ""
+    line_norm = re.sub(r"[^\w]+", "", first_line).lower()
+
+    # High-confidence explicit formats.
+    if line_norm in {"border", "yes", "true"}:
+        return True, text
+    if line_norm in {"noborder", "no", "false"}:
+        return False, text
+    if _ANSWER_BORDER_RE.search(text):
+        return True, text
+    if _ANSWER_NOBORDER_RE.search(text):
+        return False, text
+
     if prompt_mode == "cot-list":
         if _ANSWER_NO_RE.search(text):
             return False, text
@@ -84,7 +114,6 @@ def parse_response(text, prompt_mode):
             return False, text
         if _STARTS_RE.search(text):
             return True, text
-    first_line = text.split("\n")[0]
     if "True" in first_line:
         return True, text
     if "False" in first_line:
@@ -94,6 +123,32 @@ def parse_response(text, prompt_mode):
     if first_line.strip().startswith("No"):
         return False, text
     return None, text
+
+
+def parse_response_loose(text: str) -> bool | None:
+    """Fallback parser for verbose outputs when strict parsing fails."""
+    stripped = text.strip()
+    if not stripped:
+        return None
+    lines = [ln.strip() for ln in stripped.splitlines() if ln.strip()]
+    candidates = []
+    if lines:
+        candidates.append(lines[-1])
+    candidates.append(stripped)
+    for chunk in candidates:
+        if _ANSWER_BORDER_RE.search(chunk):
+            return True
+        if _ANSWER_NOBORDER_RE.search(chunk):
+            return False
+        if _FINAL_BORDER_RE.fullmatch(chunk):
+            return True
+        if _FINAL_NOBORDER_RE.fullmatch(chunk):
+            return False
+        if _NOT_START_RE.search(chunk):
+            return False
+        if _STARTS_RE.search(chunk):
+            return True
+    return None
 
 
 def main():
@@ -150,7 +205,7 @@ def main():
         sys.exit(1)
 
     ctx = args.context_size or int(512 * 0.8)
-    model = qwen3_plus
+    model = nemotron
     if args.model:
         model = Model(args.model, ctx, json=False, openai=False, openrouter=True)
     elif args.context_size:
@@ -190,8 +245,33 @@ def main():
         json_schema=json_schema,
     )
 
-    out_dir = args.output_dir or OUTPUT_DIR
+    run_date = datetime.now().date().isoformat()
+    out_dir = args.output_dir or output_dir_for(ROOT_DIR, "prompting", run_date, "baseline_qwen3")
     out_dir.mkdir(parents=True, exist_ok=True)
+    run_config = {
+        "model": args.model or nemotron.name,
+        "max_sentences": args.max_sentences,
+        "max_retries": args.max_retries,
+        "max_wait": args.max_wait,
+        "prompt": args.prompt,
+        "reasoning": args.reasoning,
+        "context_size": args.context_size,
+        "prompt_family": args.prompt_family,
+        "prompts_dir": str(args.prompts_dir),
+        "few_shot_file": str(args.few_shot_file) if args.few_shot_file else None,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "top_k": args.top_k,
+        "min_p": args.min_p,
+        "seed": args.seed,
+        "max_tokens": args.max_tokens,
+        "stop": args.stop,
+        "response_format": args.response_format,
+        "schema_file": str(args.schema_file) if args.schema_file else None,
+        "output_dir": str(out_dir),
+        "data_file": str(DATA_DIR / "Aus guter Familie.xmi.zip"),
+    }
+    write_repro_files(out_dir, sys.argv, run_config)
     log(f"Model: {model.name}")
     log(f"Context size: {model.context_size} tokens")
     log(f"Prompt: {args.prompt}")
@@ -224,7 +304,7 @@ def main():
 
     for i, sentence in enumerate(doc.sentences[:max_sentences]):
         sent_preview = sentence.text[:80].replace("\n", " ")
-        log(f"  [{i+1}/{max_sentences}] start :: {sent_preview}")
+        log(f"{progress_bar(i + 1, max_sentences)} start :: {sent_preview}")
         base_sample = build_sentence_sample(sentence, model)
         if prompt_family:
             sample = render_prompt_for_family(
@@ -245,8 +325,11 @@ def main():
         retry_count = 0
         sent_t0 = time.time()
         while scene_change is None and retry_count < args.max_retries:
+            active_sample = sample
+            if retry_count >= 2:
+                active_sample = sample + _STRICT_SUFFIX
             try:
-                response = chain(sample)
+                response = chain(active_sample)
             except Exception as e:
                 err_str = str(e)
                 if "429" in err_str or "rate" in err_str.lower():
@@ -275,6 +358,12 @@ def main():
                 scene_change, reason = parse_response(text, args.prompt)
                 parse_ok = scene_change is not None
                 parse_error = "" if parse_ok else "parse_response_none"
+                if scene_change is None:
+                    loose = parse_response_loose(text)
+                    if loose is not None:
+                        scene_change = loose
+                        parse_ok = True
+                        parse_error = ""
             if scene_change is None:
                 retry_count += 1
                 first_line = text.split("\n")[0]
@@ -290,10 +379,8 @@ def main():
         pred_str = "BORDER" if scene_change else "NOBORDER"
         true_str = true_label.value
         match = "OK" if pred_str == true_str else "MISMATCH"
-        log(
-            f"  [{i+1}/{max_sentences}] done pred={pred_str} true={true_str} {match} "
-            f"(elapsed {time.time() - sent_t0:.1f}s)"
-        )
+        log(f"{progress_bar(i + 1, max_sentences)} done pred={pred_str} true={true_str} {match} "
+            f"(elapsed {time.time() - sent_t0:.1f}s)")
 
         results["labels"].append(scene_change)
         results["reasons"].append(reason)

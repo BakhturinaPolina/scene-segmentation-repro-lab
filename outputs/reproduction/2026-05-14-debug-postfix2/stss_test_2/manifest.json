@@ -1,0 +1,74 @@
+{
+  "date": "2026-05-14-debug-postfix2",
+  "scope": "stss_test_2_only",
+  "steps": [
+    {
+      "name": "verify_data_manifest",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/verify_data_manifest.py"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 0.34,
+      "status": "success"
+    },
+    {
+      "name": "unit_tests",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 0.46,
+      "status": "success"
+    },
+    {
+      "name": "prompting_baseline_smoke",
+      "status": "skipped",
+      "reason": "OPENROUTER_API_KEY not set"
+    },
+    {
+      "name": "prompting_stratified_smoke",
+      "status": "skipped",
+      "reason": "OPENROUTER_API_KEY not set"
+    },
+    {
+      "name": "prompting_phase_a_smoke",
+      "status": "skipped",
+      "reason": "OPENROUTER_API_KEY not set"
+    },
+    {
+      "name": "ssc_baseline",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/run_ssc_baseline.py",
+        "--timeout_seconds",
+        "45"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 124,
+      "elapsed_seconds": 45.68,
+      "status": "failed"
+    },
+    {
+      "name": "llama_baseline",
+      "command": [
+        "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.venv-gpu/bin/python3",
+        "src/run_llama_baseline.py",
+        "--timeout_seconds",
+        "45"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 124,
+      "elapsed_seconds": 45.73,
+      "status": "failed"
+    }
+  ]
+}

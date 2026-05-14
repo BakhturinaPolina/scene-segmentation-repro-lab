@@ -1,0 +1,17 @@
+{
+  "dataset": "stss_test_2",
+  "source": "LSX-UniWue/scene-segmentation",
+  "retrieved_at": "2026-03-31",
+  "files": [
+    {
+      "name": "Aus guter Familie.xmi.zip",
+      "size_bytes": 2664609,
+      "md5": "98e3e5f199c8de6a99c6a73782499939"
+    },
+    {
+      "name": "Effi Briest.xmi.zip",
+      "size_bytes": 3587905,
+      "md5": "24207cf678de3f75e3f6906e184d3549"
+    }
+  ]
+}

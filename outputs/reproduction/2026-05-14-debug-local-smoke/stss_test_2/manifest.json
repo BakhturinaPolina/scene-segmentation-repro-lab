@@ -1,0 +1,57 @@
+{
+  "date": "2026-05-14-debug-local-smoke",
+  "scope": "stss_test_2_only",
+  "steps": [
+    {
+      "name": "verify_data_manifest",
+      "command": [
+        "/usr/bin/python3",
+        "src/verify_data_manifest.py"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 0.33,
+      "status": "success"
+    },
+    {
+      "name": "unit_tests",
+      "command": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "tests/test_workflow_runtime.py",
+        "tests/test_data_manifest.py",
+        "-v"
+      ],
+      "cwd": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research",
+      "exit_code": 0,
+      "elapsed_seconds": 0.47,
+      "status": "success"
+    },
+    {
+      "name": "prompting_baseline_smoke",
+      "status": "skipped",
+      "reason": "OPENROUTER_API_KEY not set"
+    },
+    {
+      "name": "prompting_stratified_smoke",
+      "status": "skipped",
+      "reason": "OPENROUTER_API_KEY not set"
+    },
+    {
+      "name": "prompting_phase_a_smoke",
+      "status": "skipped",
+      "reason": "OPENROUTER_API_KEY not set"
+    },
+    {
+      "name": "ssc_baseline",
+      "status": "skipped",
+      "reason": ".venv-gpu not active"
+    },
+    {
+      "name": "llama_baseline",
+      "status": "skipped",
+      "reason": ".venv-gpu not active"
+    }
+  ]
+}

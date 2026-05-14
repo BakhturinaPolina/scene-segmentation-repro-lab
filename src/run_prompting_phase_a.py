@@ -14,6 +14,8 @@ import time
 from datetime import date
 from pathlib import Path
 
+from workflow_runtime import project_root, write_repro_files
+
 
 STRUCTURED_FAMILIES = {"B", "C", "D", "E", "F", "G", "I", "J"}
 
@@ -24,6 +26,13 @@ def parse_families(value: str) -> list[str]:
     if not valid:
         raise ValueError("No valid families in --families (expected A..J)")
     return valid
+
+
+def _bar(done: int, total: int, width: int = 20) -> str:
+    total = max(1, total)
+    done = max(0, min(done, total))
+    filled = int((done / total) * width)
+    return "[" + ("#" * filled) + ("-" * (width - filled)) + f"] {done}/{total}"
 
 
 def main() -> None:
@@ -61,7 +70,7 @@ def main() -> None:
 
     families = parse_families(args.families)
     run_date = args.date or date.today().isoformat()
-    root = Path(__file__).resolve().parent.parent
+    root = project_root(Path(__file__))
     stratified_script = root / "src" / "run_prompting_stratified.py"
     requested_reasoning = args.reasoning
     effective_reasoning = requested_reasoning
@@ -94,7 +103,8 @@ def main() -> None:
         "runs": [],
     }
 
-    for family in families:
+    total = len(families)
+    for idx, family in enumerate(families, start=1):
         response_format = "json_object" if family in STRUCTURED_FAMILIES else "none"
         cmd = [
             sys.executable,
@@ -116,11 +126,17 @@ def main() -> None:
         if args.full_eval:
             cmd.append("--full_eval")
 
-        print(f"\n=== Phase A family {family} ===", flush=True)
+        print(f"\n{_bar(idx, total)} Phase A family {family} start", flush=True)
         print(" ".join(cmd), flush=True)
         t0 = time.time()
         completed = subprocess.run(cmd, check=False)
         elapsed = round(time.time() - t0, 2)
+        status = "success" if completed.returncode == 0 else "failed"
+        print(
+            f"{_bar(idx, total)} Phase A family {family} done "
+            f"status={status} exit={completed.returncode} elapsed={elapsed}s",
+            flush=True,
+        )
 
         manifest["runs"].append(
             {
@@ -137,6 +153,27 @@ def main() -> None:
     else:
         manifest_path = root / "outputs" / "prompting" / run_date / "phase_a_manifest.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    write_repro_files(
+        manifest_path.parent,
+        sys.argv,
+        {
+            "phase": "A",
+            "families": families,
+            "model": args.model,
+            "date": run_date,
+            "dry_run": args.dry_run,
+            "max_per_class": args.max_per_class,
+            "full_eval": args.full_eval,
+            "reasoning_requested": requested_reasoning,
+            "reasoning_effective": effective_reasoning,
+            "temperature": args.temperature,
+            "top_p": args.top_p,
+            "max_tokens": args.max_tokens,
+            "chunk_window": args.chunk_window,
+            "score_threshold": args.score_threshold,
+            "prompts_dir": str(args.prompts_dir),
+        },
+    )
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"\nPhase A manifest: {manifest_path}", flush=True)
 
