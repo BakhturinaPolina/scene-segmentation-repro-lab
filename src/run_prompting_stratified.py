@@ -26,7 +26,7 @@ import sys
 import time
 from datetime import date, datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "upstream" / "scene-segmentation"))
 
@@ -81,6 +81,37 @@ _STRICT_SUFFIX = (
     "\n\nReturn your final decision as exactly one token on the last line: "
     "BORDER or NOBORDER."
 )
+
+
+def _compact_decision(reason: str) -> str:
+    """Extract a short, human-readable decision summary."""
+    if not reason:
+        return ""
+    lines = [line.strip() for line in reason.splitlines() if line.strip()]
+    if not lines:
+        return ""
+    return lines[0][:240]
+
+
+def _review_schema() -> dict[str, Any]:
+    return {
+        "sentence_index": "int (0-based sentence index in original document)",
+        "sentence_text_full": "str (full sentence text, not truncated)",
+        "prediction_label": "str (BORDER|NOBORDER)",
+        "prediction_bool": "bool",
+        "ground_truth_label": "str",
+        "parse_ok": "bool",
+        "parse_error": "str",
+        "compact_decision": "str (short parsed/normalized rationale)",
+        "raw_model_response": "str (full raw model output)",
+        "latency_seconds": "float",
+        "output_chars": "float",
+        "input_mode": "str (xmi)",
+        "prompt_mode": "str",
+        "prompt_family": "str|null",
+        "model": "str",
+        "source_file": "str",
+    }
 
 
 def parse_response(text, prompt_mode):
@@ -463,7 +494,7 @@ def classify_sample(
             "pred": pred_str,
             "reason": reason,
             "gold": gold,
-            "sentence": sentence.text[:200],
+            "sentence": sentence.text,
             "parse_ok": parse_ok,
             "parse_error": parse_error,
             "output_chars": output_chars,
@@ -673,6 +704,7 @@ def main():
         sampled_preds = []
         sampled_golds = []
         reasons = []
+        compact_decisions = []
         sent_texts = []
         parse_flags = []
         parse_errors = []
@@ -688,6 +720,7 @@ def main():
             sampled_preds.append(entry["pred"])
             sampled_golds.append(entry["gold"])
             reasons.append(entry["reason"])
+            compact_decisions.append(_compact_decision(entry["reason"]))
             sent_texts.append(entry["sentence"])
             parse_flags.append(bool(entry.get("parse_ok", False)))
             parse_errors.append(entry.get("parse_error", ""))
@@ -733,6 +766,7 @@ def main():
             "predictions": sampled_preds,
             "ground_truth": sampled_golds,
             "reasons": reasons,
+            "compact_decisions": compact_decisions,
             "sentences": sent_texts,
             "parse_ok": parse_flags,
             "parse_error": parse_errors,
@@ -741,6 +775,35 @@ def main():
             "metrics": metrics,
         }
         results_path.write_text(json.dumps(results_data, indent=2, ensure_ascii=False))
+        review_schema_path = output_dir / "review_schema.json"
+        if not review_schema_path.exists():
+            review_schema_path.write_text(
+                json.dumps(_review_schema(), indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        review_path = output_dir / f"review_{stem.replace(' ', '_')}.jsonl"
+        with review_path.open("w", encoding="utf-8") as handle:
+            for idx, orig_idx in enumerate(sampled_indices):
+                pred_bool = sampled_preds[idx] == "BORDER"
+                record = {
+                    "sentence_index": orig_idx,
+                    "sentence_text_full": sent_texts[idx],
+                    "prediction_label": sampled_preds[idx],
+                    "prediction_bool": pred_bool,
+                    "ground_truth_label": sampled_golds[idx],
+                    "parse_ok": bool(parse_flags[idx]),
+                    "parse_error": parse_errors[idx],
+                    "compact_decision": compact_decisions[idx],
+                    "raw_model_response": reasons[idx],
+                    "latency_seconds": float(latencies[idx]),
+                    "output_chars": float(output_chars_list[idx]),
+                    "input_mode": "xmi",
+                    "prompt_mode": args.prompt,
+                    "prompt_family": prompt_family,
+                    "model": model.name,
+                    "source_file": xmi_path.name,
+                }
+                handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
         log(f"  Results for {stem}:")
         log(f"    Classified: {n_classified}, Accuracy: {doc_result['accuracy']:.1%}")

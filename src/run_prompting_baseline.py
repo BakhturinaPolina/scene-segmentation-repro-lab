@@ -1,7 +1,7 @@
 """Minimal prompting baseline runner for Phase 3.2.
 
 Uses OpenRouter with nvidia/nemotron-3-super-120b-a12b:free to classify scene
-boundaries on a small subset of sentences from an XMI file.
+boundaries on a small subset of sentences from an XMI file or local TXT file.
 
 Run from project root:
     OPENROUTER_API_KEY=sk-or-... python src/run_prompting_baseline.py
@@ -18,7 +18,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "upstream" / "scene-segmentation"))
 
@@ -56,6 +56,7 @@ ROOT_DIR = project_root(Path(__file__))
 DATA_DIR = stss_test2_data_dir(ROOT_DIR)
 
 MAX_SENTENCES = 20
+TXT_CONTEXT_WINDOW = 1
 
 
 def log(msg):
@@ -87,6 +88,37 @@ _STRICT_SUFFIX = (
     "\n\nReturn your final decision as exactly one token on the last line: "
     "BORDER or NOBORDER."
 )
+
+
+def _compact_decision(reason: str) -> str:
+    """Extract a short, human-readable decision summary."""
+    if not reason:
+        return ""
+    lines = [line.strip() for line in reason.splitlines() if line.strip()]
+    if not lines:
+        return ""
+    return lines[0][:240]
+
+
+def _review_schema() -> dict[str, Any]:
+    return {
+        "sentence_index": "int (0-based sentence index)",
+        "sentence_text_full": "str (full sentence text, not truncated)",
+        "prediction_label": "str (BORDER|NOBORDER)",
+        "prediction_bool": "bool",
+        "ground_truth_label": "str|null",
+        "parse_ok": "bool",
+        "parse_error": "str",
+        "compact_decision": "str (short parsed/normalized rationale)",
+        "raw_model_response": "str (full raw model output)",
+        "latency_seconds": "float",
+        "output_chars": "int",
+        "input_mode": "str (xmi|txt)",
+        "prompt_mode": "str",
+        "prompt_family": "str|null",
+        "model": "str",
+        "source_file": "str",
+    }
 
 
 def parse_response(text, prompt_mode):
@@ -151,6 +183,60 @@ def parse_response_loose(text: str) -> bool | None:
     return None
 
 
+def _resolve_txt_source(args: argparse.Namespace) -> Path:
+    if args.txt_file is not None:
+        txt_path = args.txt_file.expanduser()
+        if not txt_path.is_absolute():
+            txt_path = ROOT_DIR / txt_path
+        txt_path = txt_path.resolve()
+        if not txt_path.exists():
+            raise FileNotFoundError(f"TXT file not found: {txt_path}")
+        return txt_path
+
+    manifest_path = args.txt_manifest.expanduser()
+    if not manifest_path.is_absolute():
+        manifest_path = ROOT_DIR / manifest_path
+    manifest_path = manifest_path.resolve()
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"TXT manifest not found: {manifest_path}")
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    files = manifest.get("files", [])
+    if not files:
+        raise ValueError(f"No files in TXT manifest: {manifest_path}")
+    first_name = files[0].get("name")
+    if not isinstance(first_name, str) or not first_name:
+        raise ValueError("TXT manifest first entry missing valid 'name'.")
+
+    txt_path = manifest_path.parent / "raw" / first_name
+    if not txt_path.exists():
+        txt_path = ROOT_DIR / "data" / "raw" / first_name
+    if not txt_path.exists():
+        raise FileNotFoundError(f"TXT file from manifest not found: {first_name}")
+    return txt_path.resolve()
+
+
+def _split_txt_sentences(text: str) -> list[str]:
+    flat_text = re.sub(r"\s+", " ", text).strip()
+    if not flat_text:
+        return []
+    parts = re.split(r"(?<=[.!?])\s+", flat_text)
+    sentences = [part.strip() for part in parts if part.strip()]
+    return sentences if sentences else [flat_text]
+
+
+def _build_txt_sample(sentences: list[str], index: int) -> str:
+    start = max(0, index - TXT_CONTEXT_WINDOW)
+    end = min(len(sentences), index + TXT_CONTEXT_WINDOW + 1)
+    context = []
+    for i in range(start, end):
+        if i == index:
+            context.append(f"<sentence>{sentences[i]}</sentence>")
+        else:
+            context.append(sentences[i])
+    return " ".join(context)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run prompting baseline on first N sentences.")
     parser.add_argument("--model", type=str, default=None, help="OpenRouter model name override.")
@@ -192,6 +278,12 @@ def main():
                         help="Structured output mode when supported by model/provider")
     parser.add_argument("--schema_file", type=Path, default=None,
                         help="Optional JSON schema file used when --response_format=json_schema")
+    parser.add_argument("--input_mode", choices=["xmi", "txt"], default="xmi",
+                        help="Input format: xmi (default) or txt")
+    parser.add_argument("--txt_manifest", type=Path, default=Path("data/manifest_raw_txt.json"),
+                        help="TXT manifest path used when --input_mode txt and --txt_file is not set")
+    parser.add_argument("--txt_file", type=Path, default=None,
+                        help="Single TXT file path override for --input_mode txt")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -200,9 +292,17 @@ def main():
         sys.exit(1)
 
     xmi_file = DATA_DIR / "Aus guter Familie.xmi.zip"
-    if not xmi_file.exists():
-        log(f"ERROR: File not found: {xmi_file}")
-        sys.exit(1)
+    txt_file: Path | None = None
+    if args.input_mode == "xmi":
+        if not xmi_file.exists():
+            log(f"ERROR: File not found: {xmi_file}")
+            sys.exit(1)
+    else:
+        try:
+            txt_file = _resolve_txt_source(args)
+        except Exception as exc:  # noqa: BLE001
+            log(f"ERROR: {exc}")
+            sys.exit(1)
 
     ctx = args.context_size or int(512 * 0.8)
     model = nemotron
@@ -248,7 +348,9 @@ def main():
     run_date = datetime.now().date().isoformat()
     out_dir = args.output_dir or output_dir_for(ROOT_DIR, "prompting", run_date, "baseline_qwen3")
     out_dir.mkdir(parents=True, exist_ok=True)
+    data_file = str(xmi_file if args.input_mode == "xmi" else txt_file)
     run_config = {
+        "input_mode": args.input_mode,
         "model": args.model or nemotron.name,
         "max_sentences": args.max_sentences,
         "max_retries": args.max_retries,
@@ -269,7 +371,9 @@ def main():
         "response_format": args.response_format,
         "schema_file": str(args.schema_file) if args.schema_file else None,
         "output_dir": str(out_dir),
-        "data_file": str(DATA_DIR / "Aus guter Familie.xmi.zip"),
+        "data_file": data_file,
+        "txt_manifest": str(args.txt_manifest),
+        "txt_file": str(args.txt_file) if args.txt_file else None,
     }
     write_repro_files(out_dir, sys.argv, run_config)
     log(f"Model: {model.name}")
@@ -281,18 +385,32 @@ def main():
     log(f"Decode: temp={args.temperature}, top_p={args.top_p}, max_tokens={args.max_tokens}")
     log(f"Output dir: {out_dir}")
 
-    log(f"Loading document: {xmi_file.name}")
-    load_t0 = time.time()
-    doc = UIMADocument.from_xmi(xmi_file)
-    log(f"Loaded document in {time.time() - load_t0:.1f}s")
-    total_sentences = len(doc.sentences)
+    text_sentences: list[str] = []
+    doc: UIMADocument | None = None
+    if args.input_mode == "xmi":
+        log(f"Loading document: {xmi_file.name}")
+        load_t0 = time.time()
+        doc = UIMADocument.from_xmi(xmi_file)
+        log(f"Loaded document in {time.time() - load_t0:.1f}s")
+        total_sentences = len(doc.sentences)
+    else:
+        assert txt_file is not None
+        log(f"Loading TXT: {txt_file.name}")
+        load_t0 = time.time()
+        text_sentences = _split_txt_sentences(txt_file.read_text(encoding="utf-8"))
+        log(f"Loaded TXT in {time.time() - load_t0:.1f}s")
+        total_sentences = len(text_sentences)
+        if total_sentences == 0:
+            log(f"ERROR: No sentences parsed from {txt_file}")
+            sys.exit(1)
     max_sentences = max(1, min(args.max_sentences, total_sentences))
-    log(f"Document has {total_sentences} sentences, classifying first {max_sentences}")
+    log(f"Input has {total_sentences} sentences, classifying first {max_sentences}")
 
     chain = get_chain(model, prompt_text, extra_model_kwargs=model_kwargs)
     results = {
         "labels": [],
         "reasons": [],
+        "compact_decisions": [],
         "ground_truth": [],
         "sentences": [],
         "parse_ok": [],
@@ -302,10 +420,20 @@ def main():
     }
     t0 = time.time()
 
-    for i, sentence in enumerate(doc.sentences[:max_sentences]):
-        sent_preview = sentence.text[:80].replace("\n", " ")
+    for i in range(max_sentences):
+        if args.input_mode == "xmi":
+            assert doc is not None
+            sentence = doc.sentences[i]
+            sent_text = sentence.text
+            base_sample = build_sentence_sample(sentence, model)
+            true_label = get_label_simple(sentence, coarse=True)
+        else:
+            sent_text = text_sentences[i]
+            base_sample = _build_txt_sample(text_sentences, i)
+            true_label = None
+
+        sent_preview = sent_text[:80].replace("\n", " ")
         log(f"{progress_bar(i + 1, max_sentences)} start :: {sent_preview}")
-        base_sample = build_sentence_sample(sentence, model)
         if prompt_family:
             sample = render_prompt_for_family(
                 prompt_family,
@@ -315,7 +443,6 @@ def main():
             )
         else:
             sample = base_sample
-        true_label = get_label_simple(sentence, coarse=True)
 
         scene_change = None
         reason = ""
@@ -377,15 +504,21 @@ def main():
                 parse_error = "failed_to_classify"
 
         pred_str = "BORDER" if scene_change else "NOBORDER"
-        true_str = true_label.value
-        match = "OK" if pred_str == true_str else "MISMATCH"
-        log(f"{progress_bar(i + 1, max_sentences)} done pred={pred_str} true={true_str} {match} "
-            f"(elapsed {time.time() - sent_t0:.1f}s)")
+        if true_label is None:
+            log(f"{progress_bar(i + 1, max_sentences)} done pred={pred_str} "
+                f"(elapsed {time.time() - sent_t0:.1f}s)")
+            true_str = None
+        else:
+            true_str = true_label.value
+            match = "OK" if pred_str == true_str else "MISMATCH"
+            log(f"{progress_bar(i + 1, max_sentences)} done pred={pred_str} true={true_str} {match} "
+                f"(elapsed {time.time() - sent_t0:.1f}s)")
 
         results["labels"].append(scene_change)
         results["reasons"].append(reason)
+        results["compact_decisions"].append(_compact_decision(reason))
         results["ground_truth"].append(true_str)
-        results["sentences"].append(sentence.text[:100])
+        results["sentences"].append(sent_text)
         results["parse_ok"].append(parse_ok)
         results["parse_error"].append(parse_error)
         results["output_chars"].append(output_chars)
@@ -393,9 +526,13 @@ def main():
 
     elapsed = time.time() - t0
 
-    n_correct = sum(1 for p, t in zip(results["labels"], results["ground_truth"])
-                    if (p and t == "BORDER") or (not p and t == "NOBORDER"))
-    n_borders_true = sum(1 for t in results["ground_truth"] if t == "BORDER")
+    has_gold = all(t in {"BORDER", "NOBORDER"} for t in results["ground_truth"])
+    n_correct = 0
+    n_borders_true = 0
+    if has_gold:
+        n_correct = sum(1 for p, t in zip(results["labels"], results["ground_truth"])
+                        if (p and t == "BORDER") or (not p and t == "NOBORDER"))
+        n_borders_true = sum(1 for t in results["ground_truth"] if t == "BORDER")
     n_borders_pred = sum(1 for p in results["labels"] if p)
     parse_failure_count = sum(1 for ok in results["parse_ok"] if not ok)
     parse_failure_rate = parse_failure_count / len(results["parse_ok"]) if results["parse_ok"] else 0.0
@@ -408,7 +545,10 @@ def main():
         if results["latency_seconds"] else 0.0
     )
 
-    summary = {
+    input_file_name = xmi_file.name if args.input_mode == "xmi" else (txt_file.name if txt_file else "")
+    summary: dict[str, Any] = {
+        "input_mode": args.input_mode,
+        "evaluation_mode": "with_gold" if has_gold else "inference_only",
         "model": model.name,
         "provider": "openrouter",
         "prompt_family": prompt_family,
@@ -424,11 +564,9 @@ def main():
             "stop": args.stop,
             "response_format": args.response_format,
         },
-        "file": xmi_file.name,
+        "file": input_file_name,
         "total_sentences_in_doc": total_sentences,
         "sentences_classified": len(results["labels"]),
-        "accuracy": n_correct / len(results["labels"]) if results["labels"] else 0,
-        "true_borders": n_borders_true,
         "predicted_borders": n_borders_pred,
         "parse_failure_count": parse_failure_count,
         "parse_failure_rate": round(parse_failure_rate, 4),
@@ -436,22 +574,55 @@ def main():
         "avg_latency_seconds": round(avg_latency_seconds, 3),
         "elapsed_seconds": round(elapsed, 1),
     }
+    if has_gold:
+        summary["accuracy"] = n_correct / len(results["labels"]) if results["labels"] else 0
+        summary["true_borders"] = n_borders_true
 
     results_path = out_dir / "results.json"
     results_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
     summary_path = out_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2))
+    review_schema_path = out_dir / "review_schema.json"
+    review_schema_path.write_text(json.dumps(_review_schema(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    review_jsonl_path = out_dir / "review.jsonl"
+    with review_jsonl_path.open("w", encoding="utf-8") as handle:
+        for idx in range(len(results["labels"])):
+            pred_bool = bool(results["labels"][idx])
+            record = {
+                "sentence_index": idx,
+                "sentence_text_full": results["sentences"][idx],
+                "prediction_label": "BORDER" if pred_bool else "NOBORDER",
+                "prediction_bool": pred_bool,
+                "ground_truth_label": results["ground_truth"][idx],
+                "parse_ok": bool(results["parse_ok"][idx]),
+                "parse_error": results["parse_error"][idx],
+                "compact_decision": results["compact_decisions"][idx],
+                "raw_model_response": results["reasons"][idx],
+                "latency_seconds": float(results["latency_seconds"][idx]),
+                "output_chars": int(results["output_chars"][idx]),
+                "input_mode": args.input_mode,
+                "prompt_mode": args.prompt,
+                "prompt_family": prompt_family,
+                "model": model.name,
+                "source_file": input_file_name,
+            }
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     log(f"Done in {elapsed:.1f}s")
-    log(f"Accuracy: {summary['accuracy']:.2%} ({n_correct}/{len(results['labels'])})")
+    if has_gold:
+        log(f"Accuracy: {summary['accuracy']:.2%} ({n_correct}/{len(results['labels'])})")
+        log(f"True borders: {n_borders_true}, Predicted borders: {n_borders_pred}")
+    else:
+        log(f"Inference-only mode: predicted borders={n_borders_pred}/{len(results['labels'])}")
     log(
         f"Parse failures: {parse_failure_count}/{len(results['labels'])} "
         f"({parse_failure_rate:.1%}), avg chars={avg_output_chars:.1f}, "
         f"avg latency={avg_latency_seconds:.2f}s"
     )
-    log(f"True borders: {n_borders_true}, Predicted borders: {n_borders_pred}")
     log(f"Results: {results_path}")
     log(f"Summary: {summary_path}")
+    log(f"Review JSONL: {review_jsonl_path}")
+    log(f"Review schema: {review_schema_path}")
 
 
 if __name__ == "__main__":
