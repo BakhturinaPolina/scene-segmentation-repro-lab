@@ -78,6 +78,50 @@ def normalize_label(value: Any) -> Optional[str]:
     return None
 
 
+def _extract_label_token(text: str) -> Optional[str]:
+    """Find BORDER/NOBORDER token in noisy outputs."""
+    if not text:
+        return None
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    # Prefer compact lines first (typical for label-only prompts).
+    for candidate in lines[:5]:
+        label = normalize_label(candidate)
+        if label:
+            return label
+    upper = text.upper()
+    # Check NOBORDER first to avoid BORDER substring collisions.
+    if re.search(r"\bNOBORDER\b", upper):
+        return "NOBORDER"
+    if re.search(r"\bBORDER\b", upper):
+        return "BORDER"
+    lower = text.lower()
+    if re.search(r"\b(?:does\s+not|doesn't)\s+(?:start|mark|introduce)\b", lower):
+        return "NOBORDER"
+    if re.search(r"\b(?:not\s+a\s+new\s+segment|no\s+new\s+segment)\b", lower):
+        return "NOBORDER"
+    if re.search(r"\b(?:starts?|marks?|introduces?)\s+(?:a\s+)?new\s+(?:event|scene|segment)\b", lower):
+        return "BORDER"
+    return None
+
+
+def _extract_h_sentence_id_or_none(text: str) -> Optional[str]:
+    """Extract sentence id or NONE token from noisy H outputs."""
+    if not text:
+        return None
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    candidates = lines[:4] + [text.strip()]
+    for item in candidates:
+        if item.upper() == "NONE":
+            return "NONE"
+        match_none = re.search(r"\bNONE\b", item, flags=re.IGNORECASE)
+        if match_none:
+            return "NONE"
+        match_int = re.search(r"\b(\d+)\b", item)
+        if match_int:
+            return match_int.group(1)
+    return None
+
+
 def _extract_json_candidate(text: str) -> Optional[str]:
     s = text.strip()
     if not s:
@@ -114,11 +158,18 @@ def _parse_json(text: str) -> Any:
 def parse_family_output(family: str, text: str) -> ParseResult:
     family = family.upper()
     if family == "A":
-        first_line = text.splitlines()[0] if text else ""
-        label = normalize_label(first_line)
+        label = _extract_label_token(text or "")
         if label:
-            return ParseResult(label=label, is_valid=True, error="", payload=first_line)
-        return ParseResult(label=None, is_valid=False, error="invalid_label", payload=first_line)
+            return ParseResult(label=label, is_valid=True, error="", payload=text)
+        try:
+            payload = _parse_json(text or "")
+            if isinstance(payload, dict):
+                label = normalize_label(payload.get("label"))
+                if label:
+                    return ParseResult(label=label, is_valid=True, error="", payload=payload)
+        except Exception:  # noqa: BLE001
+            pass
+        return ParseResult(label=None, is_valid=False, error="invalid_label", payload=text)
 
     if family in {"B", "C", "D", "E", "F", "G", "J"}:
         try:
@@ -133,14 +184,12 @@ def parse_family_output(family: str, text: str) -> ParseResult:
         return ParseResult(label=label, is_valid=True, error="", payload=payload)
 
     if family == "H":
-        first_line = (text or "").strip().splitlines()[0] if text else ""
-        if first_line.upper() == "NONE":
-            return ParseResult(label="NOBORDER", is_valid=True, error="", payload=first_line)
-        try:
-            int(first_line)
-            return ParseResult(label=None, is_valid=True, error="", payload=first_line)
-        except ValueError:
-            return ParseResult(label=None, is_valid=False, error="invalid_sentence_id_or_none", payload=first_line)
+        token = _extract_h_sentence_id_or_none(text or "")
+        if token is None:
+            return ParseResult(label=None, is_valid=False, error="invalid_sentence_id_or_none", payload=text)
+        if token.upper() == "NONE":
+            return ParseResult(label="NOBORDER", is_valid=True, error="", payload=token)
+        return ParseResult(label=None, is_valid=True, error="", payload=token)
 
     if family == "I":
         try:
