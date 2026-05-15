@@ -32,14 +32,32 @@
       "file": "D_few_shot_balanced.txt",
       "family": "few_shot_balanced",
       "schema": "json_label_reason",
-      "placeholders": ["few_shot_examples", "left_context", "target_sentence", "right_context"]
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "inlined_few_shot": {
+        "source_dataset": "stss_test_2",
+        "novels": ["Effi Briest", "Aus guter Familie"],
+        "language": "de",
+        "context_sentences_each_side": 6,
+        "n_examples": 8,
+        "composition": {"BORDER": 4, "NOBORDER": 4},
+        "reason_tag_coverage": ["Zeit", "Figuren", "Raum", "Handlung"]
+      }
     },
     {
       "id": "E",
       "file": "E_few_shot_contrastive_pairs.txt",
       "family": "few_shot_contrastive_pairs",
       "schema": "json_label_reason",
-      "placeholders": ["few_shot_examples", "left_context", "target_sentence", "right_context"]
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "inlined_few_shot": {
+        "source_dataset": "stss_test_2",
+        "novels": ["Effi Briest"],
+        "language": "de",
+        "context_sentences_each_side": 6,
+        "n_examples": 8,
+        "composition": {"pairs": 4},
+        "reason_tag_coverage": ["Zeit", "Figuren", "Raum", "Handlung"]
+      }
     },
     {
       "id": "F",
