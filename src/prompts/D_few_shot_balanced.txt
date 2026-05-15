@@ -3,11 +3,198 @@ You are solving event/scene segmentation.
 A new segment starts when there is a significant change in time, location,
 participating characters, or ongoing action. Minor progression does not count.
 
-Use the balanced examples below as guidance:
+Use the balanced examples below as guidance. Examples are drawn from the
+annotated German corpus stss_test_2 (Fontane, "Effi Briest"; Reuter,
+"Aus guter Familie"). Each example shows the surrounding context (6
+sentences each side), the target sentence, and the gold JSON answer.
 
-{few_shot_examples}
+Examples:
 
-Now solve the new case.
+# Example 1 — Effi Briest, Szene 22, reason=Handlung+Zeit
+Context before:
+Siehst du da vor dir das kleine Haus mit dem Licht?
+Es ist eine Schmiede.
+Da biegt der Weg.
+Und wenn wir die Biegung gemacht haben, dann siehst du schon den Turm von Kessin oder richtiger beide...« »Hat es denn zwei?«
+»Ja, Kessin nimmt sich auf.
+Es hat jetzt auch eine katholische Kirche.«
+
+Target sentence:
+<sentence>Eine halbe Stunde später hielt der Wagen an der ganz am entgegengesetzten Ende der Stadt gelegenen landrätlichen Wohnung, einem einfachen, etwas altmodischen Fachwerkhause, das mit seiner Front auf die nach den Seebädern hinausführende Hauptstraße, mit seinem Giebel aber auf ein zwischen der Stadt und den Dünen liegendes Wäldchen, das die »Plantage« hieß, herniederblickte.</sentence>
+
+Context after:
+Dies altmodische Fachwerkhaus war übrigens nur Innstettens Privatwohnung, nicht das eigentliche Landratsamt, welches letztere, schräg gegenüber, an der anderen Seite der Straße lag.
+Kruse hatte nicht nötig, durch einen dreimaligen Peitschenknips die Ankunft zu vermelden; längst hatte man von Tür und Fenstern aus nach den Herrschaften ausgeschaut, und ehe noch der Wagen heran war, waren bereits alle Hausinsassen auf dem die ganze Breite des Bürgersteiges einnehmenden Schwellstein versammelt, vorauf Rollo, der im selben Augenblicke, wo der Wagen hielt, diesen zu umkreisen begann.
+Innstetten war zunächst seiner jungen Frau beim Aussteigen behilflich und ging dann, dieser den Arm reichend, unter freundlichem Gruß an der Dienerschaft vorüber, die nun dem jungen Paare in den mit prächtigen alten Wandschränken umstandenen Hausflur folgte.
+Das Hausmädchen, eine hübsche, nicht mehr ganz jugendliche Person, der ihre stattliche Fülle fast ebensogut kleidete wie das zierliche Mützchen auf dem blonden Haar, war der gnädigen Frau beim Ablegen von Muff und Mantel behilflich und bückte sich eben, um ihr auch die mit Pelz gefütterten Gummistiefel auszuziehen.
+Aber ehe sie noch dazu kommen konnte, sagte Innstetten: »Es wird das beste sein, ich stelle dir gleich hier unsere gesamte Hausgenossenschaft vor, mit Ausnahme der Frau Kruse, die sich – ich vermute sie wieder bei ihrem unvermeidlichen schwarzen Huhn – nicht gerne sehen läßt.«
+Alles lächelte.
+
+Expected JSON:
+{"label": "BORDER", "reason": "Klarer Zeit- und Ortswechsel: eine halbe Stunde später Ankunft an einem neuen Schauplatz."}
+
+# Example 2 — Effi Briest, Szene 5, reason=Figuren+Handlung
+Context before:
+Alles war gut berechnet; aber freilich, ehe sie noch halb um den Teich herum war, hörte sie schon vom Hause her ihren Namen rufen und sah, während sie sich umwandte, die Mama, die, von der Steintreppe her, mit ihrem Taschentuche winkte.
+Noch einen Augenblick, und Effi stand vor ihr.
+»Nun bist du doch noch in deinem Kittel, und der Besuch ist da.
+Nie hältst du Zeit.«
+»Ich halte schon Zeit, aber der Besuch hat nicht Zeit gehalten.
+Es ist noch nicht eins; noch lange nicht«, und sich nach den Zwillingen hin umwendend (Hulda war noch weiter zurück), rief sie diesen zu: »Spielt nur weiter; ich bin gleich wieder da.«
+
+Target sentence:
+<sentence>Schon im nächsten Augenblicke trat Effi mit der Mama in den großen Gartensaal, der fast den ganzen Raum des Seitenflügels füllte.</sentence>
+
+Context after:
+»Mama, du darfst mich nicht schelten.
+Es ist wirklich erst halb.
+Warum kommt er so früh?
+Kavaliere kommen nicht zu spät, aber noch weniger zu früh.«
+Frau von Briest war in sichtlicher Verlegenheit; Effi aber schmiegte sich liebkosend an sie und sagte: »Verzeih, ich will mich nun eilen; du weißt, ich kann auch rasch sein, und in fünf Minuten ist Aschenpuddel in eine Prinzessin verwandelt.
+So lange kann er warten oder mit dem Papa plaudern.«
+
+Expected JSON:
+{"label": "BORDER", "reason": "Wechsel des Schauplatzes und neue Figurenkonstellation: Effi und die Mama betreten den Gartensaal."}
+
+# Example 3 — Effi Briest, Szene 28, reason=Handlung+Raum
+Context before:
+8. Kapitel Achtes Kapitel Elf war es längst vorüber; aber Gieshübler hatte sich noch immer nicht sehen lassen.
+»Ich kann nicht länger warten«, hatte Geert gesagt, den der Dienst abrief.
+»Wenn Gieshübler noch erscheint, so sei möglichst entgegenkommend, dann wird es vorzüglich gehen; er darf nicht verlegen werden; ist er befangen, so kann er kein Wort finden oder sagt die sonderbarsten Dinge; weißt du ihn aber in Zutrauen und gute Laune zu bringen, dann redet er wie ein Buch.
+Nun, du wirst es schon machen.
+Erwarte mich nicht vor drei; es gibt drüben allerlei zu tun.
+Und das mit dem Saal oben wollen wir noch überlegen; es wird aber wohl am besten sein, wir lassen es beim alten.«
+
+Target sentence:
+<sentence>Damit ging Innstetten und ließ seine junge Frau allein.</sentence>
+
+Context after:
+Diese saß, etwas zurückgelehnt, in einem lauschigen Winkel am Fenster und stützte sich, während sie hinaussah, mit ihrem linken Arm auf ein kleines Seitenbrett, das aus dem Zylinderbureau herausgezogen war.
+Die Straße war die Hauptverkehrsstraße nach dem Strande hin, weshalb denn auch in Sommerzeit ein reges Leben hier herrschte, jetzt aber, um Mitte November, war alles leer und still, und nur ein paar arme Kinder, deren Eltern in etlichen ganz am äußersten Rande der »Plantage« gelegenen Strohdachhäusern wohnten, klappten in ihren Holzpantinen an dem Innstettenschen Hause vorüber.
+Effi empfand aber nichts von dieser Einsamkeit, denn ihre Phantasie war noch immer bei den wunderlichen Dingen, die sie, kurz vorher, während ihrer Umschau haltenden Musterung im Hause gesehen hatte.
+Diese Musterung hatte mit der Küche begonnen, deren Herd eine moderne Konstruktion aufwies, während an der Decke hin, und zwar bis in die Mädchenstube hinein, ein elektrischer Draht lief – beides vor kurzem erst hergerichtet.
+Effi war erfreut gewesen, als ihr Innstetten davon erzählt hatte, dann aber waren sie von der Küche wieder in den Flur zurück- und von diesem in den Hof hinausgetreten, der in seiner ersten Hälfte nicht viel mehr als ein zwischen zwei Seitenflügeln hinlaufender ziemlich schmaler Gang war.
+In diesen Flügeln war alles untergebracht, was sonst noch zu Haushalt und Wirtschaftsführung gehörte, rechts Mädchenstube, Bedientenstube, Rollkammer, links eine zwischen Pferdestall und Wagenremise gelegene, von der Familie Kruse bewohnte Kutscherwohnung.
+
+Expected JSON:
+{"label": "BORDER", "reason": "Innstetten verlässt den Raum und die Szene wechselt zur allein gelassenen Effi."}
+
+# Example 4 — Aus guter Familie, Szene ?, reason=Handlung
+Context before:
+Sie verstand seine Ausdrücke oft nicht einmal und stellte sich etwas anderes unter seinen Worten vor, als er meinte.
+Und doch erfüllte seine Freundschaft sie mit tiefer, heißer Befriedigung.
+...
+Nein, sie liebte Martin nicht, Gott sei Dank.
+Darum konnte sie ihm auch viel von dem sagen, was sie bedrückte.
+Nicht alles.
+
+Target sentence:
+<sentence>Aber von dem Verhältnis zu ihrem Vater sprach sie, und er hörte den angesammelten Zorn in ihrer Stimme klingen.</sentence>
+
+Context after:
+»Der alte Mann wird Dich stets an allem hindern, womit Du Dir helfen willst.
+Wenn er seinen Bücherschrank vor Dir abschließt, und wenn er Dir das Leben abschließt ...
+Du mußt Dich von ihm frei machen!
+Geh' von ihm fort und suche Dir Arbeit und Freude, die Dich befriedigt.«
+»O Martin!
+Das ist ganz unmöglich.«
+
+Expected JSON:
+{"label": "BORDER", "reason": "Wechsel des Gesprächsthemas zum Verhältnis mit dem Vater leitet eine neue Handlung ein."}
+
+# Example 5 — Effi Briest, Szene 5, reason=Figuren+Handlung
+Context before:
+So lange kann er warten oder mit dem Papa plaudern.«
+Und der Mama zunickend, wollte sie leichten Fußes eine kleine eiserne Stiege hinauf, die aus dem Saal in den Oberstock hinaufführte.
+Frau von Briest aber, die unter Umständen auch unkonventionell sein konnte, hielt plötzlich die schon forteilende Effi zurück, warf einen Blick auf das jugendlich reizende Geschöpf, das, noch erhitzt von der Aufregung des Spiels, wie ein Bild frischesten Lebens vor ihr stand, und sagte beinahe vertraulich: »Es ist am Ende das beste, du bleibst, wie du bist.
+Ja, bleibe so.
+Du siehst gerade sehr gut aus.
+Und wenn es auch nicht wäre, du siehst so unvorbereitet aus, so gar nicht zurechtgemacht, und darauf kommt es in diesem Augenblicke an.
+
+Target sentence:
+<sentence>Ich muß dir nämlich sagen, meine süße Effi...«, und sie nahm ihres Kindes beide Hände, »... ich muß dir nämlich sagen...« »Aber Mama, was hast du nur?</sentence>
+
+Context after:
+Mir wird ja ganz angst und bange.«
+»...
+Ich muß dir nämlich sagen, Effi, daß Baron Innstetten eben um deine Hand angehalten hat.«
+»Um meine Hand angehalten?
+Und im Ernst?«
+»Es ist keine Sache, um einen Scherz daraus zu machen.
+
+Expected JSON:
+{"label": "NOBORDER", "reason": "Fortlaufender Dialog innerhalb derselben Szene; keine Verschiebung."}
+
+# Example 6 — Effi Briest, Szene 22, reason=Handlung+Zeit
+Context before:
+Kruse hatte nicht nötig, durch einen dreimaligen Peitschenknips die Ankunft zu vermelden; längst hatte man von Tür und Fenstern aus nach den Herrschaften ausgeschaut, und ehe noch der Wagen heran war, waren bereits alle Hausinsassen auf dem die ganze Breite des Bürgersteiges einnehmenden Schwellstein versammelt, vorauf Rollo, der im selben Augenblicke, wo der Wagen hielt, diesen zu umkreisen begann.
+Innstetten war zunächst seiner jungen Frau beim Aussteigen behilflich und ging dann, dieser den Arm reichend, unter freundlichem Gruß an der Dienerschaft vorüber, die nun dem jungen Paare in den mit prächtigen alten Wandschränken umstandenen Hausflur folgte.
+Das Hausmädchen, eine hübsche, nicht mehr ganz jugendliche Person, der ihre stattliche Fülle fast ebensogut kleidete wie das zierliche Mützchen auf dem blonden Haar, war der gnädigen Frau beim Ablegen von Muff und Mantel behilflich und bückte sich eben, um ihr auch die mit Pelz gefütterten Gummistiefel auszuziehen.
+Aber ehe sie noch dazu kommen konnte, sagte Innstetten: »Es wird das beste sein, ich stelle dir gleich hier unsere gesamte Hausgenossenschaft vor, mit Ausnahme der Frau Kruse, die sich – ich vermute sie wieder bei ihrem unvermeidlichen schwarzen Huhn – nicht gerne sehen läßt.«
+Alles lächelte.
+»Aber lassen wir Frau Kruse... Dies hier ist mein alter Friedrich, der schon mit mir auf der Universität war...
+
+Target sentence:
+<sentence>Nicht wahr, Friedrich, gute Zeiten damals... und dies hier ist Johanna, märkische Landsmännin von dir, wenn du, was aus Pasewalker Gegend stammt, noch für voll gelten lassen willst, und dies ist Christel, der wir mittags und abends unser leibliches Wohl anvertrauen und die zu kochen versteht, das kann ich dir versichern.</sentence>
+
+Context after:
+Und dies hier ist Rollo.
+Nun, Rollo, wie geht's?«
+Rollo schien nur auf diese spezielle Ansprache gewartet zu haben, denn im selben Augenblicke, wo er seinen Namen hörte, gab er einen Freudenblaff, richtete sich auf und legte die Pfoten auf seines Herrn Schulter.
+»Schon gut, Rollo, schon gut.
+Aber sieh da, das ist die Frau; ich hab ihr von dir erzählt und ihr gesagt, daß du ein schönes Tier seiest und sie schützen würdest.«
+Und nun ließ Rollo ab und setzte sich vor Innstetten nieder, zugleich neugierig zu der jungen Frau aufblickend.
+
+Expected JSON:
+{"label": "NOBORDER", "reason": "Fortgesetzte Vorstellung der Dienerschaft, weiterhin in derselben Szene."}
+
+# Example 7 — Effi Briest, Szene 11, reason=Figuren+Handlung+Raum
+Context before:
+»Was es koste, könne ja von der Ausstattung abgezogen werden; Innstetten habe ohnehin alles.«
+Effi – ganz im Gegensatze zu der solche »Mesquinerien« ein für allemal sich verbittenden Mama – hatte dem Vater, ohne jede Sorge darum, ob er's scherz- oder ernsthaft gemeint hatte, freudig zugestimmt und beschäftigte sich in ihren Gedanken viel, viel mehr mit dem Eindruck, den sie beide, Mutter und Tochter, bei ihrem Erscheinen an der Table d'hôte machen würden, als mit Spinn und Mencke, Goschenhofer und ähnlichen Firmen, die vorläufig notiert worden waren.
+Und diesen ihren heiteren Phantasien entsprach denn auch ihre Haltung, als die große Berliner Woche nun wirklich da war.
+Vetter Briest vom Alexander-Regiment, ein ungemein ausgelassener, junger Leutnant, der die »Fliegenden Blätter« hielt und über die besten Witze Buch führte, stellte sich den Damen für jede dienstfreie Stunde zur Verfügung, und so saßen sie denn mit ihm bei Kranzler am Eckfenster oder zu statthafter Zeit auch wohl im Café Bauer und fuhren nachmittags in den Zoologischen Garten, um da die Giraffen zu sehen, von denen Vetter Briest, der übrigens Dagobert hieß, mit Vorliebe behauptete: »sie sähen aus wie adlige alte Jungfern«.
+Jeder Tag verlief programmäßig, und am dritten oder vierten Tage gingen sie, wie vorgeschrieben, in die Nationalgalerie, weil Vetter Dagobert seiner Cousine die »Insel der Seligen« zeigen wollte.
+»Fräulein Cousine stehe zwar auf dem Punkte, sich zu verheiraten, es sei aber doch vielleicht gut, die ›Insel der Seligen‹ schon vorher kennengelernt zu haben.«
+
+Target sentence:
+<sentence>Die Tante gab ihm einen Schlag mit dem Fächer, begleitete diesen Schlag aber mit einem so gnädigen Blick, daß er keine Veranlassung hatte, den Ton zu ändern.</sentence>
+
+Context after:
+Es waren himmlische Tage für alle drei, nicht zum wenigsten für den Vetter, der so wundervoll zu chaperonieren und kleine Differenzen immer rasch auszugleichen verstand.
+An solchen Meinungsverschiedenheiten zwischen Mutter und Tochter war nun, wie das so geht, all die Zeit über kein Mangel, aber sie traten glücklicherweise nie bei den zu machenden Einkäufen hervor.
+Ob man von einer Sache sechs oder drei Dutzend erstand, Effi war mit allem gleichmäßig einverstanden, und wenn dann auf dem Heimwege von dem Preise der eben eingekauften Gegenstände gesprochen wurde, so verwechselte sie regelmäßig die Zahlen.
+Frau von Briest, sonst so kritisch, auch ihrem eigenen geliebten Kinde gegenüber, nahm dies anscheinend mangelnde Interesse nicht nur von der leichten Seite, sondern erkannte sogar einen Vorzug darin.
+»Alle diese Dinge«, so sagte sie sich, »bedeuten Effi nicht viel.
+Effi ist anspruchslos; sie lebt in ihren Vorstellungen und Träumen, und wenn die Prinzessin Friedrich Karl vorüberfährt und sie von ihrem Wagen aus freundlich grüßt, so gilt ihr das mehr als eine ganze Truhe voll Weißzeug.«
+
+Expected JSON:
+{"label": "NOBORDER", "reason": "Reaktion innerhalb derselben Geselligkeitsszene; keine Verschiebung."}
+
+# Example 8 — Aus guter Familie, Szene ?, reason=Figuren+Handlung+Raum+Zeit
+Context before:
+Die Regierungsrätin selbst jedoch hatte die Empfindung, ihr Kleid wirke aufdringlich in dieser bescheidenen Umgebung, und als sie zum Altar trat, hielt sie die Schleppe ängstlich und verlegen an sich gedrückt, dabei weinte sie und seufzte von Zeit zu Zeit tief und schmerzlich.
+Als die Gemeinde den letzten Vers sang, stahlen sich ihre Finger nach Agathes Hand und drückten sie krampfhaft.
+Kaum war der Gottesdienst zu Ende, so umarmte Frau Heidling ihre Tochter mit einer Art von kummervoller Leidenschaft, die wenig für die Gelegenheit zu passen schien, und murmelte mehrere Mal unter Thränen: mein Kind, mein süßes, geliebtes Kind!
+– ohne mit ihrem Segenswunsch zu Ende gelangen zu können.
+Doch die bewegte Mutter durfte das Kind nicht an ihrem Herzen behalten.
+Der Vater verlangte nach ihr, Onkel Gustav, Bruder Walter, Frau Pastor Kandler – alle wollten ihre Glückwünsche darbringen.
+
+Target sentence:
+<sentence>Ein jeder gab dabei noch an der Kirchthür dem Mädchen ein wenig Anleitung, wie sie sich dem kommenden Leben gegenüber als erwachsener Mensch zu verhalten habe.</sentence>
+
+Context after:
+Sie hörte mit verklärtem Lächeln auf dem verweinten Gesichtchen alle die goldenen Worte der Liebe, der älteren Weisheit.
+So schwach fühlte sie sich, so hilfsbedürftig und so bereit, jedermann zu Willen zu sein, alles zu beglücken, was in ihre Nähe kam.
+Sie war ja selbst jetzt so glücklich!
+Ihr Bruder, der Abiturient, lief aufmerksam nochmals in die Kirche zurück, ihr vergessenes Bouquet zu holen, während alle anderen sich auf den Weg zum Pfarrhaus begaben.
+Agathe wartete auf ihn, sah ihn dankbar an und legte den Arm in den seinen.
+So folgten sie den Eltern.
+
+Expected JSON:
+{"label": "NOBORDER", "reason": "Unmittelbare Fortsetzung der vorausgehenden Kirchausgangs-Szene."}
+
+Now solve the new case using the same JSON format.
 
 Context before:
 {left_context}
