@@ -88,6 +88,43 @@ _STRICT_SUFFIX = (
     "\n\nReturn your final decision as exactly one token on the last line: "
     "BORDER or NOBORDER."
 )
+_STRICT_SUFFIX_H = (
+    "\n\nReturn exactly one token on the last line: a sentence number or NONE."
+)
+_STRICT_SUFFIX_I = (
+    "\n\nReturn JSON array only. One object per sentence in the chunk with keys "
+    "sentence_id (int) and score (0-100). No prose."
+)
+
+_SCHEMA_A_LABEL_ONLY = {
+    "name": "scene_boundary_label_only",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "label": {"type": "string", "enum": ["BORDER", "NOBORDER"]}
+        },
+        "required": ["label"],
+        "additionalProperties": False,
+    },
+}
+
+_SCHEMA_I_SCORE_ARRAY = {
+    "name": "scene_boundary_scores",
+    "strict": True,
+    "schema": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "sentence_id": {"type": "integer", "minimum": 1},
+                "score": {"type": "number", "minimum": 0, "maximum": 100},
+            },
+            "required": ["sentence_id", "score"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 
 def _compact_decision(reason: str) -> str:
@@ -237,6 +274,66 @@ def _build_txt_sample(sentences: list[str], index: int) -> str:
     return " ".join(context)
 
 
+def _strict_suffix_for_family(family: Optional[str]) -> str:
+    if family == "H":
+        return _STRICT_SUFFIX_H
+    if family == "I":
+        return _STRICT_SUFFIX_I
+    return _STRICT_SUFFIX
+
+
+def _build_chunk_sentences(sentences: list[str], center_idx: int, chunk_window: int) -> tuple[str, int]:
+    start = max(0, center_idx - chunk_window)
+    end = min(len(sentences), center_idx + chunk_window + 1)
+    lines: list[str] = []
+    for idx in range(start, end):
+        local_id = idx - start + 1
+        lines.append(f"{local_id}. {sentences[idx]}")
+    target_local_id = center_idx - start + 1
+    return "\n".join(lines), target_local_id
+
+
+def _infer_chunk_family_label(
+    family: str,
+    parsed_payload: Any,
+    *,
+    target_local_id: int,
+    score_threshold: float,
+) -> tuple[Optional[bool], str]:
+    if family == "H":
+        token = str(parsed_payload).strip()
+        if token.upper() == "NONE":
+            return False, ""
+        try:
+            pred_local_id = int(token)
+        except ValueError:
+            return None, "invalid_sentence_id"
+        return pred_local_id == target_local_id, ""
+
+    if family == "I":
+        if not isinstance(parsed_payload, list):
+            return None, "scores_not_array"
+        if len(parsed_payload) == 0:
+            return None, "scores_empty"
+        by_id: dict[int, float] = {}
+        for row in parsed_payload:
+            if not isinstance(row, dict):
+                continue
+            sid = row.get("sentence_id")
+            score = row.get("score")
+            try:
+                sid_i = int(sid)
+                score_f = float(score)
+            except (TypeError, ValueError):
+                continue
+            by_id[sid_i] = score_f
+        if target_local_id not in by_id:
+            return None, "target_sentence_missing_in_scores"
+        return by_id[target_local_id] >= score_threshold, ""
+
+    return None, "unsupported_chunk_family"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run prompting baseline on first N sentences.")
     parser.add_argument("--model", type=str, default=None, help="OpenRouter model name override.")
@@ -284,6 +381,10 @@ def main():
                         help="TXT manifest path used when --input_mode txt and --txt_file is not set")
     parser.add_argument("--txt_file", type=Path, default=None,
                         help="Single TXT file path override for --input_mode txt")
+    parser.add_argument("--chunk_window", type=int, default=2,
+                        help="Chunk half-window for H/I families (sentences each side)")
+    parser.add_argument("--score_threshold", type=float, default=50.0,
+                        help="Boundary threshold for family I score mode (0-100)")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -319,9 +420,6 @@ def main():
         template_text = get_template_text(args.prompts_dir, prompt_family, registry)
         if args.few_shot_file:
             few_shot_examples = args.few_shot_file.read_text(encoding="utf-8")
-        if prompt_family in {"H", "I"}:
-            log("ERROR: Families H/I are chunk-level and not supported in sentence-wise baseline runner yet.")
-            sys.exit(1)
         prompt_text = (
             "You are a precise scene segmentation assistant. "
             "Follow the requested output format exactly."
@@ -329,9 +427,16 @@ def main():
     else:
         prompt_text = prompt_classify if args.prompt == "no-cot" else prompt_classify_cot
 
+    effective_response_format = args.response_format
     json_schema = None
     if args.response_format == "json_schema" and args.schema_file:
         json_schema = json.loads(args.schema_file.read_text(encoding="utf-8"))
+    elif args.response_format == "none" and prompt_family == "A":
+        effective_response_format = "json_schema"
+        json_schema = _SCHEMA_A_LABEL_ONLY
+    elif args.response_format == "none" and prompt_family == "I":
+        effective_response_format = "json_schema"
+        json_schema = _SCHEMA_I_SCORE_ARRAY
     model_kwargs = build_openrouter_model_kwargs(
         reasoning=args.reasoning,
         temperature=args.temperature,
@@ -341,7 +446,7 @@ def main():
         seed=args.seed,
         max_tokens=args.max_tokens,
         stop=args.stop or None,
-        response_format=args.response_format,
+        response_format=effective_response_format,
         json_schema=json_schema,
     )
 
@@ -369,11 +474,14 @@ def main():
         "max_tokens": args.max_tokens,
         "stop": args.stop,
         "response_format": args.response_format,
+        "response_format_effective": effective_response_format,
         "schema_file": str(args.schema_file) if args.schema_file else None,
         "output_dir": str(out_dir),
         "data_file": data_file,
         "txt_manifest": str(args.txt_manifest),
         "txt_file": str(args.txt_file) if args.txt_file else None,
+        "chunk_window": args.chunk_window,
+        "score_threshold": args.score_threshold,
     }
     write_repro_files(out_dir, sys.argv, run_config)
     log(f"Model: {model.name}")
@@ -382,7 +490,12 @@ def main():
     if prompt_family:
         log(f"Prompt family: {prompt_family}")
     log(f"Reasoning: {args.reasoning}")
-    log(f"Decode: temp={args.temperature}, top_p={args.top_p}, max_tokens={args.max_tokens}")
+    log(
+        f"Decode: temp={args.temperature}, top_p={args.top_p}, "
+        f"max_tokens={args.max_tokens}, response_format={effective_response_format}"
+    )
+    if prompt_family in {"H", "I"}:
+        log(f"Chunk mode: window={args.chunk_window}, score_threshold={args.score_threshold}")
     log(f"Output dir: {out_dir}")
 
     text_sentences: list[str] = []
@@ -403,6 +516,12 @@ def main():
         if total_sentences == 0:
             log(f"ERROR: No sentences parsed from {txt_file}")
             sys.exit(1)
+    all_sentences: list[str]
+    if args.input_mode == "xmi":
+        assert doc is not None
+        all_sentences = [s.text for s in doc.sentences]
+    else:
+        all_sentences = text_sentences
     max_sentences = max(1, min(args.max_sentences, total_sentences))
     log(f"Input has {total_sentences} sentences, classifying first {max_sentences}")
 
@@ -434,13 +553,26 @@ def main():
 
         sent_preview = sent_text[:80].replace("\n", " ")
         log(f"{progress_bar(i + 1, max_sentences)} start :: {sent_preview}")
+        target_local_id: Optional[int] = None
         if prompt_family:
-            sample = render_prompt_for_family(
-                prompt_family,
-                template_text,
-                base_sample,
-                few_shot_examples=few_shot_examples,
-            )
+            if prompt_family in {"H", "I"}:
+                chunk_sentences, target_local_id = _build_chunk_sentences(
+                    all_sentences, i, args.chunk_window
+                )
+                sample = render_prompt_for_family(
+                    prompt_family,
+                    template_text,
+                    "",
+                    few_shot_examples=few_shot_examples,
+                    chunk_sentences=chunk_sentences,
+                )
+            else:
+                sample = render_prompt_for_family(
+                    prompt_family,
+                    template_text,
+                    base_sample,
+                    few_shot_examples=few_shot_examples,
+                )
         else:
             sample = base_sample
 
@@ -454,7 +586,7 @@ def main():
         while scene_change is None and retry_count < args.max_retries:
             active_sample = sample
             if retry_count >= 2:
-                active_sample = sample + _STRICT_SUFFIX
+                active_sample = sample + _strict_suffix_for_family(prompt_family)
             try:
                 response = chain(active_sample)
             except Exception as e:
@@ -479,6 +611,21 @@ def main():
                 reason = text
                 if parsed.label in ("BORDER", "NOBORDER"):
                     scene_change = parsed.label == "BORDER"
+                elif prompt_family in {"H", "I"} and parsed.is_valid:
+                    inferred, infer_error = _infer_chunk_family_label(
+                        prompt_family,
+                        parsed.payload,
+                        target_local_id=target_local_id if target_local_id is not None else 1,
+                        score_threshold=args.score_threshold,
+                    )
+                    if inferred is not None and not infer_error:
+                        scene_change = inferred
+                        parse_ok = True
+                        parse_error = ""
+                    else:
+                        scene_change = None
+                        parse_ok = False
+                        parse_error = infer_error or "chunk_inference_failed"
                 else:
                     scene_change = None
             else:
@@ -563,6 +710,7 @@ def main():
             "max_tokens": args.max_tokens,
             "stop": args.stop,
             "response_format": args.response_format,
+            "response_format_effective": effective_response_format,
         },
         "file": input_file_name,
         "total_sentences_in_doc": total_sentences,
