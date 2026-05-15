@@ -1,0 +1,19 @@
+{
+  "name": "scene_boundary_label_reason",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "label": {
+        "type": "string",
+        "enum": ["BORDER", "NOBORDER"]
+      },
+      "reason": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required": ["label", "reason"],
+    "additionalProperties": false
+  }
+}
