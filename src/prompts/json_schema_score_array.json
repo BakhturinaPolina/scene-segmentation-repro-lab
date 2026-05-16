@@ -1,0 +1,16 @@
+{
+  "name": "scene_boundary_scores",
+  "strict": true,
+  "schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "sentence_id": {"type": "integer", "minimum": 1},
+        "score": {"type": "number", "minimum": 0, "maximum": 100}
+      },
+      "required": ["sentence_id", "score"],
+      "additionalProperties": false
+    }
+  }
+}

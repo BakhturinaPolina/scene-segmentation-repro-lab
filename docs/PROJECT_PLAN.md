@@ -209,9 +209,16 @@ change one variable at a time.
 
 ### 5.2 Prompting Experiments (OpenRouter Baseline-First)
 
-**Status: IN PROGRESS (2026-04-09)**
+**Status: Phases A–C completed (2026-05-15); reasoning=off full-stratified confirmation pending.**
 
 This section is the ground-truth protocol for ongoing prompting experiments.
+
+#### Headline result and report
+
+- Winning combination: `nvidia/nemotron-3-super-120b-a12b:free` + prompt family B (zero-shot JSON), with locked decoding controls (temperature 0, seed 1337, max_tokens 256, context 409, response_format json_schema, reasoning low).
+- Full-stratified headline on STSS-Test-2 (892 sentences): F1@0 = 0.763, F1@1 = 0.784, F1@3 = 0.830.
+- +0.010 F1@0 over the upstream `prompt_classify` baseline at identical scope.
+- Full narrative, paper comparison, and caveats: [docs/PROMPTING_RESULTS_REPORT.md](PROMPTING_RESULTS_REPORT.md).
 
 #### Data and comparability constraints
 

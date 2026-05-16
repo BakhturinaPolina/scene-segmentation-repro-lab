@@ -58,6 +58,24 @@ def log(msg):
     print(f"[{ts}] {msg}", flush=True)
 
 
+def _debug_log(run_id: str, hypothesis_id: str, location: str, message: str, data: dict[str, Any]) -> None:
+    payload = {
+        "sessionId": DEBUG_SESSION_ID,
+        "runId": run_id,
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(time.time() * 1000),
+    }
+    try:
+        DEBUG_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=True, default=str) + "\n")
+    except Exception as e:
+        log(f"[debug-log-write-failed] {type(e).__name__}: {str(e)[:160]}")
+
+
 def progress_bar(done: int, total: int, width: int = 20) -> str:
     total = max(1, total)
     done = max(0, min(done, total))
@@ -81,6 +99,40 @@ _STRICT_SUFFIX = (
     "\n\nReturn your final decision as exactly one token on the last line: "
     "BORDER or NOBORDER."
 )
+
+DEFAULT_MAX_PARSE_RETRIES = 15
+DEFAULT_MAX_RATE_LIMIT_RETRIES = 40
+DEFAULT_MAX_CONSECUTIVE_RATE_LIMITS = 8
+DEFAULT_RATE_LIMIT_BURST_THRESHOLD = 5
+DEFAULT_RATE_LIMIT_COOLDOWN_SEC = 180
+DEBUG_LOG_PATH = Path("/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.cursor/debug-a7f45b.log")
+DEBUG_SESSION_ID = "a7f45b"
+
+_RETRY_AFTER_JSON_RE = re.compile(
+    r'"retry_after_seconds(?:_raw)?"\s*:\s*([\d.]+)', re.IGNORECASE)
+_RETRY_AFTER_HEADER_RE = re.compile(r"Retry-After['\"]?\s*[:=]\s*['\"]?(\d+)", re.IGNORECASE)
+
+
+def _is_rate_limit_error(err_str: str) -> bool:
+    lo = err_str.lower()
+    return (
+        "429" in err_str
+        or "rate limit" in lo
+        or "rate-limit" in lo
+        or "rate limited" in lo
+    )
+
+
+def _parse_retry_after_seconds(err_str: str, rate_limit_attempt: int) -> float:
+    """Extract provider-suggested wait from OpenRouter/LangChain error text."""
+    for pattern in (_RETRY_AFTER_JSON_RE, _RETRY_AFTER_HEADER_RE):
+        match = pattern.search(err_str)
+        if match:
+            try:
+                return max(1.0, float(match.group(1)))
+            except ValueError:
+                pass
+    return float(min(60, 5 * (2 ** min(rate_limit_attempt, 6))))
 
 
 def _compact_decision(reason: str) -> str:
@@ -351,6 +403,12 @@ def classify_sample(
     few_shot_examples: str = "",
     chunk_window: int = 2,
     score_threshold: float = 50.0,
+    request_delay: float = 0.0,
+    max_parse_retries: int = DEFAULT_MAX_PARSE_RETRIES,
+    max_rate_limit_retries: int = DEFAULT_MAX_RATE_LIMIT_RETRIES,
+    max_consecutive_rate_limits: int = DEFAULT_MAX_CONSECUTIVE_RATE_LIMITS,
+    rate_limit_burst_threshold: int = DEFAULT_RATE_LIMIT_BURST_THRESHOLD,
+    rate_limit_cooldown: float = DEFAULT_RATE_LIMIT_COOLDOWN_SEC,
 ):
     """Classify each sentence in the stratified sample. Resumes from cache."""
     if cache_path.exists():
@@ -366,6 +424,28 @@ def classify_sample(
         total = min(total, dry_run)
     log(f"Classifying up to {total} sampled sentences")
     all_sentences = list(doc.sentences)
+    last_success_ts: float | None = None
+    debug_run_id = f"classify_{int(time.time())}"
+    # #region agent log
+    _debug_log(
+        run_id=debug_run_id,
+        hypothesis_id="H0",
+        location="run_prompting_stratified.py:classify_sample:start",
+        message="classification_loop_start",
+        data={
+            "sample_total": len(sample),
+            "effective_total": total,
+            "request_delay": request_delay,
+            "max_rate_limit_retries": max_rate_limit_retries,
+            "max_consecutive_rate_limits": max_consecutive_rate_limits,
+            "burst_threshold": rate_limit_burst_threshold,
+            "rate_limit_cooldown": rate_limit_cooldown,
+            "prompt_mode": prompt_mode,
+            "prompt_family": prompt_family,
+            "model": model.name if hasattr(model, "name") else str(model),
+        },
+    )
+    # #endregion
 
     for count, (orig_idx, sentence, gold) in enumerate(sample):
         if count >= total:
@@ -405,32 +485,124 @@ def classify_sample(
         parse_ok = False
         parse_error = ""
         output_chars = 0
-        retry_count = 0
+        parse_retries = 0
+        rate_limit_retries = 0
+        consecutive_rate_limits = 0
+        rate_limit_streak = 0
+        rate_limit_exhausted = False
         sent_t0 = time.time()
 
-        while scene_change is None and retry_count < 15:
+        while scene_change is None and parse_retries < max_parse_retries:
             active_sample = text_sample
-            if retry_count >= 2 and prompt_family in {None, "A"}:
+            if parse_retries >= 2 and prompt_family in {None, "A"}:
                 active_sample = text_sample + _STRICT_SUFFIX
+            if request_delay > 0:
+                time.sleep(request_delay)
+            # #region agent log
+            _debug_log(
+                run_id=debug_run_id,
+                hypothesis_id="H1_H5",
+                location="run_prompting_stratified.py:classify_sample:before_chain_call",
+                message="request_attempt",
+                data={
+                    "idx": orig_idx,
+                    "count": count + 1,
+                    "parse_retries": parse_retries,
+                    "rate_limit_retries": rate_limit_retries,
+                    "consecutive_rate_limits": consecutive_rate_limits,
+                    "active_sample_chars": len(active_sample),
+                    "seconds_since_last_success": (
+                        None if last_success_ts is None else round(time.time() - last_success_ts, 3)
+                    ),
+                },
+            )
+            # #endregion
             try:
                 response = chain(active_sample)
             except Exception as e:
                 err_str = str(e)
-                if "429" in err_str or "rate" in err_str.lower():
-                    wait = min(60, 5 * (2 ** retry_count))
-                    log(f"  [rate limit] idx={orig_idx} retry={retry_count+1} waiting {wait}s")
+                if _is_rate_limit_error(err_str):
+                    rate_limit_retries += 1
+                    consecutive_rate_limits += 1
+                    rate_limit_streak += 1
+                    parsed_retry_after = _parse_retry_after_seconds(err_str, rate_limit_retries)
+                    # #region agent log
+                    log(
+                        f"  [rate limit debug] idx={orig_idx} retry={rate_limit_retries} "
+                        f"cons={consecutive_rate_limits} parsed_retry_after={parsed_retry_after:.1f}s "
+                        f"err={err_str[:260].replace(chr(10), ' ')}"
+                    )
+                    # #endregion
+                    if rate_limit_streak >= max_consecutive_rate_limits:
+                        log(f"  [rate limit] idx={orig_idx} consecutive limit reached "
+                            f"({rate_limit_streak}/{max_consecutive_rate_limits}), skipping sentence")
+                        parse_error = "rate_limit_exhausted"
+                        reason = "RATE_LIMIT_EXHAUSTED"
+                        rate_limit_exhausted = True
+                        break
+                    if rate_limit_retries > max_rate_limit_retries:
+                        log(f"  [rate limit] idx={orig_idx} exceeded max "
+                            f"({max_rate_limit_retries}), giving up")
+                        break
+                    if consecutive_rate_limits >= rate_limit_burst_threshold:
+                        wait = rate_limit_cooldown
+                        log(f"  [rate limit] idx={orig_idx} burst "
+                            f"{consecutive_rate_limits} — cooldown {wait:.0f}s")
+                        consecutive_rate_limits = 0
+                    else:
+                        wait = parsed_retry_after
+                        log(f"  [rate limit] idx={orig_idx} attempt={rate_limit_retries} "
+                            f"waiting {wait:.0f}s")
+                    # #region agent log
+                    _debug_log(
+                        run_id=debug_run_id,
+                        hypothesis_id="H1_H2_H3_H4_H5",
+                        location="run_prompting_stratified.py:classify_sample:rate_limit_exception",
+                        message="rate_limit_detected",
+                        data={
+                            "idx": orig_idx,
+                            "parse_retries": parse_retries,
+                            "rate_limit_retries": rate_limit_retries,
+                            "consecutive_rate_limits": consecutive_rate_limits,
+                            "chosen_wait_seconds": wait,
+                            "parsed_retry_after_seconds": parsed_retry_after,
+                            "error_excerpt": err_str[:400],
+                            "error_len": len(err_str),
+                            "seconds_since_last_success": (
+                                None if last_success_ts is None else round(time.time() - last_success_ts, 3)
+                            ),
+                        },
+                    )
+                    # #endregion
                     time.sleep(wait)
-                    retry_count += 1
                     continue
-                else:
-                    log(f"  [error] idx={orig_idx} retry={retry_count+1} {err_str[:120]}")
-                    retry_count += 1
-                    time.sleep(2)
-                    continue
+                consecutive_rate_limits = 0
+                rate_limit_streak = 0
+                parse_retries += 1
+                log(f"  [error] idx={orig_idx} parse_retry={parse_retries} {err_str[:120]}")
+                time.sleep(2)
+                continue
 
+            consecutive_rate_limits = 0
+            rate_limit_streak = 0
             chain.memory.chat_memory.messages = chain.memory.chat_memory.messages[:-2]
             text = response["text"]
             output_chars = len(text)
+            last_success_ts = time.time()
+            # #region agent log
+            _debug_log(
+                run_id=debug_run_id,
+                hypothesis_id="H2_H5",
+                location="run_prompting_stratified.py:classify_sample:response_success",
+                message="request_success",
+                data={
+                    "idx": orig_idx,
+                    "parse_retries": parse_retries,
+                    "rate_limit_retries": rate_limit_retries,
+                    "output_chars": output_chars,
+                },
+            )
+            # #endregion
             if prompt_family:
                 parsed = parse_family_output(prompt_family, text)
                 parse_ok = parsed.is_valid
@@ -472,17 +644,36 @@ def classify_sample(
                         parse_ok = True
                         parse_error = ""
             if scene_change is None:
-                retry_count += 1
+                parse_retries += 1
                 first_line = text.split("\n")[0]
-                log(f"  [retry {retry_count}] idx={orig_idx} invalid response: {first_line[:80]}")
+                log(f"  [parse retry {parse_retries}] idx={orig_idx} invalid response: "
+                    f"{first_line[:80]}")
                 time.sleep(1)
 
         if scene_change is None:
             scene_change = False
-            reason = "FAILED_TO_CLASSIFY"
+            if not reason:
+                reason = "FAILED_TO_CLASSIFY"
             parse_ok = False
             if not parse_error:
                 parse_error = "failed_to_classify"
+            # #region agent log
+            _debug_log(
+                run_id=debug_run_id,
+                hypothesis_id="H2_H4",
+                location="run_prompting_stratified.py:classify_sample:classification_failed",
+                message="sentence_failed_after_retries",
+                data={
+                    "idx": orig_idx,
+                    "parse_retries": parse_retries,
+                    "rate_limit_retries": rate_limit_retries,
+                    "consecutive_rate_limits": consecutive_rate_limits,
+                    "rate_limit_streak": rate_limit_streak,
+                    "rate_limit_exhausted": rate_limit_exhausted,
+                    "parse_error": parse_error,
+                },
+            )
+            # #endregion
 
         pred_str = "BORDER" if scene_change else "NOBORDER"
         match = "OK" if pred_str == gold else "MISS"
@@ -563,6 +754,20 @@ def main():
                         help="Chunk half-window (sentences on each side) for H/I families")
     parser.add_argument("--score_threshold", type=float, default=50.0,
                         help="Boundary threshold for I family score mode (0-100)")
+    parser.add_argument("--request_delay", type=float, default=0.0,
+                        help="Seconds to sleep after each successful API response (default: 0)")
+    parser.add_argument("--max_parse_retries", type=int, default=DEFAULT_MAX_PARSE_RETRIES,
+                        help="Max parse/format retries per sentence (default: 15)")
+    parser.add_argument("--max_rate_limit_retries", type=int, default=DEFAULT_MAX_RATE_LIMIT_RETRIES,
+                        help="Max 429/rate-limit retries per sentence (default: 40)")
+    parser.add_argument("--max_consecutive_rate_limits", type=int,
+                        default=DEFAULT_MAX_CONSECUTIVE_RATE_LIMITS,
+                        help="Skip sentence after this many consecutive 429/rate-limit errors (default: 8)")
+    parser.add_argument("--rate_limit_burst_threshold", type=int,
+                        default=DEFAULT_RATE_LIMIT_BURST_THRESHOLD,
+                        help="Consecutive 429s before a long cooldown (default: 5)")
+    parser.add_argument("--rate_limit_cooldown", type=float, default=DEFAULT_RATE_LIMIT_COOLDOWN_SEC,
+                        help="Long cooldown seconds after a 429 burst (default: 180)")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -640,6 +845,12 @@ def main():
         "schema_file": str(args.schema_file) if args.schema_file else None,
         "chunk_window": args.chunk_window,
         "score_threshold": args.score_threshold,
+        "request_delay": args.request_delay,
+        "max_parse_retries": args.max_parse_retries,
+        "max_rate_limit_retries": args.max_rate_limit_retries,
+        "max_consecutive_rate_limits": args.max_consecutive_rate_limits,
+        "rate_limit_burst_threshold": args.rate_limit_burst_threshold,
+        "rate_limit_cooldown": args.rate_limit_cooldown,
         "output_dir": str(output_dir),
         "data_dir": str(DATA_DIR),
     }
@@ -654,6 +865,11 @@ def main():
     log(f"Decode: temp={args.temperature}, top_p={args.top_p}, max_tokens={args.max_tokens}")
     if prompt_family in {"H", "I"}:
         log(f"Chunk mode: window={args.chunk_window}, score_threshold={args.score_threshold}")
+    if args.request_delay > 0:
+        log(f"Request pacing: delay={args.request_delay}s before each API attempt")
+    log(f"Rate limits: burst_threshold={args.rate_limit_burst_threshold}, "
+        f"cooldown={args.rate_limit_cooldown}s, max_429_retries={args.max_rate_limit_retries}, "
+        f"max_consecutive_429={args.max_consecutive_rate_limits}")
     log(f"Output: {output_dir}")
 
     xmi_files = sorted(DATA_DIR.glob("*.xmi.zip"))
@@ -698,7 +914,13 @@ def main():
                                 template_text=template_text,
                                 few_shot_examples=few_shot_examples,
                                 chunk_window=args.chunk_window,
-                                score_threshold=args.score_threshold)
+                                score_threshold=args.score_threshold,
+                                request_delay=args.request_delay,
+                                max_parse_retries=args.max_parse_retries,
+                                max_rate_limit_retries=args.max_rate_limit_retries,
+                                max_consecutive_rate_limits=args.max_consecutive_rate_limits,
+                                rate_limit_burst_threshold=args.rate_limit_burst_threshold,
+                                rate_limit_cooldown=args.rate_limit_cooldown)
 
         sampled_indices = []
         sampled_preds = []
