@@ -1,0 +1,29 @@
+{
+  "input_mode": "txt",
+  "evaluation_mode": "inference_only",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "provider": "openrouter",
+  "prompt_family": "B",
+  "prompt_mode": "no-cot",
+  "reasoning": "off",
+  "decode": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": null,
+    "min_p": null,
+    "seed": 1337,
+    "max_tokens": 256,
+    "stop": [],
+    "response_format": "json_schema",
+    "response_format_effective": "json_schema"
+  },
+  "file": "\u0444\u043e\u043d \u041a\u043b\u0435\u0439\u0441\u0442 - \u0417\u0435\u043c\u043b\u0435\u0442\u0440\u044f\u0441\u0435\u043d\u0438\u0435 \u0432 \u0427\u0438\u043b\u0438.txt",
+  "total_sentences_in_doc": 180,
+  "sentences_classified": 180,
+  "predicted_borders": 74,
+  "parse_failure_count": 1,
+  "parse_failure_rate": 0.0056,
+  "avg_output_chars": 45.13,
+  "avg_latency_seconds": 0.649,
+  "elapsed_seconds": 116.9
+}

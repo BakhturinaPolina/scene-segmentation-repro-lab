@@ -1,0 +1,18 @@
+{
+  "sentence_index": "int (0-based sentence index)",
+  "sentence_text_full": "str (full sentence text, not truncated)",
+  "prediction_label": "str (BORDER|NOBORDER)",
+  "prediction_bool": "bool",
+  "ground_truth_label": "str|null",
+  "parse_ok": "bool",
+  "parse_error": "str",
+  "compact_decision": "str (short parsed/normalized rationale)",
+  "raw_model_response": "str (full raw model output)",
+  "latency_seconds": "float",
+  "output_chars": "int",
+  "input_mode": "str (xmi|txt)",
+  "prompt_mode": "str",
+  "prompt_family": "str|null",
+  "model": "str",
+  "source_file": "str"
+}
