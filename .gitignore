@@ -59,9 +59,16 @@ outputs/figures/*
 outputs/ssc/
 outputs/llama/
 outputs/prompting/
-# Human-review markdown files (German and English translation) are small and worth tracking
-!outputs/review/
-!outputs/review/en/
+# Review outputs: ignore all by default; keep only selected package trackable
+outputs/review/*
+!outputs/review/prompting_rawtxt_nonfree_familyB_reasoning-off_2026-05-16/
+!outputs/review/prompting_rawtxt_nonfree_familyB_reasoning-off_2026-05-16/**
+
+# Explicitly keep key planning/manifest files tracked
+!docs/PROJECT_PLAN.md
+!docs/PROMPTING_RESULTS_REPORT.md
+!docs/2025.naacl-long.500.pdf
+!data/manifest_raw_txt.json
 
 # OS files
 .DS_Store

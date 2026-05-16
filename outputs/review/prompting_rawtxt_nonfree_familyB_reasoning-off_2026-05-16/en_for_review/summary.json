@@ -1,0 +1,29 @@
+{
+  "input_mode": "txt",
+  "evaluation_mode": "inference_only",
+  "model": "nvidia/nemotron-3-super-120b-a12b",
+  "provider": "openrouter",
+  "prompt_family": "B",
+  "prompt_mode": "no-cot",
+  "reasoning": "off",
+  "decode": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": null,
+    "min_p": null,
+    "seed": 1337,
+    "max_tokens": 256,
+    "stop": [],
+    "response_format": "json_schema",
+    "response_format_effective": "json_schema"
+  },
+  "file": "Kleist-Earthquake-in-Chile.txt",
+  "total_sentences_in_doc": 160,
+  "sentences_classified": 160,
+  "predicted_borders": 69,
+  "parse_failure_count": 1,
+  "parse_failure_rate": 0.0063,
+  "avg_output_chars": 45.27,
+  "avg_latency_seconds": 1.36,
+  "elapsed_seconds": 217.7
+}
