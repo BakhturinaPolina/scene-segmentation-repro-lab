@@ -153,11 +153,86 @@ Runtime evidence collected today indicates:
 4. Parser/config drift is not primary:
    - Prompt family, model, reasoning, response format, and context budget were held aligned for comparison runs.
 
+## Cross-Run Comparison (Latest Update)
+
+### E) Controlled one-factor post-processing sweep (Nemotron, full_eval)
+
+From `outputs/review/excel_controlled_sweep/comparison/normalization_what_if.csv` (aggregate):
+
+- `none`: P=0.0583, R=0.3333, F1=0.0993, tol3_F1=0.3604, tol5_F1=0.4242
+- `min_scene_len_3`: P=0.0597, R=0.1905, F1=0.0909, tol3_F1=0.5063, tol5_F1=0.5676
+- `min_scene_len_5`: P=0.0652, R=0.1429, F1=0.0896, tol3_F1=0.5373, tol5_F1=0.6667
+
+Interpretation:
+
+- Stronger smoothing improves tolerant boundary quality (`tol3`, `tol5`) but reduces strict exact recall/F1.
+- For tolerance-oriented evaluation, `min_scene_len_5` is best among tested rules.
+
+### F) Apples-to-apples stratified comparison (same model/prompt/scorer)
+
+Compared:
+
+- STSS: `outputs/prompting/2026-05-16-phaseC-E6-roff-full/strat_nvidia_nemotron-3-super-120b-a12b_familyB_reasoning-off/summary.json`
+- Excel: `outputs/prompting/2026-05-30-debug-stratified-compare/strat_nvidia_nemotron-3-super-120b-a12b_familyB_reasoning-off/summary.json`
+
+Micro-averaged metrics:
+
+- tol0 F1: STSS `0.7730` vs Excel `0.7442` (delta `-0.0288`)
+- tol1 F1: STSS `0.7936` vs Excel `0.7619` (delta `-0.0317`)
+- tol3 F1: STSS `0.8301` vs Excel `0.7805` (delta `-0.0496`)
+
+Interpretation:
+
+- When evaluation protocol is aligned (`stratified` vs `stratified`), Excel is worse but not catastrophically worse than STSS.
+- The very large degradation seen elsewhere is primarily tied to `full_eval` class imbalance and resulting FP pressure.
+
+### G) Premium model sweep and ranking on Excel full_eval
+
+From:
+
+- `outputs/prompting/2026-05-30-excel-3model-sweep/comparison_3model_full_eval.csv`
+- `outputs/prompting/2026-05-30-excel-opus4/full_anthropic_claude-opus-4_familyB_reasoning-off/summary.json`
+- `outputs/prompting/2026-05-31-excel-gemini-reasoning-on/full_google_gemini-2.5-pro_familyB_reasoning-on/summary.json`
+
+Model ranking (higher is better):
+
+| Rank | Model | Reasoning | macro tol0 F1 | macro tol3 F1 |
+| --- | --- | --- | --- | --- |
+| 1 | `google/gemini-2.5-pro` | on | 0.4981 | 0.7617 |
+| 2 | `google/gemini-2.5-pro` | low | 0.4949 | 0.7184 |
+| 3 | `anthropic/claude-opus-4` | off | 0.4365 | 0.6134 |
+| 4 | `openai/gpt-4.1` | off | 0.4190 | 0.6160 |
+| 5 | `anthropic/claude-sonnet-4` | off | 0.3506 | 0.4965 |
+
+### H) Gemini reasoning mode delta (`on` vs `low`)
+
+Compared:
+
+- `outputs/prompting/2026-05-31-excel-gemini-reasoning-on/full_google_gemini-2.5-pro_familyB_reasoning-on/summary.json`
+- `outputs/prompting/2026-05-30-excel-3model-sweep/full_google_gemini-2.5-pro_familyB_reasoning-low/summary.json`
+
+Delta (`on` minus `low`):
+
+- macro tol0 F1: `+0.0032` (0.4981 vs 0.4949)
+- macro tol1 F1: `+0.0422` (0.6779 vs 0.6357)
+- macro tol3 F1: `+0.0433` (0.7617 vs 0.7184)
+- avg latency: slightly lower for `on` (`3.434s` vs `3.505s`)
+- parse failures: unchanged at `0`
+
+Notes:
+
+- `google/gemini-2.5-pro` does not accept `reasoning=off`; minimum working setting is `reasoning=low`.
+- On this Excel full_eval set, `reasoning=on` is currently the best-performing tested configuration.
+
 ## Next Recommended Step
 
-Run a controlled, one-factor experiment on the Excel-manifest path:
+Choose one of two objectives and lock it in a decision note:
 
-- Fixed: model, prompt family B, decode params, full_eval=true
-- Factor: one post-processing rule at a time (`none`, `min_scene_len_3`, `min_scene_len_5`)
-- Report both exact and tolerant (`tol3`, `tol5`) metrics and FP tables.
+1. **Strict exact boundary objective**  
+   Prioritize tol0/exact metrics and continue with model-side improvements (or milder smoothing).
+
+2. **Tolerance-oriented boundary objective**  
+   Use `min_scene_len_5` and the current top model candidate (`google/gemini-2.5-pro`, `reasoning=on`) as the starting point, then validate on additional Excel-derived texts.
+
+In either case, keep a single canonical scorer path for final headline numbers to avoid minor script-to-script exact-metric drift.
 
