@@ -18,6 +18,7 @@ Options:
     --reasoning {on,off}        Model-level thinking (default: on)
 """
 import argparse
+import csv
 import json
 import os
 import random
@@ -25,6 +26,7 @@ import re
 import sys
 import time
 from datetime import date, datetime
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
@@ -50,6 +52,19 @@ DEFAULT_MODEL = Model("nvidia/nemotron-3-super-120b-a12b:free", int(512 * 0.8), 
 ROOT_DIR = project_root(Path(__file__))
 DATA_DIR = stss_test2_data_dir(ROOT_DIR)
 SEED = 1337
+
+
+@dataclass
+class SyntheticSentence:
+    text: str
+    previous: "SyntheticSentence | None" = None
+    next: "SyntheticSentence | None" = None
+
+
+@dataclass
+class SyntheticDoc:
+    path: Path
+    sentences: list[SyntheticSentence]
 
 
 def log(msg):
@@ -107,6 +122,8 @@ DEFAULT_RATE_LIMIT_BURST_THRESHOLD = 5
 DEFAULT_RATE_LIMIT_COOLDOWN_SEC = 180
 DEBUG_LOG_PATH = Path("/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.cursor/debug-a7f45b.log")
 DEBUG_SESSION_ID = "a7f45b"
+AGENT_DEBUG_LOG_PATH = Path("/home/polina/Documents/Cursor_Projects/scene-segmentation-research/.cursor/debug-d978b4.log")
+AGENT_DEBUG_SESSION_ID = "d978b4"
 
 _RETRY_AFTER_JSON_RE = re.compile(
     r'"retry_after_seconds(?:_raw)?"\s*:\s*([\d.]+)', re.IGNORECASE)
@@ -133,6 +150,30 @@ def _parse_retry_after_seconds(err_str: str, rate_limit_attempt: int) -> float:
             except ValueError:
                 pass
     return float(min(60, 5 * (2 ** min(rate_limit_attempt, 6))))
+
+
+def _agent_debug_log(
+    run_id: str,
+    hypothesis_id: str,
+    location: str,
+    message: str,
+    data: dict[str, Any],
+) -> None:
+    payload = {
+        "sessionId": AGENT_DEBUG_SESSION_ID,
+        "runId": run_id,
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(time.time() * 1000),
+    }
+    try:
+        AGENT_DEBUG_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(AGENT_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=True, default=str) + "\n")
+    except Exception:
+        pass
 
 
 def _compact_decision(reason: str) -> str:
@@ -289,6 +330,133 @@ def build_full_sample(doc):
         lab = get_label_simple(sent, coarse=True)
         sample.append((i, sent, "BORDER" if lab == Label.BORDER else "NOBORDER"))
     return sample
+
+
+def _normalize_gold_label(value: str) -> str:
+    token = value.strip().upper()
+    return "BORDER" if token == "BORDER" else "NOBORDER"
+
+
+def build_stratified_sample_from_labels(
+    sentences: list[SyntheticSentence],
+    labels: list[str],
+    seed: int,
+    max_per_class: int = 0,
+):
+    rng = random.Random(seed)
+    borders: list[tuple[int, SyntheticSentence, str]] = []
+    noborders: list[tuple[int, SyntheticSentence, str]] = []
+    for i, (sent, label) in enumerate(zip(sentences, labels)):
+        triplet = (i, sent, label)
+        if label == "BORDER":
+            borders.append(triplet)
+        else:
+            noborders.append(triplet)
+
+    if max_per_class > 0 and len(borders) > max_per_class:
+        borders = sorted(rng.sample(borders, max_per_class), key=lambda x: x[0])
+
+    n_need = len(borders)
+    if max_per_class > 0:
+        n_need = min(n_need, max_per_class)
+
+    if len(noborders) <= n_need:
+        selected_nb = noborders
+    else:
+        step = len(noborders) / n_need
+        selected_nb = [noborders[int(i * step)] for i in range(n_need)]
+
+    return sorted(borders + selected_nb, key=lambda x: x[0])
+
+
+def build_full_sample_from_labels(
+    sentences: list[SyntheticSentence],
+    labels: list[str],
+):
+    return [(i, sent, label) for i, (sent, label) in enumerate(zip(sentences, labels))]
+
+
+def _resolve_excel_txt_path(name: str) -> Path:
+    candidate = ROOT_DIR / "data" / name
+    if candidate.exists():
+        return candidate
+    fallback = ROOT_DIR / name
+    if fallback.exists():
+        return fallback
+    raise FileNotFoundError(f"TXT from manifest not found: {name}")
+
+
+def _gold_path_for_txt(txt_path: Path) -> Path:
+    if txt_path.name.endswith("__for_prompting.txt"):
+        return txt_path.with_name(txt_path.name.replace("__for_prompting.txt", "__gold_labels.csv"))
+    return txt_path.with_suffix(".gold.csv")
+
+
+def load_excel_manifest_docs(manifest_path: Path) -> list[dict[str, Any]]:
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    files = payload.get("files", [])
+    docs: list[dict[str, Any]] = []
+    for item in files:
+        name = item.get("name")
+        if not isinstance(name, str) or not name:
+            continue
+        txt_path = _resolve_excel_txt_path(name)
+        gold_path = _gold_path_for_txt(txt_path)
+        if not gold_path.exists():
+            raise FileNotFoundError(f"Gold CSV missing for TXT input: {gold_path}")
+
+        rows: list[dict[str, str]] = []
+        scene_ids: list[str] = []
+        with gold_path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                text = str(row.get("sentence_text_full", "")).strip()
+                if not text:
+                    continue
+                rows.append(row)
+                scene_ids.append(str(row.get("scene_id_raw", "")).strip())
+        if not rows:
+            raise ValueError(f"No usable rows in gold CSV: {gold_path}")
+
+        sentences = [SyntheticSentence(text=str(r["sentence_text_full"]).strip()) for r in rows]
+        for i in range(len(sentences)):
+            if i > 0:
+                sentences[i].previous = sentences[i - 1]
+            if i + 1 < len(sentences):
+                sentences[i].next = sentences[i + 1]
+
+        full_gold = [_normalize_gold_label(str(r.get("ground_truth_label", ""))) for r in rows]
+        stem = txt_path.stem.replace("__for_prompting", "")
+        # #region agent log
+        _agent_debug_log(
+            run_id=f"manifest_load_{stem}",
+            hypothesis_id="H2_H3",
+            location="run_prompting_stratified.py:load_excel_manifest_docs",
+            message="excel_manifest_doc_profile",
+            data={
+                "stem": stem,
+                "rows_used": len(rows),
+                "gold_borders": sum(1 for g in full_gold if g == "BORDER"),
+                "unique_scene_ids": len({sid for sid in scene_ids if sid}),
+                "avg_sentence_chars": round(
+                    sum(len(s.text) for s in sentences) / len(sentences), 2
+                ) if sentences else 0.0,
+            },
+        )
+        # #endregion
+        docs.append(
+            {
+                "stem": stem,
+                "source_file": txt_path.name,
+                "doc": SyntheticDoc(path=txt_path, sentences=sentences),
+                "sentences": sentences,
+                "full_gold": full_gold,
+                "input_mode": "excel_manifest",
+            }
+        )
+    if not docs:
+        raise ValueError(f"No files found in excel manifest: {manifest_path}")
+    return docs
 
 
 def build_chunk_sentences(sentences, center_idx, chunk_window):
@@ -480,6 +648,22 @@ def classify_sample(
                 )
             else:
                 text_sample = base_sample
+        # #region agent log
+        if count < 2:
+            _agent_debug_log(
+                run_id=debug_run_id,
+                hypothesis_id="H3_H4",
+                location="run_prompting_stratified.py:classify_sample",
+                message="sample_context_profile",
+                data={
+                    "idx": orig_idx,
+                    "gold": gold,
+                    "sentence_chars": len(sentence.text),
+                    "sample_chars": len(text_sample),
+                    "prompt_family": prompt_family,
+                },
+            )
+        # #endregion
         scene_change = None
         reason = ""
         parse_ok = False
@@ -768,6 +952,8 @@ def main():
                         help="Consecutive 429s before a long cooldown (default: 5)")
     parser.add_argument("--rate_limit_cooldown", type=float, default=DEFAULT_RATE_LIMIT_COOLDOWN_SEC,
                         help="Long cooldown seconds after a 429 burst (default: 180)")
+    parser.add_argument("--excel_manifest", type=Path, default=None,
+                        help="Optional processed Excel manifest JSON to run stratified prompting without XMI.")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -851,9 +1037,29 @@ def main():
         "max_consecutive_rate_limits": args.max_consecutive_rate_limits,
         "rate_limit_burst_threshold": args.rate_limit_burst_threshold,
         "rate_limit_cooldown": args.rate_limit_cooldown,
+        "excel_manifest": str(args.excel_manifest) if args.excel_manifest else None,
         "output_dir": str(output_dir),
         "data_dir": str(DATA_DIR),
     }
+    run_id = f"run_{int(time.time())}"
+    # #region agent log
+    _agent_debug_log(
+        run_id=run_id,
+        hypothesis_id="H1_H5",
+        location="run_prompting_stratified.py:main",
+        message="run_configuration",
+        data={
+            "model": model.name,
+            "prompt_family": args.prompt_family,
+            "reasoning": args.reasoning,
+            "full_eval": args.full_eval,
+            "max_per_class": args.max_per_class,
+            "excel_manifest": str(args.excel_manifest) if args.excel_manifest else None,
+            "response_format": args.response_format,
+            "context_size": model.context_size,
+        },
+    )
+    # #endregion
     write_repro_files(output_dir, sys.argv, run_config)
     log(f"Model: {model.name}")
     log(f"Context size: {model.context_size} tokens")
@@ -872,35 +1078,113 @@ def main():
         f"max_consecutive_429={args.max_consecutive_rate_limits}")
     log(f"Output: {output_dir}")
 
-    xmi_files = sorted(DATA_DIR.glob("*.xmi.zip"))
-    if not xmi_files:
-        log(f"ERROR: No .xmi.zip files in {DATA_DIR}")
-        sys.exit(1)
+    docs_to_run: list[dict[str, Any]] = []
+    if args.excel_manifest:
+        manifest_path = args.excel_manifest.expanduser()
+        if not manifest_path.is_absolute():
+            manifest_path = ROOT_DIR / manifest_path
+        manifest_path = manifest_path.resolve()
+        if not manifest_path.exists():
+            log(f"ERROR: Excel manifest not found: {manifest_path}")
+            sys.exit(1)
+        docs_to_run = load_excel_manifest_docs(manifest_path)
+    else:
+        xmi_files = sorted(DATA_DIR.glob("*.xmi.zip"))
+        if not xmi_files:
+            log(f"ERROR: No .xmi.zip files in {DATA_DIR}")
+            sys.exit(1)
+        for xmi_path in xmi_files:
+            docs_to_run.append(
+                {
+                    "stem": xmi_path.name.replace(".xmi.zip", ""),
+                    "source_file": xmi_path.name,
+                    "xmi_path": xmi_path,
+                    "input_mode": "xmi",
+                }
+            )
 
     all_doc_results = {}
 
-    for xmi_path in xmi_files:
-        stem = xmi_path.name.replace(".xmi.zip", "")
+    for item in docs_to_run:
+        stem = item["stem"]
         log(f"{'='*60}")
         log(f"Document: {stem}")
         log(f"{'='*60}")
-        log(f"Loading XMI: {xmi_path}")
-
-        doc_t0 = time.time()
-        doc = UIMADocument.from_xmi(xmi_path)
-        log(f"Loaded XMI in {time.time() - doc_t0:.1f}s")
-        sentences = list(doc.sentences)
+        input_mode = item["input_mode"]
+        if input_mode == "xmi":
+            xmi_path = item["xmi_path"]
+            log(f"Loading XMI: {xmi_path}")
+            doc_t0 = time.time()
+            doc = UIMADocument.from_xmi(xmi_path)
+            log(f"Loaded XMI in {time.time() - doc_t0:.1f}s")
+            sentences = list(doc.sentences)
+            full_gold = [get_label_simple(s, coarse=True).value for s in sentences]
+        else:
+            doc = item["doc"]
+            sentences = item["sentences"]
+            full_gold = item["full_gold"]
+            log(f"Loaded manifest text source: {item['source_file']} ({len(sentences)} sentences)")
         total_sents = len(sentences)
-
-        full_gold = [get_label_simple(s, coarse=True).value for s in sentences]
         n_gold_borders = sum(1 for g in full_gold if g == "BORDER")
+        border_positions = [i for i, g in enumerate(full_gold) if g == "BORDER"]
+        border_gaps = [
+            border_positions[i] - border_positions[i - 1]
+            for i in range(1, len(border_positions))
+        ]
+        avg_border_gap = (
+            round(sum(border_gaps) / len(border_gaps), 2) if border_gaps else None
+        )
+        min_border_gap = min(border_gaps) if border_gaps else None
+        max_border_gap = max(border_gaps) if border_gaps else None
 
         if args.full_eval:
-            sample = build_full_sample(doc)
+            if input_mode == "xmi":
+                sample = build_full_sample(doc)
+            else:
+                sample = build_full_sample_from_labels(sentences, full_gold)
         else:
-            sample = build_stratified_sample(doc, args.seed, max_per_class=args.max_per_class)
+            if input_mode == "xmi":
+                sample = build_stratified_sample(doc, args.seed, max_per_class=args.max_per_class)
+            else:
+                sample = build_stratified_sample_from_labels(
+                    sentences, full_gold, args.seed, max_per_class=args.max_per_class
+                )
         n_border_sampled = sum(1 for _, _, g in sample if g == "BORDER")
         n_noborder_sampled = sum(1 for _, _, g in sample if g == "NOBORDER")
+        # #region agent log
+        _agent_debug_log(
+            run_id=run_id,
+            hypothesis_id="H1_H2",
+            location="run_prompting_stratified.py:main",
+            message="document_sampling_profile",
+            data={
+                "stem": stem,
+                "input_mode": input_mode,
+                "total_sentences": total_sents,
+                "gold_borders": n_gold_borders,
+                "sampled_total": len(sample),
+                "sampled_borders": n_border_sampled,
+                "sampled_noborders": n_noborder_sampled,
+            },
+        )
+        _agent_debug_log(
+            run_id=run_id,
+            hypothesis_id="H6",
+            location="run_prompting_stratified.py:main",
+            message="gold_boundary_structure",
+            data={
+                "stem": stem,
+                "input_mode": input_mode,
+                "border_rate": round(
+                    (n_gold_borders / total_sents), 4
+                ) if total_sents else 0.0,
+                "n_gold_borders": n_gold_borders,
+                "avg_border_gap": avg_border_gap,
+                "min_border_gap": min_border_gap,
+                "max_border_gap": max_border_gap,
+            },
+        )
+        # #endregion
 
         log(f"  Total sentences: {total_sents}")
         log(f"  Gold borders: {n_gold_borders}")
@@ -962,7 +1246,7 @@ def main():
                 sampled_indices, sampled_preds, full_gold, tol)
 
         doc_result = {
-            "file": xmi_path.name,
+            "file": item["source_file"],
             "total_sentences": total_sents,
             "gold_borders": n_gold_borders,
             "sample_mode": "full_eval" if args.full_eval else "stratified",
@@ -982,7 +1266,7 @@ def main():
         results_data = {
             "model": model.name,
             "provider": "openrouter",
-            "file": xmi_path.name,
+            "file": item["source_file"],
             "original_indices": sampled_indices,
             "labels": [p == "BORDER" for p in sampled_preds],
             "predictions": sampled_preds,
@@ -1019,11 +1303,11 @@ def main():
                     "raw_model_response": reasons[idx],
                     "latency_seconds": float(latencies[idx]),
                     "output_chars": float(output_chars_list[idx]),
-                    "input_mode": "xmi",
+                    "input_mode": input_mode,
                     "prompt_mode": args.prompt,
                     "prompt_family": prompt_family,
                     "model": model.name,
-                    "source_file": xmi_path.name,
+                    "source_file": item["source_file"],
                 }
                 handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
