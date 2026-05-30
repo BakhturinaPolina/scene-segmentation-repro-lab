@@ -254,6 +254,13 @@ def _resolve_txt_source(args: argparse.Namespace) -> Path:
 
 
 def _split_txt_sentences(text: str) -> list[str]:
+    # Prefer line-preserving segmentation when input is one sentence per line
+    # (e.g., preprocessed Excel sentence exports). This keeps indices aligned
+    # with external gold labels.
+    line_based = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if len(line_based) > 1:
+        return line_based
+
     flat_text = re.sub(r"\s+", " ", text).strip()
     if not flat_text:
         return []
