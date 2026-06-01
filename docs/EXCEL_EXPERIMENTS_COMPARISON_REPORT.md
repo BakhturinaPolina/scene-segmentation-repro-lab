@@ -1,216 +1,106 @@
-# Excel Prompting Experiments Comparison Report
+# Excel Prompting Experiments — Short Report
 
 Date: 2026-06-01  
-Track: prompting  
-Scope: Excel-derived sentence-level scene-boundary experiments on:
-- `data/raw/Gaensemagd_sentence level.xlsx`
-- `data/raw/Kleist_sentence level.xlsx`
+
+All runs below use **Prompt family B** (short zero-shot JSON instruction). That prompt, with deterministic decoding, was already the best setup on the STSS benchmark novels; we reused the same style here so results stay comparable across corpora.
 
 ---
 
-## 1) Objective
+## 1) Data and gold labels
 
-This report consolidates all completed experiments that compare prompting-based boundary labels against gold labels derived from the two Excel files above. It also provides:
-- a minimal file set to share on GitHub for colleague review;
-- a reviewer-friendly strategy to write model outputs back into Excel workbooks.
+Each row is one sentence. Annotators grouped sentences into scenes; whenever the scene number changes, the **first sentence of the new scene** is marked as a scene border.
 
-Primary prior references:
-- `docs/EXCEL_PROMPTING_2026-05-30_REPORT.md`
-- `research_log/runs/2026-05-30__prompting__experiment__excel-manifest-familyb-full-eval-and-whatif.md`
-- `research_log/runs/2026-05-30__prompting__experiment__excel-controlled-postprocessing-sweep.md`
-- `research_log/experiments/experiment__prompting__post-processing__excel-controlled-sweep.md`
+**Example (simplified):**
 
----
+| Sentence | Scene | Gold label |
+|---|---|---|
+| “Es lebte einmal eine alte Königin …” | 1 | BORDER (start of story / scene 1) |
+| “Wie die erwuchs, wurde sie … versprochen.” | 1 | NOBORDER (same scene) |
+| “Also nahmen beide von einander betrübten Abschied …” | 2 | BORDER (scene changed) |
+| “Da sie eine Stunde geritten waren …” | 2 | NOBORDER |
 
-## 2) Data and Label Construction
+**Corpus size**
 
-The preprocessing pipeline in `scripts/prepare_excel_prompting_inputs.py` converts each workbook into:
-- sentence text for prompting (`*_for_prompting.txt`, `*_for_prompting.jsonl`);
-- gold labels (`*_gold_labels.csv`);
-- a manifest (`data/processed/manifest_excel_prompting.json`).
+| Text | Sentences | True scene borders | Border rate |
+|---|---:|---:|---:|
+| Gaensemagd | 71 | 7 | 9.9% |
+| Kleist | 245 | 14 | 5.7% |
+| **Both together** | **316** | **21** | **6.7%** |
 
-Gold label rule:
-- `BORDER` when current `scene_id` differs from previous sentence scene_id;
-- otherwise `NOBORDER`.
+Scene borders are **rare** compared with normal sentences. That matters when reading the scores below.
 
-Resulting corpus profile:
-- Gaensemagd: 71 evaluated rows, 7 gold borders (9.86%)
-- Kleist: 245 evaluated rows, 14 gold borders (5.71%)
-- Aggregate: 316 rows, 21 gold borders (6.65%)
+**Open problem — overprediction:** In the main runs, models often predicted far more borders than exist in the gold data (on the order of **five to six times** too many). Many mistakes are “a bit early or late” rather than completely wrong, but the sheer number of extra borders hurts **precision**. This needs a dedicated follow-up (better model choice, post-processing, or clearer annotation rules).
 
 ---
 
-## 3) Experiment Inventory
+## 2) Step 1 — Compare models (Prompt B, same settings)
 
-## 3.1 Baseline Excel-manifest full-eval run
+We ran several large models on the same two texts with Prompt B and scored predictions against the Excel gold borders.
 
-Run note: `research_log/runs/2026-05-30__prompting__experiment__excel-manifest-familyb-full-eval-and-whatif.md`
+**How to read the metrics**
 
-Configuration:
-- Model: `nvidia/nemotron-3-super-120b-a12b`
-- Prompt family: `B` (`src/prompts/B_zero_shot_json.txt`)
-- Decoding: `temperature=0`, `top_p=1.0`, `seed=1337`, `max_tokens=256`
-- Output schema: `src/prompts/json_schema_label_reason.json`
-- Eval mode: full_eval on `data/processed/manifest_excel_prompting.json`
+| Metric | Plain meaning |
+|---|---|
+| **Precision** | When the model says “border”, how often is it right? Low precision = many false alarms. |
+| **Recall** | Of all real borders in the gold data, how many did the model find? Low recall = missed scene changes. |
+| **F1 (exact)** | One combined score for exact sentence match (balances precision and recall). |
+| **tol3 / tol5 F1** | Softer scores: a prediction still counts as correct if it falls within **3** or **5** sentences of the true border. Useful when the model is roughly right but shifted by a few sentences. |
 
-Exact aggregate metrics (score vs gold):
-- Precision: 0.0708
-- Recall: 0.3810
-- F1: 0.1194
-- Accuracy: 0.6266
+**Model ranking on both Excel texts (full evaluation, Prompt B)**
 
-Interpretation:
-- recall is moderate, but precision is low due to many false positives (over-segmentation).
+| Rank | Model | Reasoning mode | Exact F1 (tol0) | Near-match F1 (tol3) |
+|---:|---|---|---:|---:|
+| 1 | Gemini 2.5 Pro | on | **0.50** | **0.76** |
+| 2 | Gemini 2.5 Pro | low | 0.49 | 0.72 |
+| 3 | Claude Opus 4 | off | 0.44 | 0.61 |
+| 4 | GPT-4.1 | off | 0.42 | 0.62 |
+| 5 | Claude Sonnet 4 | off | 0.35 | 0.50 |
 
-## 3.2 Controlled one-factor post-processing sweep
+**Takeaway:** **Gemini 2.5 Pro with reasoning turned on** gave the best results on these Excel texts. Turning reasoning from “low” to “on” helped especially for near-match quality (tol3 F1 about **+0.04**). 
 
-Experiment note: `research_log/experiments/experiment__prompting__post-processing__excel-controlled-sweep.md`  
-Run note: `research_log/runs/2026-05-30__prompting__experiment__excel-controlled-postprocessing-sweep.md`  
-Comparison artifact: `outputs/review/excel_controlled_sweep/comparison/normalization_what_if.csv`
+---
 
-Single varying factor:
-- post-processing rule (`none`, `min_scene_len_3`, `min_scene_len_5`)
+## 3) Step 2 — Post-processing experiment (Prompt B, one model)
 
-Aggregate outcomes:
+**Why we ran this:** Even with Prompt B, the model often marks borders on **several neighbouring sentences** around a real scene change. Humans might accept “within a few sentences”, but strict scoring treats each extra mark as a false positive. We tested simple clean-up rules that **thin out** border marks that sit too close together.
 
-| Scenario | Precision | Recall | F1 (exact) | tol3 F1 | tol5 F1 |
+**What we changed (only one thing at a time):**
+
+| Rule | Idea in plain language |
+|---|---|
+| **none** | Use raw model output. |
+| **min_scene_len_3** | After a predicted border, ignore any new border for the next **3** sentences. |
+| **min_scene_len_5** | Same, but with a **5**-sentence gap. |
+
+Same model and Prompt B as in the controlled run; only the clean-up rule differed.
+
+**Results (both texts combined)**
+
+| Rule | Precision | Recall | Exact F1 | Near-match F1 (tol3) | Near-match F1 (tol5) |
 |---|---:|---:|---:|---:|---:|
-| none | 0.0583 | 0.3333 | 0.0993 | 0.3604 | 0.4242 |
-| min_scene_len_3 | 0.0597 | 0.1905 | 0.0909 | 0.5063 | 0.5676 |
-| min_scene_len_5 | 0.0652 | 0.1429 | 0.0896 | 0.5373 | 0.6667 |
+| none | 0.06 | 0.33 | 0.10 | 0.36 | 0.42 |
+| min gap 3 sentences | 0.06 | 0.19 | 0.09 | 0.51 | 0.57 |
+| min gap 5 sentences | 0.07 | 0.14 | 0.09 | 0.54 | **0.67** |
 
-Interpretation:
-- stronger smoothing decreases exact recall/F1;
-- tolerant boundary quality improves substantially, especially at tol5.
+- **Strict exact matching** stays weak for all rules (F1 around 0.09–0.10). Cleaning up neighbours does not magically fix every wrong border.
+- **Softer “within a few sentences” scores improve a lot** when we enforce a minimum gap—especially **5 sentences** (tol5 F1 rises from **0.42 → 0.67**). That supports the idea that many errors are **clustered near** true boundaries, not random noise.
+- The trade-off: stricter spacing **finds fewer** true borders (recall drops from 0.33 to 0.14 with the 5-sentence rule), because some legitimate borders sit closer than five sentences apart.
 
-## 3.3 Premium model sweep and reasoning comparison
-
-Summarized in `docs/EXCEL_PROMPTING_2026-05-30_REPORT.md`.
-
-Observed ranking on Excel full_eval (macro metrics):
-1. `google/gemini-2.5-pro` (`reasoning=on`)
-2. `google/gemini-2.5-pro` (`reasoning=low`)
-3. `anthropic/claude-opus-4` (`reasoning=off`)
-4. `openai/gpt-4.1` (`reasoning=off`)
-5. `anthropic/claude-sonnet-4` (`reasoning=off`)
-
-Best reported macro performance:
-- tol0 F1: 0.4981
-- tol3 F1: 0.7617
-
-Interpretation:
-- premium models significantly reduce the gap seen in Nemotron full_eval baseline.
-
-## 3.4 Stratified-vs-full-eval comparability check
-
-Also documented in `docs/EXCEL_PROMPTING_2026-05-30_REPORT.md`.
-
-Finding:
-- when protocol is aligned (`stratified` vs `stratified`), Excel is somewhat worse than STSS but not catastrophically worse;
-- large observed degradation is mainly tied to `full_eval` class imbalance and false-positive pressure.
+So post-processing is useful if reviewers care about **approximate** scene placement; it is less helpful if every sentence must be exact.
 
 ---
 
-## 4) Error Shape and Diagnostic Findings
+## 4) What went wrong (error pattern)
 
-From FP diagnostics (`scripts/export_top_fp_review_table.py` and scenario FP tables):
-- A meaningful fraction of FP predictions are near true boundaries (`+-1` or `+-3` sentences), indicating placement drift and fragmentation rather than fully unrelated boundaries.
-- Persistent error mode is boundary over-triggering in narrative transition zones.
-- Smoothing (`min_scene_len_3/5`) removes many clustered FPs and improves tolerant metrics.
-
-Key numeric signals:
-- Baseline aggregate predicted borders: 120 vs 21 gold borders (~5.7x overprediction).
-- Tolerant F1 gains under min-scene-length filtering support a post-processing layer when tolerance-oriented review is acceptable.
+- **Too many predicted borders** compared with gold (over-segmentation).
+- A noticeable share of false alarms sit **within one to three sentences** of a real border—timing slips, not wholly invented scenes.
+- Errors often appear in **transition passages** (time/place/character shift), where the model is “almost” right.
 
 ---
 
-## 5) Why Excel Results Differ from STSS Campaign Headline
+## 5) Practical conclusions
 
-Reference comparison report: `docs/PROMPTING_RESULTS_REPORT.md`
+1. Decide whether success means **exact sentence** or **within a few sentences**. The numbers look very different; mixing both without saying so is misleading.
 
-Major non-equivalences:
-- different data regime (2 Excel-derived texts vs STSS corpus slice);
-- different class balance and boundary density;
-- protocol sensitivity (full_eval vs stratified);
-- run context and model routing differences across campaign phases.
+2. Treat **border overprediction** as a first-class problem—either improve the model side (Gemini already helps) or agree on post-processing / annotation tolerance before reporting a single headline F1.
 
-Conclusion:
-- avoid direct headline-number comparison without protocol alignment;
-- compare like-for-like (same scorer, mode, and split policy).
-
----
-
-## 6) Recommended Reporting Position
-
-Choose and document one primary objective before claiming a default configuration:
-
-1. **Strict exact-boundary objective**  
-   Optimize tol0/exact precision+recall and avoid aggressive smoothing.
-
-2. **Tolerance-oriented objective**  
-   Prefer boundary proximity quality (tol3/tol5), use smoothing (currently `min_scene_len_5`) and validate on additional Excel texts.
-
-Current evidence favors:
-- `min_scene_len_5` for tolerance-oriented review workflows;
-- premium model candidates (especially Gemini 2.5 Pro) for stronger baseline quality.
-
----
-
-## 7) Minimal GitHub Push Set for Colleague Review
-
-Goal: enough for review and reproducibility, without output overload.
-
-### 7.1 Recommended (push)
-
-- `docs/EXCEL_PROMPTING_2026-05-30_REPORT.md` (existing detailed run report)
-- `docs/EXCEL_EXPERIMENTS_COMPARISON_REPORT.md` (this consolidated report)
-- `scripts/prepare_excel_prompting_inputs.py`
-- `scripts/score_prompting_vs_excel_gold.py`
-- `scripts/normalization_what_if.py`
-- `scripts/export_top_fp_review_table.py`
-- `data/processed/manifest_excel_prompting.json`
-- `research_log/experiments/experiment__prompting__post-processing__excel-controlled-sweep.md`
-- `research_log/runs/2026-05-30__prompting__experiment__excel-controlled-postprocessing-sweep.md`
-- `research_log/runs/2026-05-30__prompting__experiment__excel-manifest-familyb-full-eval-and-whatif.md`
-- `research_log/artifacts/artifact__excel-controlled-postprocessing-sweep__postprocessing-comparison-table.md`
-- `research_log/artifacts/artifact__excel-controlled-postprocessing-sweep__scenario-fp-review-tables.md`
-
-### 7.2 Avoid pushing by default
-
-- `outputs/**` (large, regenerable, may overwhelm reviewers)
-- per-run raw review JSONLs unless explicitly requested for forensic review
-- broad historical logs unrelated to Excel prompting scope
-
----
-
-## 8) Writing Results Back Into Excel for Easier Human Review
-
-Recommended workflow:
-- keep original raw workbooks unchanged;
-- generate review copies (e.g., `data/review/*_with_predictions.xlsx`) with merged model outputs and evaluation annotations.
-
-Suggested added columns:
-- `predicted_label`
-- `prediction_confidence`
-- `prediction_reason`
-- `eval_status` (`TP/FP/FN/TN`)
-- `distance_to_nearest_gold`
-- `normalized_label_min3`
-- `normalized_label_min5`
-- `normalized_status_min5`
-
-Implementation script:
-- `scripts/export_excel_with_predictions.py`
-
-Benefits:
-- reviewer sees original sentence rows and model decision side-by-side;
-- exact-vs-smoothed behavior is visible directly in spreadsheet filters;
-- no need to inspect JSONL/CSV artifacts manually.
-
----
-
-## 9) Next Actions
-
-1. Confirm primary objective (exact-first vs tolerance-first) and record decision note.
-2. Export workbook review copies with merged predictions.
-3. Run one confirmatory pass on additional Excel-derived texts before policy lock-in.
