@@ -76,6 +76,45 @@ def nearest_distance(value: int, indices: list[int]) -> int:
     return min(abs(value - idx) for idx in indices)
 
 
+def apply_min_scene_len(pred_labels: list[str], min_gap: int) -> list[str]:
+    out = pred_labels[:]
+    last_kept_border = -10**9
+    for i, label in enumerate(out):
+        if label != "BORDER":
+            continue
+        if i - last_kept_border < min_gap:
+            out[i] = "NOBORDER"
+        else:
+            last_kept_border = i
+    return out
+
+
+def apply_burst_collapse(pred_labels: list[str]) -> list[str]:
+    out: list[str] = []
+    prev = "NOBORDER"
+    for label in pred_labels:
+        if label == "BORDER" and prev == "BORDER":
+            out.append("NOBORDER")
+        else:
+            out.append(label)
+        prev = out[-1]
+    return out
+
+
+def scenario_predictions(pred_labels: list[str], scenario: str) -> list[str]:
+    if scenario in {"none", "baseline"}:
+        return pred_labels
+    if scenario == "min_scene_len_3":
+        return apply_min_scene_len(pred_labels, min_gap=3)
+    if scenario == "min_scene_len_5":
+        return apply_min_scene_len(pred_labels, min_gap=5)
+    if scenario == "burst_collapse":
+        return apply_burst_collapse(pred_labels)
+    if scenario == "burst_collapse_plus_min_scene_len_3":
+        return apply_min_scene_len(apply_burst_collapse(pred_labels), min_gap=3)
+    raise ValueError(f"Unsupported scenario: {scenario}")
+
+
 def make_tag(*, dist_nearest_gold: int, confidence: float | None, reason: str) -> str:
     if dist_nearest_gold <= 1:
         return "near-boundary"
@@ -94,6 +133,7 @@ def build_fp_rows(
     gold_rows: list[dict[str, Any]],
     review_rows: list[dict[str, Any]],
     top_k: int,
+    scenario: str,
 ) -> list[dict[str, Any]]:
     pred_by_idx: dict[int, dict[str, Any]] = {}
     pred_by_text: dict[str, dict[str, Any]] = {}
@@ -150,7 +190,14 @@ def build_fp_rows(
 
     gold_border_pos = [r["pos"] for r in aligned if r["gold_label"] == "BORDER"]
 
-    fps = [r for r in aligned if r["gold_label"] == "NOBORDER" and r["pred_label"] == "BORDER"]
+    scenario_pred_labels = scenario_predictions(
+        [r["pred_label"] for r in aligned],
+        scenario=scenario,
+    )
+    fps = [
+        r for r in aligned
+        if r["gold_label"] == "NOBORDER" and scenario_pred_labels[r["pos"]] == "BORDER"
+    ]
     fps.sort(key=lambda r: (r["confidence"] is None, -(r["confidence"] or -1), r["pos"]))
 
     out_rows: list[dict[str, Any]] = []
@@ -167,6 +214,7 @@ def build_fp_rows(
         out_rows.append(
             {
                 "text_name": text_name,
+                "scenario": scenario,
                 "rank": rank,
                 "sentence_index": row["sentence_index"],
                 "distance_to_nearest_gold_boundary": dist_nearest_gold,
@@ -203,6 +251,15 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=10,
         help="How many FP rows to export per text.",
+    )
+    parser.add_argument(
+        "--scenario",
+        type=str,
+        default="none",
+        help=(
+            "Post-processing scenario: none/baseline, min_scene_len_3, min_scene_len_5, "
+            "burst_collapse, burst_collapse_plus_min_scene_len_3"
+        ),
     )
     parser.add_argument(
         "--out_csv",
@@ -244,6 +301,7 @@ def main() -> int:
                 gold_rows=gold_rows,
                 review_rows=review_rows,
                 top_k=args.top_k,
+                scenario=args.scenario,
             )
         )
 
