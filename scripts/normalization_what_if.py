@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Run normalization what-if analyses on BORDER/NOBORDER predictions.
 
-Scenarios:
-1) baseline
-2) burst_collapse (keep first BORDER in consecutive runs)
-3) min_scene_len_3 (enforce >=3 sentence distance between BORDERs)
-4) burst_collapse_plus_min_scene_len_3
+Common scenarios:
+1) none (no post-processing; alias: baseline)
+2) min_scene_len_3 (enforce >=3 sentence distance between BORDERs)
+3) min_scene_len_5 (enforce >=5 sentence distance between BORDERs)
+
+Additional optional scenarios remain available for diagnostics.
 """
 
 from __future__ import annotations
@@ -95,6 +96,20 @@ def apply_min_scene_len(pred_labels: list[str], min_gap: int) -> list[str]:
     return out
 
 
+def scenario_predictions(pred_labels: list[str], scenario: str) -> list[str]:
+    if scenario in {"none", "baseline"}:
+        return pred_labels
+    if scenario == "burst_collapse":
+        return apply_burst_collapse(pred_labels)
+    if scenario == "min_scene_len_3":
+        return apply_min_scene_len(pred_labels, min_gap=3)
+    if scenario == "min_scene_len_5":
+        return apply_min_scene_len(pred_labels, min_gap=5)
+    if scenario == "burst_collapse_plus_min_scene_len_3":
+        return apply_min_scene_len(apply_burst_collapse(pred_labels), min_gap=3)
+    raise ValueError(f"Unsupported scenario: {scenario}")
+
+
 def confusion(pred_labels: list[str], gold_labels: list[str]) -> dict[str, int]:
     tp = fp = fn = tn = 0
     for p, g in zip(pred_labels, gold_labels):
@@ -163,17 +178,14 @@ def summarize_exact(pred_labels: list[str], gold_labels: list[str]) -> dict[str,
     }
 
 
-def compute_scenarios(gold_labels: list[str], pred_labels: list[str]) -> dict[str, Any]:
-    scenarios: dict[str, list[str]] = {
-        "baseline": pred_labels,
-        "burst_collapse": apply_burst_collapse(pred_labels),
-        "min_scene_len_3": apply_min_scene_len(pred_labels, min_gap=3),
-        "burst_collapse_plus_min_scene_len_3": apply_min_scene_len(
-            apply_burst_collapse(pred_labels), min_gap=3
-        ),
-    }
+def compute_scenarios(
+    gold_labels: list[str],
+    pred_labels: list[str],
+    scenario_names: list[str],
+) -> dict[str, Any]:
     out: dict[str, Any] = {}
-    for name, preds in scenarios.items():
+    for name in scenario_names:
+        preds = scenario_predictions(pred_labels, name)
         out[name] = {
             "exact": summarize_exact(preds, gold_labels),
             "tolerance": {
@@ -194,11 +206,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--kleist_review", type=Path, required=True)
     parser.add_argument("--out_json", type=Path, required=True)
     parser.add_argument("--out_csv", type=Path, required=True)
+    parser.add_argument(
+        "--scenarios",
+        nargs="+",
+        default=["none", "min_scene_len_3", "min_scene_len_5"],
+        help=(
+            "Scenario list in comparison order. Supported: "
+            "none/baseline, min_scene_len_3, min_scene_len_5, "
+            "burst_collapse, burst_collapse_plus_min_scene_len_3"
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    scenario_names = args.scenarios
     dataset_specs = [
         ("gaensemagd", args.gaensemagd_gold, args.gaensemagd_review),
         ("kleist", args.kleist_gold, args.kleist_review),
@@ -213,20 +236,12 @@ def main() -> int:
             read_gold_csv(gold_path),
             read_review_jsonl(review_path),
         )
-        per_text[name] = compute_scenarios(gold_labels, pred_labels)
+        per_text[name] = compute_scenarios(gold_labels, pred_labels, scenario_names=scenario_names)
 
-        for scenario in per_text[name].keys():
+        for scenario in scenario_names:
             aggregate_pool.setdefault(scenario, {"gold": [], "pred": []})
             aggregate_pool[scenario]["gold"].extend(gold_labels)
-
-            if scenario == "baseline":
-                scenario_preds = pred_labels
-            elif scenario == "burst_collapse":
-                scenario_preds = apply_burst_collapse(pred_labels)
-            elif scenario == "min_scene_len_3":
-                scenario_preds = apply_min_scene_len(pred_labels, min_gap=3)
-            else:
-                scenario_preds = apply_min_scene_len(apply_burst_collapse(pred_labels), min_gap=3)
+            scenario_preds = scenario_predictions(pred_labels, scenario)
             aggregate_pool[scenario]["pred"].extend(scenario_preds)
 
             exact = per_text[name][scenario]["exact"]
