@@ -7,14 +7,12 @@ This script reads:
 - model review JSONL (from prompting outputs)
 
 It writes a new workbook with additional columns:
+- gold_label
 - predicted_label
-- prediction_confidence
-- prediction_reason
+- prediction_confidence (when present in model JSON)
+- prediction_reason (when present in model JSON)
 - eval_status (TP/FP/FN/TN)
-- distance_to_nearest_gold
-- normalized_label_min3
-- normalized_label_min5
-- normalized_status_min5
+- distance_to_nearest_gold (for predicted BORDER rows)
 """
 
 from __future__ import annotations
@@ -120,19 +118,6 @@ def read_review_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def apply_min_scene_len(pred_labels: list[str], min_gap: int) -> list[str]:
-    out = pred_labels[:]
-    last_kept_border = -10**9
-    for i, label in enumerate(out):
-        if label != "BORDER":
-            continue
-        if i - last_kept_border < min_gap:
-            out[i] = "NOBORDER"
-        else:
-            last_kept_border = i
-    return out
-
-
 def eval_status(pred: str, gold: str) -> str:
     if pred == "BORDER" and gold == "BORDER":
         return "TP"
@@ -149,10 +134,10 @@ def nearest_distance(value: int, indices: list[int]) -> int | None:
     return min(abs(value - idx) for idx in indices)
 
 
-def build_aligned_rows(
+def build_lookup(
     gold_rows: list[dict[str, Any]],
     review_rows: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], dict[int, dict[str, Any]], dict[str, dict[str, Any]]]:
+) -> tuple[dict[int, dict[str, Any]], dict[str, dict[str, Any]]]:
     pred_by_idx: dict[int, dict[str, Any]] = {}
     pred_by_text: dict[str, dict[str, Any]] = {}
     for row in review_rows:
@@ -166,69 +151,60 @@ def build_aligned_rows(
         if text_key and text_key not in pred_by_text:
             pred_by_text[text_key] = row
 
-    aligned: list[dict[str, Any]] = []
+    gold_border_pos = [
+        pos
+        for pos, row in enumerate(gold_rows)
+        if as_label(row.get("ground_truth_label")) == "BORDER"
+    ]
+
+    by_idx: dict[int, dict[str, Any]] = {}
+    by_text: dict[str, dict[str, Any]] = {}
     for pos, row in enumerate(gold_rows):
         idx = coerce_int(row.get("sentence_index"), fallback=pos)
         text = clean(row.get("sentence_text_full"))
         gold_label = as_label(row.get("ground_truth_label"))
 
         pred_row = pred_by_idx.get(idx)
-        matched_by = "index"
         if pred_row is None and text:
             pred_row = pred_by_text.get(norm_text(text))
-            matched_by = "text"
 
         if pred_row is None:
             pred_label = "NOBORDER"
             confidence = None
             reason = ""
-            matched_by = "default_noborder"
         else:
             pred_label = as_label(pred_row.get("prediction_label"))
             confidence = parse_confidence(pred_row.get("raw_model_response"))
             reason = parse_reason(pred_row.get("raw_model_response"))
 
-        aligned.append(
-            {
-                "pos": pos,
-                "sentence_index": idx,
-                "sentence_text_full": text,
-                "ground_truth_label": gold_label,
-                "predicted_label": pred_label,
-                "prediction_confidence": confidence,
-                "prediction_reason": reason,
-                "match_source": matched_by,
-            }
-        )
-
-    pred_seq = [row["predicted_label"] for row in aligned]
-    min3_seq = apply_min_scene_len(pred_seq, min_gap=3)
-    min5_seq = apply_min_scene_len(pred_seq, min_gap=5)
-    gold_border_pos = [row["pos"] for row in aligned if row["ground_truth_label"] == "BORDER"]
-
-    by_idx: dict[int, dict[str, Any]] = {}
-    by_text: dict[str, dict[str, Any]] = {}
-    for row, min3_label, min5_label in zip(aligned, min3_seq, min5_seq):
         dist = None
-        if row["predicted_label"] == "BORDER":
-            dist = nearest_distance(row["pos"], gold_border_pos)
+        if pred_label == "BORDER":
+            dist = nearest_distance(pos, gold_border_pos)
+
         enriched = {
-            **row,
-            "eval_status": eval_status(row["predicted_label"], row["ground_truth_label"]),
+            "ground_truth_label": gold_label,
+            "predicted_label": pred_label,
+            "prediction_confidence": confidence,
+            "prediction_reason": reason,
+            "eval_status": eval_status(pred_label, gold_label),
             "distance_to_nearest_gold": dist,
-            "normalized_label_min3": min3_label,
-            "normalized_label_min5": min5_label,
-            "normalized_status_min5": eval_status(min5_label, row["ground_truth_label"]),
         }
-        by_idx[enriched["sentence_index"]] = enriched
-        text_key = norm_text(enriched["sentence_text_full"])
+        by_idx[idx] = enriched
+        text_key = norm_text(text)
         if text_key and text_key not in by_text:
             by_text[text_key] = enriched
 
-    return aligned, by_idx, by_text
+    return by_idx, by_text
 
 
-def add_conditional_colors(path: Path, status_columns: list[str]) -> None:
+def review_has_confidence(review_rows: list[dict[str, Any]]) -> bool:
+    for row in review_rows:
+        if parse_confidence(row.get("raw_model_response")) is not None:
+            return True
+    return False
+
+
+def add_conditional_colors(path: Path, status_column: str = "eval_status") -> None:
     try:
         from openpyxl import load_workbook
         from openpyxl.styles import PatternFill
@@ -249,10 +225,8 @@ def add_conditional_colors(path: Path, status_columns: list[str]) -> None:
         "TN": PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid"),
     }
 
-    for status_col in status_columns:
-        col_idx = header_map.get(status_col)
-        if not col_idx:
-            continue
+    col_idx = header_map.get(status_column)
+    if col_idx:
         for row_idx in range(2, ws.max_row + 1):
             value = clean(ws.cell(row=row_idx, column=col_idx).value).upper()
             fill = fill_map.get(value)
@@ -288,7 +262,8 @@ def main() -> int:
 
     gold_rows = read_gold_csv(args.gold_csv)
     review_rows = read_review_jsonl(args.review_jsonl)
-    _, aligned_by_idx, aligned_by_text = build_aligned_rows(gold_rows, review_rows)
+    include_confidence = review_has_confidence(review_rows)
+    aligned_by_idx, aligned_by_text = build_lookup(gold_rows, review_rows)
 
     enriched_rows: list[dict[str, Any]] = []
     for pos, row in df.iterrows():
@@ -308,39 +283,43 @@ def main() -> int:
                 "prediction_reason": "",
                 "eval_status": "",
                 "distance_to_nearest_gold": None,
-                "normalized_label_min3": "",
-                "normalized_label_min5": "",
-                "normalized_status_min5": "",
-                "match_source": "",
             }
 
-        enriched_rows.append(
-            {
-                **row_dict,
-                "gold_label": aligned["ground_truth_label"],
-                "predicted_label": aligned["predicted_label"],
-                "prediction_confidence": aligned["prediction_confidence"],
-                "prediction_reason": aligned["prediction_reason"],
-                "eval_status": aligned["eval_status"],
-                "distance_to_nearest_gold": aligned["distance_to_nearest_gold"],
-                "normalized_label_min3": aligned["normalized_label_min3"],
-                "normalized_label_min5": aligned["normalized_label_min5"],
-                "normalized_status_min5": aligned["normalized_status_min5"],
-                "match_source": aligned["match_source"],
-            }
-        )
+        enriched = {
+            **row_dict,
+            "gold_label": aligned["ground_truth_label"],
+            "predicted_label": aligned["predicted_label"],
+            "prediction_reason": aligned["prediction_reason"],
+            "eval_status": aligned["eval_status"],
+            "distance_to_nearest_gold": aligned["distance_to_nearest_gold"],
+        }
+        if include_confidence:
+            enriched["prediction_confidence"] = aligned["prediction_confidence"]
+        enriched_rows.append(enriched)
 
     out_df = pd.DataFrame(enriched_rows)
+    if include_confidence:
+        # Keep review columns in a stable order when confidence is present.
+        base_cols = [c for c in out_df.columns if c != "prediction_confidence"]
+        insert_at = base_cols.index("predicted_label") + 1
+        ordered = base_cols[:insert_at] + ["prediction_confidence"] + base_cols[insert_at:]
+        out_df = out_df[ordered]
     args.out_xlsx.parent.mkdir(parents=True, exist_ok=True)
     with pd.ExcelWriter(args.out_xlsx, engine="openpyxl") as writer:
         out_df.to_excel(writer, index=False, sheet_name="review")
 
     if not args.no_colors:
-        add_conditional_colors(args.out_xlsx, status_columns=["eval_status", "normalized_status_min5"])
+        add_conditional_colors(args.out_xlsx)
 
+    reason_count = sum(1 for row in enriched_rows if clean(row.get("prediction_reason")))
+    conf_count = sum(1 for row in enriched_rows if row.get("prediction_confidence") is not None)
     print(f"Wrote: {args.out_xlsx}")
     print(f"Rows: {len(out_df)}")
-    print(f"Columns added: 10")
+    print(f"Rows with prediction_reason: {reason_count}")
+    if include_confidence:
+        print(f"Rows with prediction_confidence: {conf_count}")
+    else:
+        print("Omitted prediction_confidence (not present in review JSONL)")
     return 0
 
 
