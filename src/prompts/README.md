@@ -2,11 +2,11 @@
 
 This folder contains reusable prompt templates for scene/event boundary
 experiments. Templates are text-first modules intended for later integration
-into `src/run_prompting_baseline.py` and `src/run_prompting_stratified.py`.
+into `src/runners/run_prompting_baseline.py` and `src/runners/run_prompting_stratified.py`.
 
 ## Naming
 
-- `A_...` through `J_...` map to the experiment families in `docs/PROJECT_PLAN.md`
+- `A_...` through `J_...` map to the experiment families in `docs/planning/PROJECT_PLAN.md`
 - `registry.json` is the machine-readable index
 
 ## Shared placeholders

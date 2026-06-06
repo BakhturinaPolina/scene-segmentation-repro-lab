@@ -30,9 +30,13 @@ Next: Phase 3 baseline execution.
 ├── requirements.txt         # Base pip/setuptools/wheel
 ├── requirements-basic.txt   # Pinned CPU smoke-test dependencies
 ├── docs/
-│   ├── PROJECT_PLAN.md      # Full project roadmap
-│   ├── ENVIRONMENT_SETUP.md # Environment setup and system specs
-│   └── PHASE2_PHASE3_NOTES.md # Smoke test logs and compatibility fixes
+│   ├── planning/            # Roadmap and progress
+│   ├── setup/               # Environment setup
+│   ├── phases/              # Phase execution notes
+│   ├── prompting/           # Experiment reports
+│   ├── corpora/             # Corpus catalogs and cost estimates
+│   ├── reproducibility/     # Gap reviews
+│   └── reference/           # External papers
 ├── research_log/
 │   ├── runs/                # Structured run notes (YAML frontmatter)
 │   ├── experiments/         # Experiment comparison notes
@@ -42,8 +46,9 @@ Next: Phase 3 baseline execution.
 │   ├── sync_notes/          # End-of-block Notion sync notes
 │   └── templates/           # Note templates for each type
 ├── data/                    # Raw / interim / processed data
-├── outputs/                 # Logs, figures, predictions
-├── src/                     # Helper scripts and wrappers
+├── outputs/                 # runs, review, analysis, reproduction
+├── src/                     # core, data, runners, review, prompts
+├── scripts/                 # data prep, evaluation, export, sweeps
 ├── notebooks/               # Exploration notebooks
 ├── tests/                   # Test scripts
 └── upstream/                # Cloned target repository (git-ignored)
@@ -73,7 +78,7 @@ Ubuntu 24.04 + Cursor IDE + dual virtual environments:
 | `.venv` | CPU smoke tests | `source .venv/bin/activate` |
 | `.venv-gpu` | GPU training (Unsloth) | `source .venv-gpu/bin/activate` |
 
-See `docs/ENVIRONMENT_SETUP.md` for full details.
+See `docs/setup/ENVIRONMENT_SETUP.md` for full details.
 
 ## Quick Start
 

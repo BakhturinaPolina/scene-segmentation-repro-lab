@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.verify_data_manifest import md5sum, verify_manifest
+from src.data.verify_data_manifest import md5sum, verify_manifest
 
 
 class DataManifestTests(unittest.TestCase):
