@@ -1,0 +1,25 @@
+{
+  "dataset": "raw_txt",
+  "source": "local/raw_text",
+  "retrieved_at": "2026-06-05",
+  "files": [
+    {
+      "name": "Das Erdbeben in Chili.txt",
+      "path": "raw/kleist_multilingual/Das Erdbeben in Chili.txt",
+      "size_bytes": 35563,
+      "md5": "d521d6c49274ad9b94b083a38d68d049"
+    },
+    {
+      "name": "Kleist-Earthquake-in-Chile.txt",
+      "path": "raw/kleist_multilingual/Kleist-Earthquake-in-Chile.txt",
+      "size_bytes": 34648,
+      "md5": "ca6ed604da2fdc5c4884c287fa6f1e22"
+    },
+    {
+      "name": "фон Клейст - Землетрясение в Чили.txt",
+      "path": "raw/kleist_multilingual/фон Клейст - Землетрясение в Чили.txt",
+      "size_bytes": 57473,
+      "md5": "99654a0be352e4fa6f1fd328a067a27c"
+    }
+  ]
+}

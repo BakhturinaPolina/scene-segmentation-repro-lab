@@ -127,7 +127,7 @@ fixed_conditions:
   - "dataset split fixed"
   - "evaluation unchanged"
 random_seed: 42
-output_dir: "outputs/ssc/2026-04-01/run_name/"
+output_dir: "outputs/runs/ssc/2026-04-01/run_name/"
 artifacts_expected:
   - "stdout.log"
   - "metrics.json"

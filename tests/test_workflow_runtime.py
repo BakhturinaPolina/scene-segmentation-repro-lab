@@ -7,10 +7,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from src.workflow_runtime import (
+from src.core.workflow_runtime import (
     command_string,
     output_dir_for,
     project_root,
+    prompting_run_root,
     stss_test2_data_dir,
     write_repro_files,
 )
@@ -18,7 +19,7 @@ from src.workflow_runtime import (
 
 class WorkflowRuntimeTests(unittest.TestCase):
     def test_project_root_from_src_file(self) -> None:
-        fake_script = Path("/tmp/repo/src/my_script.py")
+        fake_script = Path("/tmp/repo/src/runners/my_script.py")
         self.assertEqual(project_root(fake_script), Path("/tmp/repo"))
 
     def test_stss_test2_data_dir(self) -> None:
@@ -31,7 +32,22 @@ class WorkflowRuntimeTests(unittest.TestCase):
         out_dir = output_dir_for(root, "prompting", "2026-05-14", "baseline_qwen3")
         self.assertEqual(
             out_dir,
-            Path("/tmp/repo/outputs/prompting/2026-05-14/baseline_qwen3"),
+            Path("/tmp/repo/outputs/runs/prompting/2026-05-14/baseline_qwen3"),
+        )
+
+    def test_output_dir_for_reproduction(self) -> None:
+        root = Path("/tmp/repo")
+        out_dir = output_dir_for(root, "reproduction", "2026-05-14", "stss_test_2")
+        self.assertEqual(
+            out_dir,
+            Path("/tmp/repo/outputs/reproduction/2026-05-14/stss_test_2"),
+        )
+
+    def test_prompting_run_root(self) -> None:
+        root = Path("/tmp/repo")
+        self.assertEqual(
+            prompting_run_root(root, "2026-05-14"),
+            Path("/tmp/repo/outputs/runs/prompting/2026-05-14"),
         )
 
     def test_write_repro_files(self) -> None:

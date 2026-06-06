@@ -47,28 +47,44 @@ data/interim/*
 !data/interim/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/review/*
+!data/review/.gitkeep
+!data/review/excel/.gitkeep
+data/manifests/*
+!data/manifests/.gitkeep
+!data/manifests/raw_txt.json
+!data/manifests/stss_test_2.json
+!data/manifests/excel_prompting.json
 
 # Run outputs (keep structure, ignore contents)
-outputs/logs/*
-!outputs/logs/.gitkeep
-outputs/predictions/*
-!outputs/predictions/.gitkeep
-outputs/figures/*
-!outputs/figures/.gitkeep
+outputs/artifacts/*
+!outputs/artifacts/.gitkeep
+!outputs/artifacts/figures/.gitkeep
+!outputs/artifacts/logs/.gitkeep
+!outputs/artifacts/predictions/.gitkeep
+outputs/analysis/*
+!outputs/analysis/.gitkeep
+outputs/runs/*
+!outputs/runs/.gitkeep
 # Heavy training checkpoints and API caches (paths still documented in research_log)
-outputs/ssc/
-outputs/llama/
-outputs/prompting/
+outputs/runs/ssc/
+outputs/runs/llama/
+outputs/runs/prompting/
 # Review outputs: ignore all by default; keep only selected package trackable
-outputs/review/*
-!outputs/review/prompting_rawtxt_nonfree_familyB_reasoning-off_2026-05-16/
-!outputs/review/prompting_rawtxt_nonfree_familyB_reasoning-off_2026-05-16/**
+outputs/review/**
+!outputs/review/markdown/
+!outputs/review/markdown/.gitkeep
+!outputs/review/packages/
+!outputs/review/packages/.gitkeep
+!outputs/review/packages/prompting_rawtxt_nonfree_familyB_reasoning-off_2026-05-16/
+!outputs/review/packages/prompting_rawtxt_nonfree_familyB_reasoning-off_2026-05-16/**
+!outputs/review/excel/
+!outputs/review/excel/.gitkeep
 
 # Explicitly keep key planning/manifest files tracked
-!docs/PROJECT_PLAN.md
-!docs/PROMPTING_RESULTS_REPORT.md
-!docs/2025.naacl-long.500.pdf
-!data/manifest_raw_txt.json
+!docs/planning/PROJECT_PLAN.md
+!docs/prompting/PROMPTING_RESULTS_REPORT.md
+!docs/reference/2025.naacl-long.500.pdf
 
 # OS files
 .DS_Store

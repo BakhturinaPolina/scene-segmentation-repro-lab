@@ -1,0 +1,17 @@
+{
+  "dataset": "excel_prompting_inputs",
+  "source": "local/excel_sentence_level",
+  "retrieved_at": "2026-05-30",
+  "files": [
+    {
+      "name": "processed/excel_prompting/gaensemagd_sentence_level/gaensemagd_sentence_level__for_prompting.txt",
+      "size_bytes": 11781,
+      "md5": "efc5867b23c810ddbd35f77802eb5452"
+    },
+    {
+      "name": "processed/excel_prompting/kleist_sentence_level/kleist_sentence_level__for_prompting.txt",
+      "size_bytes": 35535,
+      "md5": "17631274a6aee3f03c054013e03957e4"
+    }
+  ]
+}
