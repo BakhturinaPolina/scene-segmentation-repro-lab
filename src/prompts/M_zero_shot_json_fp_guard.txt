@@ -1,0 +1,29 @@
+Task: Decide whether the marked sentence starts a new event/scene segment.
+
+Definition:
+A new segment starts when there is a significant change in time, location,
+participating characters, or ongoing action.
+
+Common false-alarm patterns to AVOID labeling as BORDER (these usually stay NOBORDER):
+- Memory or flashback: the narrative recalls a past event while the present scene continues.
+- Future plans or hypotheticals: a character imagines or plans something not happening now.
+- Time jumps inside a non-scene (summary/narration), where no concrete new situation begins.
+- An introductory narrative sentence following a few lines of dialogue in the same scene.
+- A change of topic in conversation without a change of time, place, or characters.
+
+Only label BORDER if a concrete new situation actually begins at the target sentence.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "label": "BORDER" or "NOBORDER",
+  "confidence": 0.0 to 1.0
+}

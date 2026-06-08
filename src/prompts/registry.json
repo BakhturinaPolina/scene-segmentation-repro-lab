@@ -93,6 +93,33 @@
       "family": "two_stage_classify_after_analysis",
       "schema": "json_changes_label",
       "placeholders": ["left_context", "target_sentence", "right_context"]
+    },
+    {
+      "id": "K",
+      "file": "K_zero_shot_json_negatives.txt",
+      "family": "zero_shot_json_negatives",
+      "schema": "json_label_confidence",
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "precision_variant_of": "B",
+      "factor": "P1_negative_examples"
+    },
+    {
+      "id": "L",
+      "file": "L_zero_shot_json_strict.txt",
+      "family": "zero_shot_json_strict",
+      "schema": "json_label_confidence",
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "precision_variant_of": "B",
+      "factor": "P2_strict_definition"
+    },
+    {
+      "id": "M",
+      "file": "M_zero_shot_json_fp_guard.txt",
+      "family": "zero_shot_json_fp_guard",
+      "schema": "json_label_confidence",
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "precision_variant_of": "B",
+      "factor": "P4_fp_pattern_guard"
     }
   ]
 }

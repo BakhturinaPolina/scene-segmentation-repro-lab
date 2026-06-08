@@ -20,16 +20,19 @@ if str(_SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(_SRC_ROOT))
 
 from core.workflow_runtime import project_root, prompting_run_root, prompts_dir, write_repro_files
+from core.prompt_runtime import PROMPT_FAMILIES
 
 
-STRUCTURED_FAMILIES = {"B", "C", "D", "E", "F", "G", "I", "J"}
+STRUCTURED_FAMILIES = {"B", "C", "D", "E", "F", "G", "I", "J", "K", "L", "M"}
 
 
 def parse_families(value: str) -> list[str]:
     raw = [x.strip().upper() for x in value.split(",") if x.strip()]
-    valid = [x for x in raw if x in set("ABCDEFGHIJ")]
+    valid = [x for x in raw if x in set(PROMPT_FAMILIES)]
     if not valid:
-        raise ValueError("No valid families in --families (expected A..J)")
+        raise ValueError(
+            f"No valid families in --families (expected one of {''.join(PROMPT_FAMILIES)})"
+        )
     return valid
 
 
