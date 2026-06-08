@@ -8,7 +8,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-PROMPT_FAMILIES = tuple("ABCDEFGHIJ")
+PROMPT_FAMILIES = tuple("ABCDEFGHIJKLM")
+
+# Families whose output contract is a JSON object carrying a "label" field
+# (and optionally "confidence"/"reason"). K/L/M are precision-focused variants of B.
+_JSON_LABEL_FAMILIES = {"B", "C", "D", "E", "F", "G", "J", "K", "L", "M"}
 
 
 @dataclass
@@ -171,7 +175,7 @@ def parse_family_output(family: str, text: str) -> ParseResult:
             pass
         return ParseResult(label=None, is_valid=False, error="invalid_label", payload=text)
 
-    if family in {"B", "C", "D", "E", "F", "G", "J"}:
+    if family in _JSON_LABEL_FAMILIES:
         try:
             payload = _parse_json(text)
         except Exception as exc:  # noqa: BLE001

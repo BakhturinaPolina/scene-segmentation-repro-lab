@@ -1,0 +1,26 @@
+Task: Decide whether the marked sentence starts a new event/scene segment.
+
+Definition:
+A new segment starts when there is a significant change in time, location,
+participating characters, or ongoing action.
+
+NOT a new segment (do NOT label these as BORDER):
+- A character speaks, answers, or continues a dialogue within the same situation.
+- Minor time progression inside the same activity (e.g. "dann", "danach", "kurz darauf").
+- A character's internal thoughts, feelings, or reflections.
+- A new character entering or leaving without a change of place or situation.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "label": "BORDER" or "NOBORDER",
+  "confidence": 0.0 to 1.0
+}
