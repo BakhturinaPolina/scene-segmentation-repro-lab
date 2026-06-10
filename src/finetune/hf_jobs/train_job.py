@@ -1,32 +1,44 @@
-#!/usr/bin/env python3
-"""Kaggle GPU kernel: QLoRA fine-tune + in-kernel eval for scene-boundary detection.
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "unsloth",
+#     "datasets",
+#     "trl==0.22.2",
+#     "huggingface_hub[hf_transfer]",
+#     "transformers==4.57.3",
+# ]
+# ///
+"""HF Jobs / local GPU: QLoRA fine-tune + optional eval for scene-boundary detection.
 
-Runs on a Kaggle Notebook (T4 16GB) with internet ENABLED. For each (base model,
-job) pair it:
+Runs on Hugging Face Jobs (``hf jobs uv run``) or locally on a CUDA GPU. For each
+(base model, job) pair it:
 
   1. Trains an Unsloth 4-bit QLoRA adapter with TRL ``SFTTrainer``.
-  2. Pushes the adapter to the Hugging Face Hub (Kaggle outputs are ephemeral).
-  3. Evaluates the freshly trained adapter on the job's held-out ``eval.jsonl``
-     (full natural distribution) with BATCHED greedy generation, scoring relaxed
-     F1 at tolerances 0/1/3 (macro-averaged per text, like the paper), optionally
-     under a couple of post-processing rules.
-  4. Writes ``metrics_<model>_<job>.json`` as a kernel output AND uploads it next
-     to the adapter on the Hub, so results survive the ephemeral session.
+  2. Pushes the adapter to the Hugging Face Hub (Jobs environments are ephemeral).
+  3. Optionally evaluates on the job's held-out ``eval.jsonl`` with batched greedy
+     generation, scoring relaxed F1 at tolerances 0/1/3 (macro-averaged per text).
+  4. Writes ``metrics_<model>_<job>.json`` and uploads it next to the adapter.
 
-A session TIME BUDGET guard skips any remaining (model, job) jobs once the wall
-clock passes ``max_runtime_seconds`` and records them in ``remaining_jobs.json``
-so a re-push resumes cleanly.
+Data layout: a Hub dataset (default ``{hf_user}/scene-seg-sft``) or a local directory
+with one subdirectory per job (``train.jsonl`` + ``eval.jsonl``), plus an optional
+``hf_run_config.json`` at the dataset root.
 
-A "job" is a dataset subdirectory holding ``train.jsonl`` + ``eval.jsonl``, as
-produced by ``src/finetune/build_sft_dataset.py`` (e.g. ``train_full__to__stss_test_2``
-in corpus mode, or ``fold_A`` in folds mode).
+Configuration priority:
+  1. ``hf_run_config.json`` in the working directory
+  2. ``HF_RUN_CONFIG`` env var (path to JSON)
+  3. environment variables (``SCENE_SEG_MODELS``, ``SCENE_SEG_JOBS``, …)
+  4. defaults below
 
-Configuration is read, in priority order, from:
-  1. ``kaggle_run_config.json`` in the working dir (bundled next to this script), then
-  2. environment variables, then
-  3. the defaults below.
+Adapters: ``{hf_user}/scene-seg-{model_short}-{job}``.
 
-Adapters are pushed to ``{hf_user}/scene-seg-{model_short}-{job}``.
+Local (free on your GPU)::
+
+    python src/finetune/hf_jobs/train_job.py
+
+HF Jobs (prepaid credits; cheapest: ``--flavor t4-small``)::
+
+    hf jobs uv run --flavor t4-small --timeout 6h --secrets HF_TOKEN \\
+      src/finetune/hf_jobs/train_job.py
 """
 
 from __future__ import annotations
@@ -34,20 +46,22 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 DEFAULTS: Dict[str, Any] = {
     "models": [
         "unsloth/Llama-3.2-3B-Instruct",
-        "unsloth/Qwen2.5-3B-Instruct",
-        "unsloth/gemma-2-2b-it",
     ],
-    # "jobs" (dataset subdir names). "folds" is kept as a back-compat alias.
-    "jobs": ["train_full__to__stss_test_2"],
+    "jobs": ["fold_A"],
     "folds": [],
-    "data_dir": "/kaggle/input/scene-seg-sft",
+    "data_dir": "",
+    "data_repo": "",
     "hf_user": "",
     "hf_token": "",
     "family": "L",
@@ -59,54 +73,71 @@ DEFAULTS: Dict[str, Any] = {
     "batch_size": 2,
     "grad_accum": 4,
     "seed": 1337,
-    # Eval controls.
     "eval_after_train": True,
-    "eval_limit": 0,            # 0 = full eval split
+    "eval_limit": 0,
     "eval_batch_size": 16,
     "eval_max_new_tokens": 96,
     "tolerances": [0, 1, 3],
     "postprocess": ["none", "min_scene_len_3", "confidence_threshold_plus_min_scene_len_3"],
     "confidence_threshold": 0.85,
-    # Session guard (Kaggle GPU sessions cap ~12h; leave headroom).
-    "max_runtime_seconds": 39600,
+    "max_runtime_seconds": 21600,
+    # Run metadata (mirrors plan doc / research_log tags).
+    "run_phase": "",
+    "data_scope": "",
+    "debug": False,
 }
 
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
-
 def load_config() -> Dict[str, Any]:
     cfg = dict(DEFAULTS)
-    cfg_path = Path("kaggle_run_config.json")
+    cfg_path = Path(os.environ.get("HF_RUN_CONFIG", "hf_run_config.json"))
     if cfg_path.exists():
         cfg.update(json.loads(cfg_path.read_text(encoding="utf-8")))
     if os.environ.get("SCENE_SEG_MODELS"):
         cfg["models"] = [m.strip() for m in os.environ["SCENE_SEG_MODELS"].split(",") if m.strip()]
     if os.environ.get("SCENE_SEG_JOBS"):
-        cfg["jobs"] = [f.strip() for f in os.environ["SCENE_SEG_JOBS"].split(",") if f.strip()]
+        cfg["jobs"] = [j.strip() for j in os.environ["SCENE_SEG_JOBS"].split(",") if j.strip()]
     elif os.environ.get("SCENE_SEG_FOLDS"):
         cfg["jobs"] = [f.strip() for f in os.environ["SCENE_SEG_FOLDS"].split(",") if f.strip()]
-    for key in ("data_dir", "hf_user", "hf_token"):
+    for key in ("data_dir", "data_repo", "hf_user", "hf_token"):
         if os.environ.get(key.upper()):
             cfg[key] = os.environ[key.upper()]
-    # Back-compat: if only "folds" is set, treat it as the job list.
+    if os.environ.get("DATA_REPO") and not cfg.get("data_repo"):
+        cfg["data_repo"] = os.environ["DATA_REPO"]
     if not cfg.get("jobs") and cfg.get("folds"):
         cfg["jobs"] = list(cfg["folds"])
+    if not cfg.get("hf_user") and os.environ.get("HF_USER"):
+        cfg["hf_user"] = os.environ["HF_USER"]
     return cfg
 
 
 def resolve_hf_token(cfg: Dict[str, Any]) -> str:
     if cfg.get("hf_token"):
         return cfg["hf_token"]
-    if os.environ.get("HF_TOKEN"):
-        return os.environ["HF_TOKEN"]
-    try:  # Kaggle Secrets
-        from kaggle_secrets import UserSecretsClient  # type: ignore
+    return os.environ.get("HF_TOKEN", "")
 
-        return UserSecretsClient().get_secret("HF_TOKEN")
-    except Exception:  # noqa: BLE001
-        return ""
+
+def resolve_data_dir(cfg: Dict[str, Any], hf_token: str) -> Path:
+    if cfg.get("data_dir"):
+        path = Path(cfg["data_dir"])
+        if path.exists():
+            return path
+    data_repo = cfg.get("data_repo") or (
+        f"{cfg['hf_user']}/scene-seg-sft" if cfg.get("hf_user") else ""
+    )
+    if not data_repo:
+        raise FileNotFoundError(
+            "Set data_dir to a local path or data_repo / hf_user for Hub download."
+        )
+    from huggingface_hub import snapshot_download  # noqa: PLC0415
+
+    root = snapshot_download(
+        repo_id=data_repo,
+        repo_type="dataset",
+        token=hf_token or None,
+    )
+    print(f"Downloaded dataset {data_repo} -> {root}")
+    return Path(root)
 
 
 def model_short_name(model_id: str) -> str:
@@ -114,10 +145,6 @@ def model_short_name(model_id: str) -> str:
     base = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
     return base
 
-
-# ---------------------------------------------------------------------------
-# Inlined label parsing (mirror of core.prompt_runtime for JSON-label families)
-# ---------------------------------------------------------------------------
 
 def _extract_json_object(text: str) -> Optional[dict]:
     if not text:
@@ -134,10 +161,9 @@ def _extract_json_object(text: str) -> Optional[dict]:
             depth -= 1
             if depth == 0:
                 try:
-                    obj = json.loads(text[start:i + 1])
+                    obj = json.loads(text[start : i + 1])
                     return obj if isinstance(obj, dict) else None
                 except Exception:  # noqa: BLE001
-                    # Continue scanning for a later, well-formed object.
                     start = text.find("{", i + 1)
                     if start < 0:
                         return None
@@ -146,7 +172,6 @@ def _extract_json_object(text: str) -> Optional[dict]:
 
 
 def parse_label_confidence(text: str) -> Tuple[str, Optional[float]]:
-    """Return (label, confidence). Falls back to NOBORDER if unparseable."""
     obj = _extract_json_object(text or "")
     label = None
     conf: Optional[float] = None
@@ -171,13 +196,9 @@ def parse_label_confidence(text: str) -> Tuple[str, Optional[float]]:
     return label, conf
 
 
-# ---------------------------------------------------------------------------
-# Inlined post-processing + tolerant scorer (mirror of src/postprocess)
-# ---------------------------------------------------------------------------
-
 def apply_min_scene_len(labels: Sequence[str], min_gap: int) -> List[str]:
     out = list(labels)
-    last = -10 ** 9
+    last = -10**9
     for i, lab in enumerate(out):
         if lab != "BORDER":
             continue
@@ -199,8 +220,10 @@ def apply_confidence_threshold(
 
 
 def apply_scenario(
-    labels: Sequence[str], scenario: str,
-    confidences: Optional[Sequence[Optional[float]]] = None, thr: float = 0.85,
+    labels: Sequence[str],
+    scenario: str,
+    confidences: Optional[Sequence[Optional[float]]] = None,
+    thr: float = 0.85,
 ) -> List[str]:
     if scenario in {"none", "baseline"}:
         return list(labels)
@@ -219,7 +242,6 @@ def apply_scenario(
 def score_one_text(
     preds: Sequence[str], golds: Sequence[str], tolerance: int
 ) -> Dict[str, float]:
-    """Relaxed F1 for the BORDER class on one contiguous document (index == position)."""
     n = len(golds)
     tp = fp = fn = 0
     for idx in range(n):
@@ -248,7 +270,6 @@ def evaluate_macro(
     scenario: str,
     thr: float,
 ) -> Dict[str, Any]:
-    """Macro-average relaxed F1 over texts (paper convention)."""
     per_text: Dict[str, Dict[str, float]] = {}
     agg_tp = agg_fp = agg_fn = 0
     f1s: List[float] = []
@@ -279,10 +300,6 @@ def evaluate_macro(
         "per_text": per_text,
     }
 
-
-# ---------------------------------------------------------------------------
-# Training + eval
-# ---------------------------------------------------------------------------
 
 def _chat_template_for(model_id: str):
     return {
@@ -319,27 +336,34 @@ def evaluate_adapter(
     bs = int(cfg["eval_batch_size"])
     max_new = int(cfg["eval_max_new_tokens"])
 
-    # source -> {index: (pred, gold, confidence)}
     by_source: Dict[str, Dict[int, Tuple[str, str, Optional[float]]]] = {}
     device = next(model.parameters()).device
 
     for start in range(0, len(eval_rows), bs):
-        batch = eval_rows[start:start + bs]
+        batch = eval_rows[start : start + bs]
         prompts = [
             tokenizer.apply_chat_template(
                 [{"role": "user", "content": r["messages"][0]["content"]}],
-                tokenize=False, add_generation_prompt=True,
+                tokenize=False,
+                add_generation_prompt=True,
             )
             for r in batch
         ]
-        inputs = tokenizer(prompts, return_tensors="pt", padding=True, truncation=True,
-                           max_length=cfg["max_seq_len"]).to(device)
+        inputs = tokenizer(
+            prompts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=cfg["max_seq_len"],
+        ).to(device)
         with torch.no_grad():
             gen = model.generate(
-                **inputs, max_new_tokens=max_new, do_sample=False,
+                **inputs,
+                max_new_tokens=max_new,
+                do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
             )
-        gen = gen[:, inputs["input_ids"].shape[1]:]
+        gen = gen[:, inputs["input_ids"].shape[1] :]
         texts = tokenizer.batch_decode(gen, skip_special_tokens=True)
         for row, text in zip(batch, texts):
             label, conf = parse_label_confidence(text)
@@ -363,17 +387,30 @@ def evaluate_adapter(
     return metrics
 
 
-def train_one(model_id: str, job: str, cfg: Dict[str, Any], hf_token: str) -> Dict[str, Any]:
-    from datasets import load_dataset
-    from trl import SFTConfig, SFTTrainer
-    from unsloth import FastLanguageModel
-    from unsloth.chat_templates import get_chat_template
+def train_one(
+    model_id: str, job: str, cfg: Dict[str, Any], hf_token: str, data_root: Path
+) -> Dict[str, Any]:
+    import unsloth  # noqa: F401, PLC0415 — must precede trl/transformers
+    from datasets import load_dataset  # noqa: PLC0415
+    from trl import SFTConfig, SFTTrainer  # noqa: PLC0415
+    from unsloth import FastLanguageModel  # noqa: PLC0415
+    from unsloth.chat_templates import get_chat_template  # noqa: PLC0415
 
-    job_dir = Path(cfg["data_dir"]) / job
+    job_dir = data_root / job
     train_path = job_dir / "train.jsonl"
     eval_path = job_dir / "eval.jsonl"
+    meta_path = job_dir / "meta.json"
+    job_meta: Dict[str, Any] = {}
+    if meta_path.exists():
+        job_meta = json.loads(meta_path.read_text(encoding="utf-8"))
     if not train_path.exists():
         raise FileNotFoundError(f"Missing training file: {train_path}")
+
+    if job_meta.get("debug_only") or cfg.get("debug"):
+        print(
+            "WARNING: debug/pilot run — metrics are for pipeline validation only; "
+            "do not report as model performance."
+        )
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=model_id,
@@ -388,14 +425,22 @@ def train_one(model_id: str, job: str, cfg: Dict[str, Any], hf_token: str) -> Di
         lora_dropout=0.0,
         bias="none",
         target_modules=[
-            "q_proj", "k_proj", "v_proj", "o_proj",
-            "gate_proj", "up_proj", "down_proj",
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
         ],
         use_gradient_checkpointing="unsloth",
         random_state=cfg["seed"],
     )
 
-    chosen = next((v for k, v in _chat_template_for(model_id).items() if k in model_id.lower()), "chatml")
+    chosen = next(
+        (v for k, v in _chat_template_for(model_id).items() if k in model_id.lower()),
+        "chatml",
+    )
     tokenizer = get_chat_template(tokenizer, chat_template=chosen)
 
     def formatting(example: Dict[str, Any]) -> Dict[str, str]:
@@ -448,42 +493,81 @@ def train_one(model_id: str, job: str, cfg: Dict[str, Any], hf_token: str) -> Di
         print(f"=== Evaluating {short} on {job} (eval split) ===")
         eval_rows = read_jsonl(eval_path)
         metrics = evaluate_adapter(model, tokenizer, eval_rows, cfg)
-        metrics.update({
-            "model": model_id, "job": job, "family": cfg["family"],
-            "base_config": {k: cfg[k] for k in (
-                "epochs", "lr", "lora_r", "lora_alpha", "batch_size",
-                "grad_accum", "max_seq_len", "seed")},
-        })
+        metrics.update(
+            {
+                "model": model_id,
+                "job": job,
+                "family": cfg["family"],
+                "run_phase": cfg.get("run_phase") or job_meta.get("run_phase", ""),
+                "data_scope": cfg.get("data_scope") or job_meta.get("data_scope", ""),
+                "debug": bool(cfg.get("debug") or job_meta.get("debug_only", False)),
+                "dataset_meta": job_meta,
+                "base_config": {
+                    k: cfg[k]
+                    for k in (
+                        "epochs",
+                        "lr",
+                        "lora_r",
+                        "lora_alpha",
+                        "batch_size",
+                        "grad_accum",
+                        "max_seq_len",
+                        "seed",
+                    )
+                },
+            }
+        )
         metrics_path = Path(f"metrics_{short}_{job}.json")
-        metrics_path.write_text(json.dumps(metrics, indent=2, ensure_ascii=False), encoding="utf-8")
+        metrics_path.write_text(
+            json.dumps(metrics, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         result["metrics_path"] = str(metrics_path)
         headline = metrics["scenarios"].get("none", {}).get("tol_3", {}).get("macro_f1")
         result["macro_f1_tol3_raw"] = headline
         print(f"metrics: raw macro_f1@3 = {headline} -> {metrics_path}")
-        # Upload metrics next to the adapter so they survive the ephemeral session.
         if cfg["hf_user"] and hf_token:
             try:
                 from huggingface_hub import upload_file  # noqa: PLC0415
 
                 upload_file(
-                    path_or_fileobj=str(metrics_path), path_in_repo=metrics_path.name,
-                    repo_id=repo, token=hf_token, repo_type="model",
+                    path_or_fileobj=str(metrics_path),
+                    path_in_repo=metrics_path.name,
+                    repo_id=repo,
+                    token=hf_token,
+                    repo_type="model",
                 )
                 print(f"Uploaded {metrics_path.name} -> {repo}")
             except Exception as exc:  # noqa: BLE001
                 print(f"WARNING: could not upload metrics to {repo}: {exc}")
     else:
-        print(f"Skipping eval for {job} (eval_after_train={cfg['eval_after_train']}, "
-              f"eval.jsonl exists={eval_path.exists()})")
+        print(
+            f"Skipping eval for {job} (eval_after_train={cfg['eval_after_train']}, "
+            f"eval.jsonl exists={eval_path.exists()})"
+        )
 
     return result
 
 
 def main() -> None:
+    import torch  # noqa: PLC0415
+
+    if not torch.cuda.is_available():
+        print("ERROR: CUDA required. Use HF Jobs or a machine with a GPU.")
+        sys.exit(1)
+
     cfg = load_config()
     hf_token = resolve_hf_token(cfg)
+    if not cfg.get("hf_user"):
+        try:
+            from huggingface_hub import whoami  # noqa: PLC0415
+
+            cfg["hf_user"] = whoami(token=hf_token or None)["name"]
+        except Exception:  # noqa: BLE001
+            pass
+
+    data_root = resolve_data_dir(cfg, hf_token)
     jobs = cfg.get("jobs") or []
-    print(f"Config: models={cfg['models']} jobs={jobs} data_dir={cfg['data_dir']}")
+    print(f"Config: models={cfg['models']} jobs={jobs} data_root={data_root}")
 
     queue: List[Tuple[str, str]] = [(m, j) for m in cfg["models"] for j in jobs]
     budget = float(cfg["max_runtime_seconds"])
@@ -498,7 +582,7 @@ def main() -> None:
             continue
         print(f"\n=== Training {model_id} on {job} (elapsed {elapsed/3600:.2f}h) ===")
         try:
-            results.append(train_one(model_id, job, cfg, hf_token))
+            results.append(train_one(model_id, job, cfg, hf_token, data_root))
         except Exception as exc:  # noqa: BLE001
             print(f"ERROR on ({model_id}, {job}): {exc}")
             results.append({"model": model_id, "job": job, "error": str(exc)})
@@ -510,8 +594,10 @@ def main() -> None:
         Path("remaining_jobs.json").write_text(
             json.dumps(remaining, indent=2, ensure_ascii=False), encoding="utf-8"
         )
-        print(f"\nTime budget ({budget/3600:.1f}h) reached; {len(remaining)} job(s) "
-              f"deferred -> remaining_jobs.json. Re-push to resume.")
+        print(
+            f"\nTime budget ({budget/3600:.1f}h) reached; {len(remaining)} job(s) "
+            "deferred -> remaining_jobs.json."
+        )
     print("\nDone:", json.dumps(results, indent=2, ensure_ascii=False))
 
 

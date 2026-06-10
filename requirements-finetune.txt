@@ -1,0 +1,14 @@
+# Fine-tuning stack (local RTX 2070 8 GB or HF Jobs t4-small).
+# Install CUDA torch first, then:
+#   pip install -r requirements-finetune.txt
+#
+# CUDA torch (example):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+
+huggingface_hub>=0.34
+unsloth>=2026.6
+trl==0.22.2
+transformers==4.57.3
+datasets>=3.0
+accelerate>=1.4
+peft>=0.7

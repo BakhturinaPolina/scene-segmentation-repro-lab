@@ -43,6 +43,56 @@ and are willing to add ~$10–15 prepaid credits at
 4. Set `eval_after_train: false` in config, then re-eval locally with `eval_finetuned.py` (saves ~50%
    of cloud GPU time).
 
+### Cloud cost estimates (HF Jobs, if you do NOT train locally)
+
+Official Jobs/Spaces GPU list price: **Nvidia T4-small = $0.40/hr** ([HF pricing](https://huggingface.co/pricing)).
+Estimates below use `FLAVOR=t4-small`, Llama-3.2-3B QLoRA, 1 epoch, in-job eval. Actual wall-clock
+varies ±30%.
+
+#### Phase A — Pilot / debugging (`DATA_SCOPE=pilot`, STSS-Test-2 only)
+
+Uses [`stss_test_2.json`](../../data/manifests/stss_test_2.json) (2 XMI novels) + Excel prompting
+texts in folds mode. **Not paper-comparable** — tag all run notes `debug`.
+
+| Run | Config | Train rows | Eval rows | Est. GPU-h | Est. cost @ $0.40/hr |
+|-----|--------|------------|-----------|------------|----------------------|
+| E0 smoke | `E0_smoke.json` | 684 | 200 (limit) | ~1.0–1.5 h | **~$0.40–0.60** |
+| E0 full fold_A | `E0_pilot_full.json` (one job) | 684 | 5,906 | ~3.5–4.5 h | **~$1.40–1.80** |
+| E0 full fold_B | same (one job) | 796 | 5,025 | ~3.0–4.0 h | **~$1.20–1.60** |
+| Both folds (2 jobs) | `E0_pilot_full.json` | — | — | ~6.5–8.5 h | **~$2.60–3.40** |
+
+**Pilot cloud subtotal (recommended):** E0 smoke + both folds ≈ **$3–4** prepaid credits.
+
+#### Phase B — Paper-comparable (`DATA_SCOPE=corpus`, full `data/` corpus)
+
+Requires all 41 texts as `*.xmi.zip` under `upstream/scene-segmentation/data/full/`.
+Train = `train_full` (32 texts), eval = `stss_test_2` (2 texts).
+
+| Quantity | Value |
+|----------|-------|
+| Est. train rows (`paper10pct`) | **~8,503** (1,574 borders + 10% of 69,291 NOBORDER) |
+| Eval rows (STSS-Test-2, full) | **10,931** sentences |
+| Eval rows (`test_full`, stretch E8) | **21,164** sentences |
+
+| Run type | Est. GPU-h per 3B experiment | Est. cost @ $0.40/hr |
+|----------|------------------------------|----------------------|
+| E1 anchor (train + full STSS-Test-2 eval) | ~5.5–7 h | **~$2.20–2.80** |
+| E1 + `test_full` eval (stretch) | ~8–10 h | **~$3.20–4.00** |
+| E8 paper 8B repro (`t4-medium` @ $0.60/hr) | ~8–12 h | **~$4.80–7.20** |
+
+**Core matrix (E1, E1b, E2×2, E3×2, E4×2, E5, E6×2, E7, E10) ≈ 12 runs:**
+
+| Scenario | GPU-h | Prepaid credits |
+|----------|-------|-----------------|
+| Serial 3B runs on `stss_test_2` eval | ~66–84 h | **~$26–34** |
+| + stretch E8 (8B) | +8–12 h | **+$5–7** |
+| **Total cloud (no local GPU)** | ~74–96 h | **~$30–42** |
+
+Add **~$3–4** if you also run the pilot phase on Jobs before the corpus arrives.
+
+**Cheapest cloud workflow:** train on Jobs (`eval_after_train: false`, ~2 h, ~$0.80/run) + eval
+locally with `eval_finetuned.py` — cuts per-run cost roughly in half (~**$15–20** for the core matrix).
+
 ---
 
 ## 1. What "fine-tuning" means here (plain language)
@@ -285,8 +335,9 @@ Excel prompting files as qualitative prompt-debugging material only.
 |------|--------------|
 | [`../../src/finetune/build_sft_dataset.py`](../../src/finetune/build_sft_dataset.py) | Turns gold XMI/Excel into `train.jsonl` + `eval.jsonl` per job, plus `verification.json`. |
 | [`../../src/finetune/hf_jobs/train_job.py`](../../src/finetune/hf_jobs/train_job.py) | Train + eval script (local GPU or HF Jobs via UV). |
-| [`../../src/finetune/hf_jobs/submit_job.sh`](../../src/finetune/hf_jobs/submit_job.sh) | Builds data, uploads private HF dataset, runs locally or submits Jobs. |
-| [`../../src/finetune/hf_jobs/configs/`](../../src/finetune/hf_jobs/configs/) | Per-experiment JSON configs (E0 smoke, E1 anchor, …). |
+| [`../../src/finetune/hf_jobs/submit_job.sh`](../../src/finetune/hf_jobs/submit_job.sh) | Builds data, uploads private HF dataset, runs locally or submits Jobs. `DATA_SCOPE=pilot` (default) or `corpus`. |
+| [`../../src/finetune/hf_jobs/configs/`](../../src/finetune/hf_jobs/configs/) | Per-experiment JSON configs (`E0_smoke`, `E0_pilot_full`, `E1_anchor`, …). |
+| [`../../requirements-finetune.txt`](../../requirements-finetune.txt) | Pinned fine-tuning deps (CUDA torch installed separately). |
 | [`../../src/finetune/eval_finetuned.py`](../../src/finetune/eval_finetuned.py) | Standalone re-eval of an adapter (e.g. after train-only cloud run). |
 
 **Local 8 GB defaults** (auto-applied in E0 config; use for all local runs if you hit OOM):
@@ -364,7 +415,7 @@ Complete Pilot 0 Stages 1–2 (prompting + tiny eval) before proceeding to Step 
 ### Step 2 — E0 smoke run (local, free, ~1–2 h GPU; Pilot 0 Stage 3)
 
 ```bash
-HF_USER=RuthonField RUN_CONFIG=src/finetune/hf_jobs/configs/E0_smoke.json \
+HF_USER=RuthonField DATA_SCOPE=pilot RUN_CONFIG=src/finetune/hf_jobs/configs/E0_smoke.json \
   BUILD_MODE=skip bash src/finetune/hf_jobs/submit_job.sh
 ```
 
@@ -450,16 +501,16 @@ Run experiments in this sequence (one factor at a time):
 **Standard local command** (free):
 
 ```bash
-HF_USER=RuthonField RUN_CONFIG=src/finetune/hf_jobs/configs/E1_anchor.json \
-  BUILD_MODE=corpus bash src/finetune/hf_jobs/submit_job.sh
+HF_USER=RuthonField DATA_SCOPE=corpus RUN_CONFIG=src/finetune/hf_jobs/configs/E1_anchor.json \
+  bash src/finetune/hf_jobs/submit_job.sh
 ```
 
-**Cloud fallback** (prepaid credits):
+**Cloud fallback** (prepaid credits; see §0 cost table):
 
 ```bash
-HF_USER=RuthonField COMPUTE=jobs FLAVOR=t4-small TIMEOUT=8h \
+HF_USER=RuthonField DATA_SCOPE=corpus COMPUTE=jobs FLAVOR=t4-small TIMEOUT=8h \
   RUN_CONFIG=src/finetune/hf_jobs/configs/E1_anchor.json \
-  BUILD_MODE=corpus bash src/finetune/hf_jobs/submit_job.sh
+  bash src/finetune/hf_jobs/submit_job.sh
 ```
 
 Data-side factors (E3/E4/E5/E9): rerun `build_sft_dataset.py`, then `submit_job.sh` (re-uploads data).

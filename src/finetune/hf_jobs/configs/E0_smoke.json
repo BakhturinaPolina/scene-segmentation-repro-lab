@@ -1,0 +1,12 @@
+{
+  "run_phase": "pilot_0_e0_smoke",
+  "data_scope": "stss_test_2_pilot",
+  "debug": true,
+  "models": ["unsloth/Llama-3.2-3B-Instruct"],
+  "jobs": ["fold_A"],
+  "epochs": 1,
+  "eval_limit": 200,
+  "eval_batch_size": 8,
+  "batch_size": 1,
+  "grad_accum": 8
+}
