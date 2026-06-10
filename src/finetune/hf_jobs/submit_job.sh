@@ -143,9 +143,7 @@ PY
 fi
 
 echo "[3/4] Uploading dataset -> $DATASET_REPO (private)..."
-if ! hf repo info "$DATASET_REPO" --repo-type dataset >/dev/null 2>&1; then
-  hf repo create "$DATASET_REPO" --repo-type dataset --private
-fi
+hf repo create "$DATASET_REPO" --repo-type dataset --private --exist-ok
 hf upload "$DATASET_REPO" "$DATA_DIR" . --repo-type dataset \
   --commit-message "update $(date -u +%FT%TZ)"
 
