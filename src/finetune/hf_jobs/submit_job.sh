@@ -142,7 +142,13 @@ print(f"Generated config: models={cfg['models']} jobs={cfg['jobs']}")
 PY
 fi
 
-echo "[3/4] Uploading dataset -> $DATASET_REPO (private)..."
+echo "[3/4] Staging HF Jobs helper bundle + uploading dataset -> $DATASET_REPO (private)..."
+BUNDLE_DIR="$DATA_DIR/_hf_job_bundle"
+mkdir -p "$BUNDLE_DIR/finetune" "$BUNDLE_DIR/postprocess"
+cp "$ROOT/src/finetune/__init__.py" "$BUNDLE_DIR/finetune/"
+cp "$ROOT/src/finetune/run_log.py" "$BUNDLE_DIR/finetune/"
+cp "$ROOT/src/postprocess/__init__.py" "$BUNDLE_DIR/postprocess/"
+cp "$ROOT/src/postprocess/postprocess.py" "$BUNDLE_DIR/postprocess/"
 hf repo create "$DATASET_REPO" --repo-type dataset --private --exist-ok
 hf upload "$DATASET_REPO" "$DATA_DIR" . --repo-type dataset \
   --commit-message "update $(date -u +%FT%TZ)"

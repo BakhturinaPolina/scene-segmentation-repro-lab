@@ -46,6 +46,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -54,8 +55,70 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
-_FILE = Path(__file__).resolve()
-_SRC_ROOT = _FILE.parents[2]
+_HF_JOB_BUNDLE_PREFIX = "_hf_job_bundle"
+_HF_JOB_SRC_CACHE = Path("/tmp/scene_seg_src")
+
+
+def _has_project_modules(root: Path) -> bool:
+    return (
+        (root / "finetune" / "run_log.py").is_file()
+        and (root / "postprocess" / "postprocess.py").is_file()
+    )
+
+
+def _resolve_src_root() -> Path:
+    """Locate ``src/`` for local runs; on HF Jobs fetch bundled modules from DATA_REPO."""
+    env_root = os.environ.get("SCENE_SEG_SRC_ROOT")
+    if env_root:
+        root = Path(env_root).resolve()
+        if _has_project_modules(root):
+            return root
+        raise FileNotFoundError(f"SCENE_SEG_SRC_ROOT={root} missing finetune/postprocess modules")
+
+    here = Path(__file__).resolve()
+    for base in (here.parent, *here.parents):
+        for candidate in (base, base / "src"):
+            if _has_project_modules(candidate):
+                return candidate
+
+    return _materialize_hf_job_bundle()
+
+
+def _materialize_hf_job_bundle() -> Path:
+    """HF Jobs copies this script to ``/tmp/script.py``; pull helper modules from the dataset."""
+    if _has_project_modules(_HF_JOB_SRC_CACHE):
+        return _HF_JOB_SRC_CACHE
+
+    data_repo = os.environ.get("DATA_REPO")
+    if not data_repo:
+        raise ImportError(
+            "Cannot import finetune/postprocess: set SCENE_SEG_SRC_ROOT locally or "
+            "DATA_REPO on HF Jobs (dataset must include _hf_job_bundle/)."
+        )
+
+    from huggingface_hub import snapshot_download  # noqa: PLC0415
+
+    cache = Path(
+        snapshot_download(
+            repo_id=data_repo,
+            repo_type="dataset",
+            allow_patterns=[f"{_HF_JOB_BUNDLE_PREFIX}/**"],
+            token=os.environ.get("HF_TOKEN") or None,
+        )
+    )
+    bundle = cache / _HF_JOB_BUNDLE_PREFIX
+    if not bundle.is_dir():
+        raise FileNotFoundError(
+            f"{data_repo} is missing {_HF_JOB_BUNDLE_PREFIX}/; rerun submit_job.sh upload step."
+        )
+
+    if _HF_JOB_SRC_CACHE.exists():
+        shutil.rmtree(_HF_JOB_SRC_CACHE)
+    shutil.copytree(bundle, _HF_JOB_SRC_CACHE)
+    return _HF_JOB_SRC_CACHE
+
+
+_SRC_ROOT = _resolve_src_root()
 if str(_SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(_SRC_ROOT))
 
