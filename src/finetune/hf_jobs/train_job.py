@@ -54,6 +54,14 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 sys.stdout.reconfigure(line_buffering=True)
 sys.stderr.reconfigure(line_buffering=True)
 
+_FILE = Path(__file__).resolve()
+_SRC_ROOT = _FILE.parents[2]
+if str(_SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SRC_ROOT))
+
+from finetune.run_log import RunState, log, progress, upload_if_hub  # noqa: E402
+from postprocess.postprocess import apply_scenario  # noqa: E402
+
 DEFAULTS: Dict[str, Any] = {
     "models": [
         "unsloth/Llama-3.2-3B-Instruct",
@@ -78,9 +86,26 @@ DEFAULTS: Dict[str, Any] = {
     "eval_batch_size": 16,
     "eval_max_new_tokens": 96,
     "tolerances": [0, 1, 3],
-    "postprocess": ["none", "min_scene_len_3", "confidence_threshold_plus_min_scene_len_3"],
+    "postprocess": [
+        "none",
+        "cluster_merge",
+        "min_scene_len_3",
+        "cluster_merge_plus_min_scene_len_3",
+        "confidence_threshold_plus_min_scene_len_3",
+    ],
     "confidence_threshold": 0.85,
+    "cluster_merge_radius": 3,
     "max_runtime_seconds": 21600,
+    "completion_only_loss": True,
+    "eval_during_training": False,
+    "eval_steps": 50,
+    "save_steps": 50,
+    "save_total_limit": 2,
+    "load_best_model_at_end": True,
+    "metric_for_best_model": "eval_macro_f1_tol3",
+    "early_stopping_patience": 0,
+    "val_eval_limit": 500,
+    "resume": True,
     # Run metadata (mirrors plan doc / research_log tags).
     "run_phase": "",
     "data_scope": "",
@@ -136,7 +161,7 @@ def resolve_data_dir(cfg: Dict[str, Any], hf_token: str) -> Path:
         repo_type="dataset",
         token=hf_token or None,
     )
-    print(f"Downloaded dataset {data_repo} -> {root}")
+    log(f"Downloaded dataset {data_repo} -> {root}")
     return Path(root)
 
 
@@ -196,49 +221,6 @@ def parse_label_confidence(text: str) -> Tuple[str, Optional[float]]:
     return label, conf
 
 
-def apply_min_scene_len(labels: Sequence[str], min_gap: int) -> List[str]:
-    out = list(labels)
-    last = -10**9
-    for i, lab in enumerate(out):
-        if lab != "BORDER":
-            continue
-        if i - last < min_gap:
-            out[i] = "NOBORDER"
-        else:
-            last = i
-    return out
-
-
-def apply_confidence_threshold(
-    labels: Sequence[str], confidences: Sequence[Optional[float]], thr: float
-) -> List[str]:
-    out = list(labels)
-    for i, lab in enumerate(out):
-        if lab == "BORDER" and confidences[i] is not None and confidences[i] < thr:
-            out[i] = "NOBORDER"
-    return out
-
-
-def apply_scenario(
-    labels: Sequence[str],
-    scenario: str,
-    confidences: Optional[Sequence[Optional[float]]] = None,
-    thr: float = 0.85,
-) -> List[str]:
-    if scenario in {"none", "baseline"}:
-        return list(labels)
-    if scenario == "min_scene_len_3":
-        return apply_min_scene_len(labels, 3)
-    if scenario == "min_scene_len_5":
-        return apply_min_scene_len(labels, 5)
-    if scenario == "confidence_threshold":
-        return apply_confidence_threshold(labels, confidences or [None] * len(labels), thr)
-    if scenario == "confidence_threshold_plus_min_scene_len_3":
-        step = apply_confidence_threshold(labels, confidences or [None] * len(labels), thr)
-        return apply_min_scene_len(step, 3)
-    raise ValueError(f"Unsupported scenario: {scenario}")
-
-
 def score_one_text(
     preds: Sequence[str], golds: Sequence[str], tolerance: int
 ) -> Dict[str, float]:
@@ -269,6 +251,7 @@ def evaluate_macro(
     tolerance: int,
     scenario: str,
     thr: float,
+    cluster_merge_radius: int = 3,
 ) -> Dict[str, Any]:
     per_text: Dict[str, Dict[str, float]] = {}
     agg_tp = agg_fp = agg_fn = 0
@@ -282,7 +265,13 @@ def evaluate_macro(
             golds[idx] = gold
             preds[idx] = pred
             confs[idx] = conf
-        preds = apply_scenario(preds, scenario, confs, thr)
+        preds = apply_scenario(
+            preds,
+            scenario,
+            confidences=confs,
+            confidence_threshold=thr,
+            cluster_merge_radius=cluster_merge_radius,
+        )
         m = score_one_text(preds, golds, tolerance)
         per_text[source] = {k: round(v, 4) for k, v in m.items()}
         agg_tp += m["tp"]
@@ -309,6 +298,16 @@ def _chat_template_for(model_id: str):
     }
 
 
+def _response_template_parts(model_id: str, chat_template: str) -> Tuple[str, str]:
+    """Instruction/response delimiter strings for train_on_responses_only."""
+    if "llama" in model_id.lower() or chat_template == "llama-3.1":
+        return (
+            "<|start_header_id|>user<|end_header_id|>",
+            "<|start_header_id|>assistant<|end_header_id|>",
+        )
+    return ("<|im_start|>user\n", "<|im_start|>assistant\n")
+
+
 def read_jsonl(path: Path) -> List[dict]:
     rows: List[dict] = []
     with path.open("r", encoding="utf-8") as handle:
@@ -325,6 +324,7 @@ def evaluate_adapter(
     import torch  # noqa: PLC0415
     from unsloth import FastLanguageModel  # noqa: PLC0415
 
+    was_training = model.training
     FastLanguageModel.for_inference(model)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -338,8 +338,10 @@ def evaluate_adapter(
 
     by_source: Dict[str, Dict[int, Tuple[str, str, Optional[float]]]] = {}
     device = next(model.parameters()).device
+    radius = int(cfg.get("cluster_merge_radius", 3))
 
-    for start in range(0, len(eval_rows), bs):
+    batch_starts = range(0, len(eval_rows), bs)
+    for start in progress(batch_starts, desc="eval inference"):
         batch = eval_rows[start : start + bs]
         prompts = [
             tokenizer.apply_chat_template(
@@ -376,7 +378,7 @@ def evaluate_adapter(
     metrics: Dict[str, Any] = {"scenarios": {}}
     for scenario in cfg["postprocess"]:
         metrics["scenarios"][scenario] = {
-            f"tol_{t}": evaluate_macro(by_source, t, scenario, thr)
+            f"tol_{t}": evaluate_macro(by_source, t, scenario, thr, radius)
             for t in cfg["tolerances"]
         }
     metrics["n_eval_rows"] = sum(len(v) for v in by_source.values())
@@ -384,21 +386,86 @@ def evaluate_adapter(
     metrics["n_gold_border"] = sum(
         1 for items in by_source.values() for (_, g, _) in items.values() if g == "BORDER"
     )
+    if was_training:
+        model.train()
     return metrics
+
+
+class FinetuneF1Callback:
+    """Periodic val-set macro F1@3 during training (E10)."""
+
+    def __init__(
+        self,
+        val_rows: List[dict],
+        cfg: Dict[str, Any],
+        tokenizer,
+    ) -> None:
+        from transformers import TrainerCallback  # noqa: PLC0415
+
+        class _Inner(TrainerCallback):
+            def __init__(self, outer: "FinetuneF1Callback") -> None:
+                self.outer = outer
+
+            def on_train_begin(self, args, state, control, **kwargs):  # noqa: ANN001
+                self.outer.trainer = kwargs.get("trainer")
+
+            def on_step_end(self, args, state, control, **kwargs):  # noqa: ANN001
+                self.outer._on_step_end(args, state, control, **kwargs)
+
+        self.val_rows = val_rows
+        self.cfg = cfg
+        self.tokenizer = tokenizer
+        self.trainer = None
+        self.best_f1 = -1.0
+        self.best_step = 0
+        self._patience_left = int(cfg.get("early_stopping_patience", 0))
+        self._callback = _Inner(self)
+
+    def _on_step_end(self, args, state, control, **kwargs):  # noqa: ANN001
+        if not self.cfg.get("eval_during_training") or not self.val_rows:
+            return
+        step = state.global_step
+        if step <= 0 or step % int(self.cfg["eval_steps"]) != 0:
+            return
+        model = kwargs.get("model")
+        if model is None:
+            return
+        log(f"[val] step={step} running quick F1@3 eval (limit={self.cfg['val_eval_limit']})")
+        quick_cfg = dict(self.cfg)
+        quick_cfg["eval_limit"] = int(self.cfg.get("val_eval_limit", 500))
+        metrics = evaluate_adapter(model, self.tokenizer, self.val_rows, quick_cfg)
+        f1 = metrics["scenarios"].get("none", {}).get("tol_3", {}).get("macro_f1", 0.0)
+        if self.trainer is not None:
+            self.trainer.log({"eval_macro_f1_tol3": f1, "eval_step": step})
+        log(f"[val] step={step} macro_f1@3={f1} (best={self.best_f1:.4f} @ step {self.best_step})")
+        if f1 > self.best_f1:
+            self.best_f1 = f1
+            self.best_step = step
+            self._patience_left = int(self.cfg.get("early_stopping_patience", 0))
+            if self.trainer is not None and self.cfg.get("load_best_model_at_end"):
+                self.trainer.save_model(os.path.join(args.output_dir, "best_adapter"))
+        elif self.cfg.get("early_stopping_patience", 0) > 0:
+            self._patience_left -= 1
+            if self._patience_left <= 0:
+                log("[val] early stopping triggered", level="warning")
+                control.should_training_stop = True
 
 
 def train_one(
     model_id: str, job: str, cfg: Dict[str, Any], hf_token: str, data_root: Path
 ) -> Dict[str, Any]:
     import unsloth  # noqa: F401, PLC0415 — must precede trl/transformers
+    import torch  # noqa: PLC0415
     from datasets import load_dataset  # noqa: PLC0415
+    from transformers.trainer_utils import get_last_checkpoint  # noqa: PLC0415
     from trl import SFTConfig, SFTTrainer  # noqa: PLC0415
     from unsloth import FastLanguageModel  # noqa: PLC0415
-    from unsloth.chat_templates import get_chat_template  # noqa: PLC0415
+    from unsloth.chat_templates import get_chat_template, train_on_responses_only  # noqa: PLC0415
 
     job_dir = data_root / job
     train_path = job_dir / "train.jsonl"
     eval_path = job_dir / "eval.jsonl"
+    val_path = job_dir / "val.jsonl"
     meta_path = job_dir / "meta.json"
     job_meta: Dict[str, Any] = {}
     if meta_path.exists():
@@ -406,12 +473,19 @@ def train_one(
     if not train_path.exists():
         raise FileNotFoundError(f"Missing training file: {train_path}")
 
+    if job_meta.get("max_seq_len_recommended") and not os.environ.get("HF_RUN_CONFIG_FORCE_MAX_LEN"):
+        cfg = dict(cfg)
+        cfg["max_seq_len"] = job_meta["max_seq_len_recommended"]
+        log(f"[1/5] max_seq_len from meta.json -> {cfg['max_seq_len']}")
+
     if job_meta.get("debug_only") or cfg.get("debug"):
-        print(
+        log(
             "WARNING: debug/pilot run — metrics are for pipeline validation only; "
-            "do not report as model performance."
+            "do not report as model performance.",
+            level="warning",
         )
 
+    log(f"[1/5] Loading model {model_id} max_seq_len={cfg['max_seq_len']}")
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=model_id,
         max_seq_length=cfg["max_seq_len"],
@@ -449,48 +523,102 @@ def train_one(
         )
         return {"text": text}
 
+    log(f"[2/5] Loading train data from {train_path}")
     raw = load_dataset("json", data_files=str(train_path), split="train")
     dataset = raw.map(formatting, remove_columns=raw.column_names)
 
+    val_rows: List[dict] = []
+    if val_path.exists():
+        val_rows = read_jsonl(val_path)
+        log(f"[2/5] val.jsonl rows={len(val_rows)}")
+    elif cfg.get("eval_during_training"):
+        log("[2/5] eval_during_training set but no val.jsonl; disabling", level="warning")
+        cfg = dict(cfg)
+        cfg["eval_during_training"] = False
+
     short = model_short_name(model_id)
     out_dir = f"out-{short}-{job}"
+    eval_during = bool(cfg.get("eval_during_training") and val_rows)
+    sft_args = SFTConfig(
+        dataset_text_field="text",
+        max_length=cfg["max_seq_len"],
+        per_device_train_batch_size=cfg["batch_size"],
+        gradient_accumulation_steps=cfg["grad_accum"],
+        num_train_epochs=cfg["epochs"],
+        learning_rate=cfg["lr"],
+        warmup_ratio=0.05,
+        logging_steps=10,
+        optim="adamw_8bit",
+        weight_decay=0.01,
+        lr_scheduler_type="cosine",
+        seed=cfg["seed"],
+        output_dir=out_dir,
+        report_to="none",
+        save_strategy="steps" if eval_during else "no",
+        save_steps=int(cfg.get("save_steps", 50)) if eval_during else None,
+        save_total_limit=int(cfg.get("save_total_limit", 2)) if eval_during else None,
+        load_best_model_at_end=False,
+    )
+
+    callbacks = []
+    f1_cb: Optional[FinetuneF1Callback] = None
+    if eval_during:
+        f1_cb = FinetuneF1Callback(val_rows, cfg, tokenizer)
+        callbacks.append(f1_cb._callback)
+
+    log(f"[3/5] Building SFTTrainer (completion_only={cfg.get('completion_only_loss', True)})")
     trainer = SFTTrainer(
         model=model,
         processing_class=tokenizer,
         train_dataset=dataset,
-        args=SFTConfig(
-            dataset_text_field="text",
-            max_length=cfg["max_seq_len"],
-            per_device_train_batch_size=cfg["batch_size"],
-            gradient_accumulation_steps=cfg["grad_accum"],
-            num_train_epochs=cfg["epochs"],
-            learning_rate=cfg["lr"],
-            warmup_ratio=0.05,
-            logging_steps=10,
-            optim="adamw_8bit",
-            weight_decay=0.01,
-            lr_scheduler_type="cosine",
-            seed=cfg["seed"],
-            output_dir=out_dir,
-            report_to="none",
-        ),
+        args=sft_args,
+        callbacks=callbacks,
     )
-    trainer.train()
+
+    if cfg.get("completion_only_loss", True):
+        instr, resp = _response_template_parts(model_id, chosen)
+        trainer = train_on_responses_only(
+            trainer,
+            instruction_part=instr,
+            response_part=resp,
+        )
+        log(f"[3/5] completion-only loss enabled (instr/resp markers set)")
+
+    resume_ckpt = None
+    if cfg.get("resume", True):
+        resume_ckpt = get_last_checkpoint(out_dir)
+        if resume_ckpt:
+            log(f"[4/5] Resuming from checkpoint {resume_ckpt}")
+
+    gpu_stats = torch.cuda.get_device_properties(0)
+    log(f"[4/5] Training on {gpu_stats.name} ({gpu_stats.total_memory / 1e9:.1f} GB)")
+    trainer.train(resume_from_checkpoint=resume_ckpt)
+
+    if f1_cb and f1_cb.best_f1 >= 0 and cfg.get("load_best_model_at_end"):
+        best_dir = os.path.join(out_dir, "best_adapter")
+        if os.path.isdir(best_dir):
+            log(f"[4/5] Loading best adapter from step {f1_cb.best_step} (F1@3={f1_cb.best_f1:.4f})")
+            model.load_adapter(best_dir)
+
+    if trainer.state.log_history:
+        log_path = Path(f"training_log_{short}_{job}.json")
+        log_path.write_text(json.dumps(trainer.state.log_history, indent=2), encoding="utf-8")
 
     repo = f"{cfg['hf_user']}/scene-seg-{short}-{job}"
+    log(f"[5/5] Saving adapter -> {repo or out_dir}")
     if cfg["hf_user"] and hf_token:
         model.push_to_hub(repo, token=hf_token)
         tokenizer.push_to_hub(repo, token=hf_token)
-        print(f"Pushed adapter -> https://huggingface.co/{repo}")
+        log(f"Pushed adapter -> https://huggingface.co/{repo}")
     else:
         model.save_pretrained(out_dir)
         tokenizer.save_pretrained(out_dir)
-        print(f"hf_user/token missing; saved adapter locally to {out_dir}")
+        log(f"hf_user/token missing; saved adapter locally to {out_dir}")
 
     result: Dict[str, Any] = {"model": model_id, "job": job, "repo": repo}
 
     if cfg["eval_after_train"] and eval_path.exists():
-        print(f"=== Evaluating {short} on {job} (eval split) ===")
+        log(f"=== Evaluating {short} on {job} (eval split) ===")
         eval_rows = read_jsonl(eval_path)
         metrics = evaluate_adapter(model, tokenizer, eval_rows, cfg)
         metrics.update(
@@ -501,6 +629,7 @@ def train_one(
                 "run_phase": cfg.get("run_phase") or job_meta.get("run_phase", ""),
                 "data_scope": cfg.get("data_scope") or job_meta.get("data_scope", ""),
                 "debug": bool(cfg.get("debug") or job_meta.get("debug_only", False)),
+                "completion_only_loss": bool(cfg.get("completion_only_loss", True)),
                 "dataset_meta": job_meta,
                 "base_config": {
                     k: cfg[k]
@@ -513,10 +642,18 @@ def train_one(
                         "grad_accum",
                         "max_seq_len",
                         "seed",
+                        "completion_only_loss",
+                        "eval_during_training",
                     )
+                    if k in cfg
                 },
             }
         )
+        if f1_cb:
+            metrics["val_selection"] = {
+                "best_macro_f1_tol3": f1_cb.best_f1,
+                "best_step": f1_cb.best_step,
+            }
         metrics_path = Path(f"metrics_{short}_{job}.json")
         metrics_path.write_text(
             json.dumps(metrics, indent=2, ensure_ascii=False), encoding="utf-8"
@@ -524,23 +661,10 @@ def train_one(
         result["metrics_path"] = str(metrics_path)
         headline = metrics["scenarios"].get("none", {}).get("tol_3", {}).get("macro_f1")
         result["macro_f1_tol3_raw"] = headline
-        print(f"metrics: raw macro_f1@3 = {headline} -> {metrics_path}")
-        if cfg["hf_user"] and hf_token:
-            try:
-                from huggingface_hub import upload_file  # noqa: PLC0415
-
-                upload_file(
-                    path_or_fileobj=str(metrics_path),
-                    path_in_repo=metrics_path.name,
-                    repo_id=repo,
-                    token=hf_token,
-                    repo_type="model",
-                )
-                print(f"Uploaded {metrics_path.name} -> {repo}")
-            except Exception as exc:  # noqa: BLE001
-                print(f"WARNING: could not upload metrics to {repo}: {exc}")
+        log(f"metrics: raw macro_f1@3 = {headline} -> {metrics_path}")
+        upload_if_hub(metrics_path, repo, hf_token)
     else:
-        print(
+        log(
             f"Skipping eval for {job} (eval_after_train={cfg['eval_after_train']}, "
             f"eval.jsonl exists={eval_path.exists()})"
         )
@@ -552,10 +676,12 @@ def main() -> None:
     import torch  # noqa: PLC0415
 
     if not torch.cuda.is_available():
-        print("ERROR: CUDA required. Use HF Jobs or a machine with a GPU.")
+        log("ERROR: CUDA required. Use HF Jobs or a machine with a GPU.", level="error")
         sys.exit(1)
 
     cfg = load_config()
+    if os.environ.get("RESUME", "1") == "0":
+        cfg["resume"] = False
     hf_token = resolve_hf_token(cfg)
     if not cfg.get("hf_user"):
         try:
@@ -567,8 +693,9 @@ def main() -> None:
 
     data_root = resolve_data_dir(cfg, hf_token)
     jobs = cfg.get("jobs") or []
-    print(f"Config: models={cfg['models']} jobs={jobs} data_root={data_root}")
+    log(f"Config: models={cfg['models']} jobs={jobs} data_root={data_root}")
 
+    state = RunState(Path("run_state.json"))
     queue: List[Tuple[str, str]] = [(m, j) for m in cfg["models"] for j in jobs]
     budget = float(cfg["max_runtime_seconds"])
     t0 = time.time()
@@ -576,29 +703,38 @@ def main() -> None:
     remaining: List[Dict[str, str]] = []
 
     for model_id, job in queue:
+        if cfg.get("resume", True) and state.is_done(model_id, job):
+            log(f"Skipping completed ({model_id}, {job}) — resume=on")
+            continue
         elapsed = time.time() - t0
         if elapsed > budget:
             remaining.append({"model": model_id, "job": job})
             continue
-        print(f"\n=== Training {model_id} on {job} (elapsed {elapsed/3600:.2f}h) ===")
+        log(f"\n=== Training {model_id} on {job} (elapsed {elapsed/3600:.2f}h) ===")
         try:
-            results.append(train_one(model_id, job, cfg, hf_token, data_root))
+            result = train_one(model_id, job, cfg, hf_token, data_root)
+            results.append(result)
+            state.record(model_id, job, status="ok", result=result)
         except Exception as exc:  # noqa: BLE001
-            print(f"ERROR on ({model_id}, {job}): {exc}")
-            results.append({"model": model_id, "job": job, "error": str(exc)})
+            log(f"ERROR on ({model_id}, {job}): {exc}", level="error")
+            err_result = {"model": model_id, "job": job, "error": str(exc)}
+            results.append(err_result)
+            state.record(model_id, job, status="error", error=str(exc))
 
-    Path("train_results.json").write_text(
-        json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+        Path("train_results.json").write_text(
+            json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
     if remaining:
         Path("remaining_jobs.json").write_text(
             json.dumps(remaining, indent=2, ensure_ascii=False), encoding="utf-8"
         )
-        print(
-            f"\nTime budget ({budget/3600:.1f}h) reached; {len(remaining)} job(s) "
-            "deferred -> remaining_jobs.json."
+        log(
+            f"Time budget ({budget/3600:.1f}h) reached; {len(remaining)} job(s) "
+            "deferred -> remaining_jobs.json.",
+            level="warning",
         )
-    print("\nDone:", json.dumps(results, indent=2, ensure_ascii=False))
+    log(f"\nDone: {len(results)} job(s) processed")
 
 
 if __name__ == "__main__":

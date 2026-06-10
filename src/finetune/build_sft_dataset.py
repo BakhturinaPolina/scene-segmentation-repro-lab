@@ -76,6 +76,7 @@ if str(_SRC_ROOT) not in sys.path:
 
 from core.prompt_runtime import get_template_text, load_prompt_registry, render_prompt_for_family
 from data.build_fewshot_from_stss import parse_xmi, unzip_xmis
+from finetune.run_log import log, progress
 
 # Gold reason tags -> the four CoT-List dimensions (paper appendix A.2).
 REASON_TAGS = ("Zeit", "Raum", "Figuren", "Handlung")
@@ -104,8 +105,14 @@ FOLDS = {
 }
 
 TARGET_FORMATS = ("cot_list", "json", "no_cot")
-NEGATIVE_MODES = ("ratio", "paper10pct", "hard")
+NEGATIVE_MODES = ("ratio", "pct", "paper10pct", "hard")
 CONTEXT_MODES = ("sentences", "tokens512")
+LABEL_MODES = ("binary", "four_way")
+
+
+def recommended_max_seq_len(token_budget: int) -> int:
+    """Couple training max_seq_len to context token budget (E5)."""
+    return min(4096, token_budget + 768)
 
 
 @dataclass
@@ -279,7 +286,7 @@ def examples_for_split(
     """Build examples for all available texts of a split. Returns (examples, missing)."""
     examples: List[Example] = []
     missing: List[str] = []
-    for name in members:
+    for name in progress(members, desc=f"split {split_name}"):
         zip_path = available.get(name)
         if zip_path is None:
             missing.append(name)
@@ -407,10 +414,40 @@ def _evenly_sample(items: List[Example], keep_n: int) -> List[Example]:
     return [items[int(k * step)] for k in range(keep_n)]
 
 
+def _border_positions(borders: List[Example]) -> Dict[str, List[int]]:
+    border_pos: Dict[str, List[int]] = {}
+    for e in borders:
+        border_pos.setdefault(e.source, []).append(e.index)
+    return border_pos
+
+
+def _distance_to_border(e: Example, border_pos: Dict[str, List[int]]) -> int:
+    positions = border_pos.get(e.source)
+    if not positions:
+        return 10 ** 9
+    return min(abs(e.index - p) for p in positions)
+
+
+def _target_negative_count(
+    mode: str,
+    n_borders: int,
+    n_noborders: int,
+    negative_pct: float,
+    ratio: int,
+) -> int:
+    if mode in {"pct", "paper10pct", "hard"}:
+        pct = 0.10 if mode == "paper10pct" else negative_pct
+        return max(1, round(pct * n_noborders))
+    if ratio <= 0:
+        return n_noborders
+    return min(ratio * n_borders, n_noborders)
+
+
 def select_train_examples(
     examples: List[Example],
     mode: str,
     ratio: int,
+    negative_pct: float,
     seed: int,
     hard_window: int,
     fp_sentences: Set[str],
@@ -421,44 +458,66 @@ def select_train_examples(
     if not noborders:
         return sorted(borders, key=lambda e: (e.source, e.index))
 
-    if mode == "paper10pct":
-        keep_n = max(1, round(0.10 * len(noborders)))
-        selected = _evenly_sample(noborders, keep_n)
+    keep_n = _target_negative_count(mode, len(borders), len(noborders), negative_pct, ratio)
+    border_pos = _border_positions(borders)
 
-    elif mode == "hard":
-        # Per-source border positions, to score adjacency hardness.
-        border_pos: Dict[str, List[int]] = {}
-        for e in borders:
-            border_pos.setdefault(e.source, []).append(e.index)
-
-        def distance_to_border(e: Example) -> int:
-            positions = border_pos.get(e.source)
-            if not positions:
-                return 10 ** 9
-            return min(abs(e.index - p) for p in positions)
-
-        def hardness(e: Example) -> Tuple[int, int]:
-            # Lower sorts first (harder): FP-matched, then closer to a border.
-            is_fp = 0 if _normalize_text(e.target_text) in fp_sentences else 1
-            return (is_fp, distance_to_border(e))
-
-        keep_n = ratio * len(borders) if ratio > 0 else len(noborders)
-        keep_n = min(keep_n, len(noborders))
-        ranked = sorted(noborders, key=hardness)
-        selected = ranked[:keep_n]
+    if mode == "hard":
+        mandatory = [
+            e for e in noborders if _distance_to_border(e, border_pos) <= hard_window
+        ]
+        mandatory_set = {id(e) for e in mandatory}
+        remainder = [e for e in noborders if id(e) not in mandatory_set]
+        need = max(0, keep_n - len(mandatory))
+        rng = random.Random(seed)
+        topup = rng.sample(remainder, min(need, len(remainder))) if need > 0 and remainder else []
+        selected = mandatory + topup
         n_fp = sum(1 for e in selected if _normalize_text(e.target_text) in fp_sentences)
-        n_adj = sum(1 for e in selected if distance_to_border(e) <= hard_window)
-        print(f"[hard] selected {len(selected)} negatives "
-              f"(fp-matched={n_fp}, within {hard_window} of a border={n_adj})")
+        n_adj = sum(1 for e in selected if _distance_to_border(e, border_pos) <= hard_window)
+        log(
+            f"[hard] mandatory_near_border={len(mandatory)} random_topup={len(topup)} "
+            f"total={len(selected)} target={keep_n} (fp_matched={n_fp}, within_window={n_adj})"
+        )
+
+    elif mode in {"pct", "paper10pct"}:
+        pct = 0.10 if mode == "paper10pct" else negative_pct
+        selected = _evenly_sample(noborders, keep_n)
+        log(f"[neg] mode={mode} pct={pct:.2%} keep={len(selected)}/{len(noborders)}")
 
     else:  # ratio
         if ratio <= 0 or len(noborders) <= ratio * len(borders):
             selected = noborders
         else:
             selected = _evenly_sample(noborders, ratio * len(borders))
+        log(f"[neg] mode=ratio ratio={ratio} keep={len(selected)}/{len(noborders)}")
 
-    random.Random(seed).shuffle(selected)  # break ties; re-sorted below
+    random.Random(seed).shuffle(selected)
     return sorted(borders + selected, key=lambda e: (e.source, e.index))
+
+
+def split_val_holdout(
+    train_examples: List[Example],
+    *,
+    val_fraction: float,
+    val_holdout_texts: Optional[List[str]],
+    seed: int,
+) -> Tuple[List[Example], List[Example], List[str]]:
+    """Hold out whole texts from train for validation (E10 data side)."""
+    if val_holdout_texts:
+        holdout = set(val_holdout_texts)
+    elif val_fraction > 0:
+        sources = sorted({e.source for e in train_examples})
+        n_hold = max(1, round(val_fraction * len(sources)))
+        rng = random.Random(seed)
+        shuffled = list(sources)
+        rng.shuffle(shuffled)
+        holdout = set(shuffled[:n_hold])
+    else:
+        return train_examples, [], []
+
+    val_ex = [e for e in train_examples if e.source in holdout]
+    train_ex = [e for e in train_examples if e.source not in holdout]
+    log(f"[val] holdout_texts={sorted(holdout)} train={len(train_ex)} val={len(val_ex)}")
+    return train_ex, val_ex, sorted(holdout)
 
 
 # ---------------------------------------------------------------------------
@@ -526,32 +585,63 @@ def write_pair(
     fp_sentences: Set[str],
     extra_meta: dict,
 ) -> dict:
-    train_sel = select_train_examples(
-        train_examples, args.negative_mode, args.noborder_ratio,
-        args.seed, args.hard_window, fp_sentences,
+    train_core, val_examples, val_holdout_texts = split_val_holdout(
+        train_examples,
+        val_fraction=args.val_fraction,
+        val_holdout_texts=args.val_holdout_texts or None,
+        seed=args.seed,
     )
-    train_rows = [to_messages_row(e, template_text, args.family, args.target_format) for e in train_sel]
-    # Eval kept at full natural distribution to match the real metric.
-    eval_rows = [to_messages_row(e, template_text, args.family, args.target_format) for e in eval_examples]
+    train_sel = select_train_examples(
+        train_core,
+        args.negative_mode,
+        args.noborder_ratio,
+        args.negative_pct,
+        args.seed,
+        args.hard_window,
+        fp_sentences,
+    )
+    train_rows = [
+        to_messages_row(e, template_text, args.family, args.target_format) for e in train_sel
+    ]
+    eval_rows = [
+        to_messages_row(e, template_text, args.family, args.target_format) for e in eval_examples
+    ]
+    val_rows = [
+        to_messages_row(e, template_text, args.family, args.target_format) for e in val_examples
+    ]
 
     pair_dir = args.out_dir / tag
     write_jsonl(train_rows, pair_dir / "train.jsonl")
     write_jsonl(eval_rows, pair_dir / "eval.jsonl")
+    if val_rows:
+        write_jsonl(val_rows, pair_dir / "val.jsonl")
+    else:
+        stale_val = pair_dir / "val.jsonl"
+        if stale_val.exists():
+            stale_val.unlink()
 
+    seq_len = args.max_seq_len if args.max_seq_len else recommended_max_seq_len(args.token_budget)
     meta = {
         "tag": tag,
         "family": args.family,
         "target_format": args.target_format,
+        "label_mode": args.label_mode,
         "context": args.context,
         "context_mode": args.context_mode,
         "token_budget": args.token_budget,
+        "max_seq_len_recommended": seq_len,
         "negative_mode": args.negative_mode,
+        "negative_pct": args.negative_pct,
         "noborder_ratio": args.noborder_ratio,
         "hard_window": args.hard_window,
         "seed": args.seed,
+        "val_fraction": args.val_fraction,
+        "val_holdout_texts": val_holdout_texts,
         "train_total": len(train_rows),
         "train_border": sum(1 for r in train_rows if r["label"] == "BORDER"),
         "train_noborder": sum(1 for r in train_rows if r["label"] == "NOBORDER"),
+        "val_total": len(val_rows),
+        "val_border": sum(1 for r in val_rows if r["label"] == "BORDER"),
         "eval_total": len(eval_rows),
         "eval_border": sum(1 for r in eval_rows if r["label"] == "BORDER"),
         "eval_noborder": sum(1 for r in eval_rows if r["label"] == "NOBORDER"),
@@ -560,10 +650,11 @@ def write_pair(
     (pair_dir / "meta.json").write_text(
         json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    print(
+    log(
         f"[{tag}] train={meta['train_total']} "
         f"(B={meta['train_border']}/NB={meta['train_noborder']}) "
-        f"eval={meta['eval_total']} (B={meta['eval_border']}) -> {pair_dir}"
+        f"val={meta['val_total']} eval={meta['eval_total']} "
+        f"(B={meta['eval_border']}) max_seq_len={seq_len} -> {pair_dir}"
     )
     return meta
 
@@ -612,9 +703,8 @@ def run_folds_mode(args, template_text: str, fp_sentences: Set[str]) -> None:
             },
         )
 
-    verification = verify_counts(per_text, args.manifest_data, args.sentence_tolerance)
-    (args.out_dir / "verification.json").write_text(
-        json.dumps(verification, indent=2, ensure_ascii=False), encoding="utf-8"
+    verification = write_verification_incremental(
+        args.out_dir / "verification.json", per_text, args.manifest_data, args.sentence_tolerance
     )
     _print_verification(verification)
 
@@ -628,7 +718,7 @@ def run_corpus_mode(args, template_text: str, fp_sentences: Set[str]) -> None:
             )
 
     available = discover_xmi_zips(args.corpus_dir)
-    print(f"[corpus] discovered {len(available)} XMI zips under {args.corpus_dir}")
+    log(f"[corpus] discovered {len(available)} XMI zips under {args.corpus_dir}")
 
     train_examples, train_missing = examples_for_split(
         args.train_split, splits[args.train_split], available,
@@ -640,9 +730,9 @@ def run_corpus_mode(args, template_text: str, fp_sentences: Set[str]) -> None:
     )
 
     if train_missing:
-        print(f"[corpus] WARNING: missing {len(train_missing)} train texts: {train_missing}")
+        log(f"[corpus] WARNING: missing {len(train_missing)} train texts: {train_missing}", level="warning")
     if eval_missing:
-        print(f"[corpus] WARNING: missing {len(eval_missing)} eval texts: {eval_missing}")
+        log(f"[corpus] WARNING: missing {len(eval_missing)} eval texts: {eval_missing}", level="warning")
     if not train_examples:
         raise FileNotFoundError(
             f"No XMI zips found for train split '{args.train_split}' under {args.corpus_dir}. "
@@ -678,19 +768,18 @@ def run_corpus_mode(args, template_text: str, fp_sentences: Set[str]) -> None:
     for e in eval_examples:
         if e.source not in per_text:
             per_text.setdefault(e.source, []).append(e)
-    verification = verify_counts(per_text, args.manifest_data, args.sentence_tolerance)
-    (args.out_dir / "verification.json").write_text(
-        json.dumps(verification, indent=2, ensure_ascii=False), encoding="utf-8"
+    verification = write_verification_incremental(
+        args.out_dir / "verification.json", per_text, args.manifest_data, args.sentence_tolerance
     )
     _print_verification(verification)
 
 
 def _print_verification(verification: dict) -> None:
     status = "OK" if verification["all_ok"] else "MISMATCH"
-    print(f"[verify] {status} (tolerance {verification['sentence_tolerance']:.0%} on sentence counts)")
+    log(f"[verify] {status} (tolerance {verification['sentence_tolerance']:.0%} on sentence counts)")
     for name, rep in verification["texts"].items():
         flag = "ok " if rep["ok"] else "BAD"
-        print(
+        log(
             f"[verify] {flag} {name}: sent {rep['parsed_sentences']}"
             f"/{rep['expected_sentences']} scene-borders {rep['parsed_borders']}"
             f"/{rep['expected_scene_borders']} (segments incl. non-scenes: "
@@ -698,9 +787,59 @@ def _print_verification(verification: dict) -> None:
         )
 
 
+def write_verification_incremental(
+    out_path: Path,
+    per_text_examples: Dict[str, List[Example]],
+    manifest: dict,
+    sentence_tolerance: float,
+) -> dict:
+    """Write verification.json one text at a time (resumable trace)."""
+    expected = manifest.get("expected_counts", {})
+    report: Dict[str, dict] = {}
+    all_ok = True
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    for name, exs in progress(sorted(per_text_examples.items()), desc="verify"):
+        parsed_sent = len(exs)
+        parsed_border = sum(1 for e in exs if e.label == "BORDER")
+        exp = expected.get(name, {})
+        exp_sent = exp.get("sentences")
+        exp_scenes = exp.get("scenes")
+        exp_non_scenes = exp.get("non_scenes")
+        exp_segments = (
+            None if exp_scenes is None or exp_non_scenes is None
+            else exp_scenes + exp_non_scenes
+        )
+        sent_ok = (
+            exp_sent is None
+            or abs(parsed_sent - exp_sent) <= max(1, round(sentence_tolerance * exp_sent))
+        )
+        border_ok = exp_scenes is None or parsed_border == exp_scenes
+        ok = sent_ok and border_ok
+        all_ok = all_ok and ok
+        report[name] = {
+            "parsed_sentences": parsed_sent,
+            "expected_sentences": exp_sent,
+            "sentences_ok": sent_ok,
+            "parsed_borders": parsed_border,
+            "expected_scene_borders": exp_scenes,
+            "expected_segment_borders": exp_segments,
+            "borders_ok": border_ok,
+            "ok": ok,
+        }
+        partial = {"all_ok": all_ok, "sentence_tolerance": sentence_tolerance, "texts": report}
+        out_path.write_text(json.dumps(partial, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"all_ok": all_ok, "sentence_tolerance": sentence_tolerance, "texts": report}
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+def _normalize_negative_mode(mode: str) -> str:
+    if mode == "paper10pct":
+        return "pct"
+    return mode
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -718,11 +857,21 @@ def main() -> None:
     parser.add_argument("--context_mode", choices=CONTEXT_MODES, default="sentences")
     parser.add_argument("--token_budget", type=int, default=512,
                         help="Total whitespace-token budget for tokens512 context mode")
+    parser.add_argument("--max_seq_len", type=int, default=0,
+                        help="Recommended training max_seq_len (0 = token_budget + 768)")
     parser.add_argument("--negative_mode", choices=NEGATIVE_MODES, default="ratio")
+    parser.add_argument("--negative_pct", type=float, default=0.10,
+                        help="Fraction of NOBORDER to keep for pct/hard modes (default: 0.10)")
     parser.add_argument("--noborder_ratio", type=int, default=3,
-                        help="NOBORDER:BORDER ratio in TRAIN for ratio/hard modes (0 = keep all)")
+                        help="NOBORDER:BORDER ratio in TRAIN for ratio mode (0 = keep all)")
     parser.add_argument("--hard_window", type=int, default=3,
-                        help="Adjacency window for hard-negative scoring (default: 3)")
+                        help="Adjacency window for hard-negative rule (default: 3)")
+    parser.add_argument("--label_mode", choices=LABEL_MODES, default="binary",
+                        help="binary (default) or four_way (E9; not implemented yet)")
+    parser.add_argument("--val_fraction", type=float, default=0.0,
+                        help="Hold out this fraction of train texts into val.jsonl (E10)")
+    parser.add_argument("--val_holdout_texts", type=str, nargs="*", default=[],
+                        help="Explicit train text names to hold out for val.jsonl")
     parser.add_argument("--fp_cache", type=Path, nargs="*", default=[],
                         help="Optional run cache JSON(s) to mine false-positive hard negatives")
     parser.add_argument("--seed", type=int, default=1337)
@@ -761,10 +910,23 @@ def main() -> None:
                         help="Relative tolerance for sentence-count verification (default: 5%%)")
     args = parser.parse_args()
 
+    if args.label_mode == "four_way":
+        raise NotImplementedError(
+            "four_way labels are not implemented yet. See "
+            "research_log/decisions/decision__finetune-four-way-labels.md"
+        )
+
+    # paper10pct is an alias for pct @ 10%
+    if args.negative_mode == "paper10pct":
+        args.negative_pct = 0.10
+    args.negative_mode = _normalize_negative_mode(args.negative_mode)
+
     registry = load_prompt_registry(args.prompts_dir)
     template_text = get_template_text(args.prompts_dir, args.family, registry)
     args.manifest_data = json.loads(args.split_manifest.read_text(encoding="utf-8"))
-    fp_sentences = load_fp_sentences(list(args.fp_cache)) if args.negative_mode == "hard" else set()
+    fp_sentences = (
+        load_fp_sentences(list(args.fp_cache)) if args.negative_mode == "hard" else set()
+    )
 
     if args.mode == "folds":
         run_folds_mode(args, template_text, fp_sentences)

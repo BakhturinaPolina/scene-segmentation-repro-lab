@@ -46,6 +46,52 @@ def apply_burst_collapse(pred_labels: Sequence[str]) -> List[str]:
     return out
 
 
+def apply_cluster_merge(
+    pred_labels: Sequence[str],
+    confidences: Optional[Sequence[Optional[float]]] = None,
+    *,
+    radius: int = 3,
+) -> List[str]:
+    """Merge nearby BORDER predictions into one boundary per cluster.
+
+    Within each cluster of BORDER indices whose consecutive gaps are <= radius,
+    keep the BORDER with the highest confidence (first wins on ties / missing conf).
+    """
+    out = list(pred_labels)
+    confs = list(confidences) if confidences is not None else [None] * len(out)
+    border_indices = [i for i, lab in enumerate(out) if lab == "BORDER"]
+    if not border_indices:
+        return out
+
+    clusters: List[List[int]] = []
+    current = [border_indices[0]]
+    for idx in border_indices[1:]:
+        if idx - current[-1] <= radius:
+            current.append(idx)
+        else:
+            clusters.append(current)
+            current = [idx]
+    clusters.append(current)
+
+    keep: set[int] = set()
+    for cluster in clusters:
+        best = cluster[0]
+        best_conf = confs[best]
+        for i in cluster[1:]:
+            c = confs[i]
+            if c is None:
+                continue
+            if best_conf is None or c > best_conf:
+                best = i
+                best_conf = c
+        keep.add(best)
+
+    for i in border_indices:
+        if i not in keep:
+            out[i] = "NOBORDER"
+    return out
+
+
 def apply_confidence_threshold(
     pred_labels: Sequence[str],
     confidences: Sequence[Optional[float]],
@@ -73,6 +119,7 @@ def apply_scenario(
     scenario: str,
     confidences: Optional[Sequence[Optional[float]]] = None,
     confidence_threshold: float = 0.85,
+    cluster_merge_radius: int = 3,
 ) -> List[str]:
     """Dispatch a named scenario to the corresponding rule(s)."""
     if scenario in {"none", "baseline"}:
@@ -85,6 +132,11 @@ def apply_scenario(
         return apply_burst_collapse(pred_labels)
     if scenario == "burst_collapse_plus_min_scene_len_3":
         return apply_min_scene_len(apply_burst_collapse(pred_labels), min_gap=3)
+    if scenario == "cluster_merge":
+        return apply_cluster_merge(pred_labels, confidences, radius=cluster_merge_radius)
+    if scenario == "cluster_merge_plus_min_scene_len_3":
+        merged = apply_cluster_merge(pred_labels, confidences, radius=cluster_merge_radius)
+        return apply_min_scene_len(merged, min_gap=3)
     if scenario == "confidence_threshold":
         if confidences is None:
             raise ValueError("confidence_threshold scenario requires confidences")
@@ -103,6 +155,8 @@ SCENARIOS = (
     "min_scene_len_5",
     "burst_collapse",
     "burst_collapse_plus_min_scene_len_3",
+    "cluster_merge",
+    "cluster_merge_plus_min_scene_len_3",
     "confidence_threshold",
     "confidence_threshold_plus_min_scene_len_3",
 )

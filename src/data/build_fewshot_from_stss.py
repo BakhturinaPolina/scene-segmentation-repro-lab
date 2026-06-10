@@ -36,6 +36,7 @@ XMI_ID = "{http://www.omg.org/XMI}id"
 
 REASON_TAGS = ("Zeit", "Figuren", "Raum", "Handlung")
 SCENE_LEVEL_TYPE = "Szene Ebene 1"
+NONSCENE_LEVEL_TYPE = "Nicht-Szene Ebene 1"
 
 
 @dataclass
@@ -51,6 +52,18 @@ class Scene:
     end: int
     scene_index: int | None
     reasons: list[str]
+    scene_type: str = SCENE_LEVEL_TYPE
+
+
+@dataclass
+class Segment:
+    """Scene or non-scene span (stub for four-way boundary labelling)."""
+
+    begin: int
+    end: int
+    segment_type: str
+    scene_index: int | None = None
+    reasons: list[str] | None = None
 
 
 @dataclass
@@ -69,7 +82,37 @@ def _whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def parse_xmi(xmi_path: Path) -> tuple[str, list[Sentence], list[Scene]]:
+def _parse_scene_features(features_raw: str) -> tuple[int | None, list[str]]:
+    scene_index: int | None = None
+    reasons: list[str] = []
+    if not features_raw:
+        return scene_index, reasons
+    try:
+        payload = json.loads(features_raw)
+        grund = payload.get("features", {}).get("Grund_für_Wechsel", "")
+        for token in (t.strip().rstrip(",") for t in grund.split(",")):
+            if not token:
+                continue
+            if token.isdigit():
+                scene_index = int(token)
+            elif token in REASON_TAGS:
+                reasons.append(token)
+    except json.JSONDecodeError:
+        pass
+    return scene_index, reasons
+
+
+def parse_xmi(
+    xmi_path: Path,
+    *,
+    include_non_scenes: bool = False,
+) -> tuple[str, list[Sentence], list[Scene]]:
+    """Parse XMI gold annotations.
+
+    By default only ``Szene Ebene 1`` elements are returned (binary BORDER task).
+    Set ``include_non_scenes=True`` to also load non-scene segments via
+    ``parse_segments`` (stub for E9 four-way labels; not used in training yet).
+    """
     tree = ET.parse(xmi_path)
     root = tree.getroot()
 
@@ -85,33 +128,49 @@ def parse_xmi(xmi_path: Path) -> tuple[str, list[Sentence], list[Scene]]:
             sentences.append(Sentence(begin=begin, end=end, text=text))
     sentences.sort(key=lambda s: s.begin)
 
+    allowed_types = {SCENE_LEVEL_TYPE}
+    if include_non_scenes:
+        allowed_types.add(NONSCENE_LEVEL_TYPE)
+
     scenes: list[Scene] = []
     for el in root.iter(f"{WUENLP_NS}Scene"):
-        if el.attrib.get("SceneType") != SCENE_LEVEL_TYPE:
+        scene_type = el.attrib.get("SceneType", "")
+        if scene_type not in allowed_types:
             continue
         begin = int(el.attrib["begin"])
         end = int(el.attrib["end"])
-        features_raw = el.attrib.get("AdditionalFeatures", "")
-        scene_index: int | None = None
-        reasons: list[str] = []
-        if features_raw:
-            try:
-                payload = json.loads(features_raw)
-                grund = payload.get("features", {}).get("Grund_für_Wechsel", "")
-                for token in (t.strip().rstrip(",") for t in grund.split(",")):
-                    if not token:
-                        continue
-                    if token.isdigit():
-                        scene_index = int(token)
-                    elif token in REASON_TAGS:
-                        reasons.append(token)
-            except json.JSONDecodeError:
-                pass
+        scene_index, reasons = _parse_scene_features(el.attrib.get("AdditionalFeatures", ""))
         scenes.append(
-            Scene(begin=begin, end=end, scene_index=scene_index, reasons=reasons)
+            Scene(
+                begin=begin,
+                end=end,
+                scene_index=scene_index,
+                reasons=reasons,
+                scene_type=scene_type,
+            )
         )
     scenes.sort(key=lambda s: s.begin)
     return sofa_string, sentences, scenes
+
+
+def parse_segments(
+    xmi_path: Path,
+    *,
+    include_non_scenes: bool = True,
+) -> tuple[str, list[Sentence], list[Segment]]:
+    """Return ordered scene/non-scene segments for four-way boundary labelling (E9 stub)."""
+    _sofa, sentences, scenes = parse_xmi(xmi_path, include_non_scenes=include_non_scenes)
+    segments = [
+        Segment(
+            begin=s.begin,
+            end=s.end,
+            segment_type=s.scene_type,
+            scene_index=s.scene_index,
+            reasons=s.reasons,
+        )
+        for s in scenes
+    ]
+    return _sofa, sentences, segments
 
 
 def first_sentence_in_scene(sentences: list[Sentence], scene: Scene) -> int | None:
