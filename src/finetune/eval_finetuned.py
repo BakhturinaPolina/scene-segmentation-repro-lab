@@ -8,10 +8,10 @@ BORDER/NOBORDER label from each generation, and scores P/R/F1 at tolerances
 (``src.postprocess.evaluate_sampled``). Optionally applies a post-processing
 scenario before scoring.
 
-This runs on a GPU (Kaggle T4 or local). Heavy ML imports happen inside main so
+This runs on a local CUDA GPU (or HF Jobs). Heavy ML imports happen inside main so
 the module stays importable for linting/smoke checks.
 
-Run (e.g. on Kaggle, after training)::
+Run (e.g. after a train-only Job, or to re-score an adapter)::
 
     python src/finetune/eval_finetuned.py \\
         --adapter your-hf-user/scene-seg-llama-3-2-3b-instruct-fold_A \\

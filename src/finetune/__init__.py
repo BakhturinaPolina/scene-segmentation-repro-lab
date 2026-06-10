@@ -6,5 +6,6 @@ Modules:
 - ``eval_finetuned``: score a fine-tuned adapter on a held-out fold with the
   same tolerant F1 metric as the prompting runner.
 
-The Kaggle training kernel lives under ``finetune/kaggle/``.
+Training and eval live under ``finetune/hf_jobs/`` (local GPU or optional HF Jobs).
+The legacy Kaggle kernel under ``finetune/kaggle/`` is deprecated.
 """
