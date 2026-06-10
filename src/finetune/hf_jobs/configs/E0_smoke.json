@@ -8,5 +8,8 @@
   "eval_limit": 200,
   "eval_batch_size": 8,
   "batch_size": 1,
-  "grad_accum": 8
+  "grad_accum": 8,
+  "completion_only_loss": true,
+  "eval_during_training": false,
+  "resume": true
 }

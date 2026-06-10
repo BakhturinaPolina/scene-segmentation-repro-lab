@@ -30,6 +30,12 @@
 #     RUN_CONFIG=src/finetune/hf_jobs/configs/E0_smoke.json bash src/finetune/hf_jobs/submit_job.sh
 set -euo pipefail
 
+RESUME="${RESUME:-1}"
+VERBOSE="${VERBOSE:-0}"
+if [ "$VERBOSE" = "1" ]; then set -x; fi
+
+_ts() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 
@@ -94,15 +100,28 @@ esac
 echo "[2/4] Writing hf_run_config.json..."
 CONFIG_PATH="$DATA_DIR/hf_run_config.json"
 if [ -n "${RUN_CONFIG:-}" ]; then
-  python - "$RUN_CONFIG" "$CONFIG_PATH" "$HF_USER" "$DATASET_REPO" "$DATA_SCOPE" <<'PY'
-import json, sys
-src, dst, hf_user, data_repo, data_scope = sys.argv[1:6]
+  python - "$RUN_CONFIG" "$CONFIG_PATH" "$HF_USER" "$DATASET_REPO" "$DATA_SCOPE" "$DATA_DIR" <<'PY'
+import json, re, sys
+from pathlib import Path
+
+src, dst, hf_user, data_repo, data_scope, data_dir = sys.argv[1:7]
 cfg = json.load(open(src, encoding="utf-8"))
 cfg.setdefault("hf_user", hf_user)
 cfg.setdefault("data_repo", data_repo)
 cfg.setdefault("data_scope", data_scope)
 if data_scope == "pilot" and "debug" not in cfg:
     cfg["debug"] = True
+
+if "max_seq_len" not in cfg:
+    jobs = cfg.get("jobs") or []
+    if jobs:
+        meta_path = Path(data_dir) / jobs[0] / "meta.json"
+        if meta_path.exists():
+            meta = json.load(meta_path.open(encoding="utf-8"))
+            if meta.get("max_seq_len_recommended"):
+                cfg["max_seq_len"] = meta["max_seq_len_recommended"]
+                print(f"Inferred max_seq_len={cfg['max_seq_len']} from {meta_path}")
+
 json.dump(cfg, open(dst, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
 print(f"Using RUN_CONFIG {src}: models={cfg.get('models')} jobs={cfg.get('jobs')} debug={cfg.get('debug')}")
 PY
@@ -141,6 +160,8 @@ json.dump(cfg, open(path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
 PY
   export HF_RUN_CONFIG="$CONFIG_PATH"
   export HF_USER
+  export RESUME
+  echo "[$(_ts)] [4/4] Starting local train (RESUME=$RESUME)..."
   python "$HERE/train_job.py"
   echo "Done. Adapters + metrics under https://huggingface.co/$HF_USER"
 elif [ "$COMPUTE" = "jobs" ]; then
@@ -155,6 +176,7 @@ elif [ "$COMPUTE" = "jobs" ]; then
   if [ "$DETACH" = "1" ]; then
     JOB_ARGS+=(-d)
   fi
+  JOB_ARGS+=(-e "RESUME=$RESUME")
   JOB_ARGS+=("$HERE/train_job.py")
   "${JOB_ARGS[@]}"
   echo "Job submitted. Track at: https://huggingface.co/jobs/$HF_USER"

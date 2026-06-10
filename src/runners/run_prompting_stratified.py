@@ -959,6 +959,8 @@ def main():
                         help="Long cooldown seconds after a 429 burst (default: 180)")
     parser.add_argument("--excel_manifest", type=Path, default=None,
                         help="Optional processed Excel manifest JSON to run stratified prompting without XMI.")
+    parser.add_argument("--documents", type=str, default=None,
+                        help="Comma-separated document stems to run (default: all in data dir)")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -1105,6 +1107,13 @@ def main():
                     "input_mode": "xmi",
                 }
             )
+
+    if args.documents:
+        allowed = {s.strip() for s in args.documents.split(",") if s.strip()}
+        docs_to_run = [d for d in docs_to_run if d["stem"] in allowed]
+        if not docs_to_run:
+            log(f"ERROR: No documents matched --documents={args.documents!r}")
+            sys.exit(1)
 
     all_doc_results = {}
 
