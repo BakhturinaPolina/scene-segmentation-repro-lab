@@ -666,11 +666,14 @@ def write_pair(
 def run_folds_mode(args, template_text: str, fp_sentences: Set[str]) -> None:
     excel_examples: List[Example] = []
     excel_sources: List[str] = []
-    for csv_path in sorted(args.excel_dir.glob("*/*__gold_labels.csv")):
-        excel_examples.extend(
-            examples_from_excel_gold(csv_path, args.context, args.context_mode, args.token_budget)
-        )
-        excel_sources.append(csv_path.stem.replace("__gold_labels", ""))
+    if not args.stss_only:
+        for csv_path in sorted(args.excel_dir.glob("*/*__gold_labels.csv")):
+            excel_examples.extend(
+                examples_from_excel_gold(csv_path, args.context, args.context_mode, args.token_budget)
+            )
+            excel_sources.append(csv_path.stem.replace("__gold_labels", ""))
+    else:
+        log("[folds] --stss_only: training on STSS-Test-2 novels only (no Excel texts)")
 
     with tempfile.TemporaryDirectory() as tmp:
         xmi_paths = unzip_xmis(args.xmi_zip_dir, Path(tmp))
@@ -695,7 +698,7 @@ def run_folds_mode(args, template_text: str, fp_sentences: Set[str]) -> None:
             fold, train_examples, stss_examples[eval_novel], args, template_text, fp_sentences,
             extra_meta={
                 "mode": "folds",
-                "data_scope": "stss_test_2_pilot",
+                "data_scope": "stss_test_2",
                 "debug_only": True,
                 "manifest_ref": "data/manifests/stss_test_2.json",
                 "train_sources": excel_sources + cfg["train_stss"],
@@ -878,6 +881,11 @@ def main() -> None:
 
     # Folds mode sources.
     parser.add_argument("--fold", choices=["fold_A", "fold_B", "both"], default="both")
+    parser.add_argument(
+        "--stss_only",
+        action="store_true",
+        help="Folds mode: train/eval using only the two STSS-Test-2 novels (skip Excel texts)",
+    )
     parser.add_argument(
         "--xmi_zip_dir", type=Path,
         default=_PROJECT_ROOT / "upstream/scene-segmentation/data/full/stss_test_2",

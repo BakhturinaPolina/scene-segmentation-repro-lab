@@ -1,5 +1,5 @@
 {
-  "run_phase": "e1_anchor",
+  "run_phase": "e4_pct50",
   "data_scope": "full_corpus",
   "debug": false,
   "models": ["unsloth/Llama-3.2-3B-Instruct"],

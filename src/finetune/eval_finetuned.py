@@ -73,14 +73,15 @@ def main() -> None:
     parser.add_argument("--cluster_merge_radius", type=int, default=3)
     parser.add_argument("--max_new_tokens", type=int, default=96)
     parser.add_argument("--max_seq_len", type=int, default=1024)
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=1,
+                        help="Inference batch size (default 1; raise on larger GPUs)")
     parser.add_argument("--limit", type=int, default=0, help="Eval only first N rows (0 = all)")
     parser.add_argument("--resume", action="store_true",
                         help="Skip rows already in partial cache")
     parser.add_argument("--partial", type=Path, default=None,
                         help="Incremental eval cache JSONL (default: <out>.partial.jsonl)")
     parser.add_argument("--use_unsloth", action="store_true",
-                        help="Load via Unsloth FastLanguageModel (faster on Kaggle)")
+                        help="Load via Unsloth FastLanguageModel (faster inference)")
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--upload_repo", default="",
                         help="Optional HF model repo to upload metrics JSON")

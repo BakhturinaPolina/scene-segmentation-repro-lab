@@ -1,33 +1,51 @@
 #!/usr/bin/env bash
-# Build SFT data, upload to a private HF dataset, and submit a GPU Job (or run locally).
+# Build SFT data, upload to a private HF dataset, and submit a GPU Job (or run locally if overridden).
 #
 # One submission == one experiment. The job trains every (model x job) pair, runs
 # in-job eval on each held-out split, and uploads adapters + metrics to the Hub.
 #
-# Data scope (see docs/planning/FINETUNING_EXPERIMENTS_PLAN.md §4):
-#   DATA_SCOPE=pilot   — STSS-Test-2 folds only (debug / Pilot 0; default)
-#   DATA_SCOPE=corpus  — paper-comparable train_full → stss_test_2 (requires full corpus)
+# Data scope (see docs/planning/FINETUNING_EXPERIMENTS_PLAN.md):
+#   DATA_SCOPE=stss_test_2 — current stage: 2 novels only, LOO folds (debug; default)
+#   DATA_SCOPE=pilot       — alias for stss_test_2
+#   DATA_SCOPE=corpus      — paper-comparable train_full → stss_test_2 (requires full corpus)
 #
 # Prerequisites (one-time):
 #   1. HF Pro account ($9/mo) — unlocks Jobs API and private dataset storage.
 #   2. ``pip install huggingface_hub`` and ``hf auth login`` with a write token.
-#   3. For cloud Jobs (optional): add prepaid credits at https://huggingface.co/settings/billing
+#   3. Add ~$35–45 prepaid credits at https://huggingface.co/settings/billing
 #
-# Default compute: LOCAL (free). Set COMPUTE=jobs for cloud GPUs (t4-small ≈ $0.40/hr).
+# Default compute: HF Jobs (`COMPUTE=jobs`, `t4-small` ≈ $0.40/hr). Override with COMPUTE=local.
 #
 # Usage examples:
-#   # Pilot 0 / E0 smoke (STSS-Test-2 only, debug):
-#   HF_USER=RuthonField DATA_SCOPE=pilot RUN_CONFIG=src/finetune/hf_jobs/configs/E0_smoke.json \
-#     BUILD_MODE=skip bash src/finetune/hf_jobs/submit_job.sh
+#   # STSS-Test-2 stage (2 novels, both folds):
+#   HF_USER=RuthonField DATA_SCOPE=stss_test_2 RUN_CONFIG=src/finetune/hf_jobs/configs/stss_test_2/E0_full.json \
+#     FLAVOR=t4-small TIMEOUT=8h bash src/finetune/hf_jobs/submit_job.sh
+#
+#   # STSS-Test-2 smoke (fold_A, eval_limit 200):
+#   HF_USER=RuthonField DATA_SCOPE=stss_test_2 RUN_CONFIG=src/finetune/hf_jobs/configs/stss_test_2/E0_smoke.json \
+#     FLAVOR=t4-small TIMEOUT=2h BUILD_MODE=skip bash src/finetune/hf_jobs/submit_job.sh
 #
 #   # Paper-comparable E1 (once full corpus is on disk):
 #   HF_USER=RuthonField DATA_SCOPE=corpus RUN_CONFIG=src/finetune/hf_jobs/configs/E1_anchor.json \
-#     BUILD_ARGS="--target_format cot_list --negative_mode paper10pct --context_mode tokens512" \
-#     bash src/finetune/hf_jobs/submit_job.sh
+#     FLAVOR=t4-small TIMEOUT=8h bash src/finetune/hf_jobs/submit_job.sh
 #
-#   # Cloud Job (prepaid credits):
-#   HF_USER=RuthonField DATA_SCOPE=pilot COMPUTE=jobs FLAVOR=t4-small TIMEOUT=6h \
-#     RUN_CONFIG=src/finetune/hf_jobs/configs/E0_smoke.json bash src/finetune/hf_jobs/submit_job.sh
+#   # E10 validation (val split required at build):
+#   HF_USER=RuthonField DATA_SCOPE=corpus \
+#     BUILD_ARGS="--val_fraction 0.1" \
+#     RUN_CONFIG=src/finetune/hf_jobs/configs/E10_validation.json \
+#     FLAVOR=t4-small TIMEOUT=8h bash src/finetune/hf_jobs/submit_job.sh
+#
+#   # E3 target format (data-side factor — pass BUILD_ARGS):
+#   HF_USER=RuthonField DATA_SCOPE=corpus \
+#     BUILD_ARGS="--target_format json" \
+#     RUN_CONFIG=src/finetune/hf_jobs/configs/E3_json.json \
+#     FLAVOR=t4-small TIMEOUT=8h bash src/finetune/hf_jobs/submit_job.sh
+#
+#   # E8 stretch (8B, test_full eval):
+#   HF_USER=RuthonField DATA_SCOPE=corpus \
+#     BUILD_ARGS="--eval_split test_full" JOBS=train_full__to__test_full \
+#     RUN_CONFIG=src/finetune/hf_jobs/configs/E8_8b_test_full.json \
+#     COMPUTE=jobs FLAVOR=t4-medium TIMEOUT=12h bash src/finetune/hf_jobs/submit_job.sh
 set -euo pipefail
 
 RESUME="${RESUME:-1}"
@@ -38,6 +56,8 @@ _ts() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
+PY="${PY:-$ROOT/.venv/bin/python}"
+if [ ! -x "$PY" ]; then PY="${PY_FALLBACK:-python3}"; fi
 
 if [ -z "${HF_USER:-}" ]; then
   HF_USER="$(hf auth whoami 2>/dev/null | head -1 || true)"
@@ -45,21 +65,28 @@ fi
 : "${HF_USER:?Set HF_USER or run hf auth login}"
 
 DATASET_REPO="${DATASET_REPO:-${HF_USER}/scene-seg-sft}"
-DATA_SCOPE="${DATA_SCOPE:-pilot}"          # pilot | corpus
+DATA_SCOPE="${DATA_SCOPE:-stss_test_2}"   # stss_test_2 | pilot | corpus
 BUILD_MODE="${BUILD_MODE:-}"               # auto from DATA_SCOPE if empty
 BUILD_ARGS="${BUILD_ARGS:-}"
 DATA_DIR="$ROOT/data/processed/finetune"
-COMPUTE="${COMPUTE:-local}"                # local | jobs
+COMPUTE="${COMPUTE:-jobs}"                # jobs | local
 FLAVOR="${FLAVOR:-t4-small}"
 TIMEOUT="${TIMEOUT:-6h}"
 DETACH="${DETACH:-1}"
 
 case "$DATA_SCOPE" in
-  pilot)
+  stss_test_2|pilot)
     BUILD_MODE="${BUILD_MODE:-folds}"
-    JOBS="${JOBS:-fold_A}"
-    BUILD_ARGS="${BUILD_ARGS:---target_format cot_list --negative_mode paper10pct}"
-    echo "[scope] DATA_SCOPE=pilot — STSS-Test-2 folds only (debug; not paper-comparable)."
+    JOBS="${JOBS:-fold_A,fold_B}"
+    BUILD_ARGS="${BUILD_ARGS:---fold both --stss_only --target_format cot_list --negative_mode paper10pct --context_mode tokens512}"
+    STSS_DIR="${STSS_DIR:-$ROOT/upstream/scene-segmentation/data/full/stss_test_2}"
+    N_STSS="$(find "$STSS_DIR" -name '*.xmi.zip' 2>/dev/null | wc -l | tr -d ' ')"
+    if [ "${N_STSS:-0}" -lt 2 ]; then
+      echo "[scope] ERROR: DATA_SCOPE=$DATA_SCOPE requires 2 XMI zips in $STSS_DIR (found ${N_STSS:-0})."
+      echo "        Expected: Aus guter Familie.xmi.zip, Effi Briest.xmi.zip"
+      exit 1
+    fi
+    echo "[scope] DATA_SCOPE=$DATA_SCOPE — STSS-Test-2 only (${N_STSS} zips); LOO folds; tag runs debug."
     ;;
   corpus)
     BUILD_MODE="${BUILD_MODE:-corpus}"
@@ -75,7 +102,7 @@ case "$DATA_SCOPE" in
     echo "[scope] DATA_SCOPE=corpus — paper-comparable (${N_ZIPS} zips found)."
     ;;
   *)
-    echo "Unknown DATA_SCOPE=$DATA_SCOPE (use pilot|corpus)"; exit 1
+    echo "Unknown DATA_SCOPE=$DATA_SCOPE (use stss_test_2|pilot|corpus)"; exit 1
     ;;
 esac
 
@@ -84,10 +111,10 @@ MODELS="${MODELS:-unsloth/Llama-3.2-3B-Instruct}"
 echo "[1/4] Building SFT dataset (scope=$DATA_SCOPE mode=$BUILD_MODE)..."
 case "$BUILD_MODE" in
   folds)
-    python "$ROOT/src/finetune/build_sft_dataset.py" --mode folds --fold both $BUILD_ARGS
+    "$PY" "$ROOT/src/finetune/build_sft_dataset.py" --mode folds --fold both $BUILD_ARGS
     ;;
   corpus)
-    python "$ROOT/src/finetune/build_sft_dataset.py" --mode corpus $BUILD_ARGS
+    "$PY" "$ROOT/src/finetune/build_sft_dataset.py" --mode corpus $BUILD_ARGS
     ;;
   skip)
     echo "      BUILD_MODE=skip; using existing $DATA_DIR"
@@ -100,7 +127,7 @@ esac
 echo "[2/4] Writing hf_run_config.json..."
 CONFIG_PATH="$DATA_DIR/hf_run_config.json"
 if [ -n "${RUN_CONFIG:-}" ]; then
-  python - "$RUN_CONFIG" "$CONFIG_PATH" "$HF_USER" "$DATASET_REPO" "$DATA_SCOPE" "$DATA_DIR" <<'PY'
+  "$PY" - "$RUN_CONFIG" "$CONFIG_PATH" "$HF_USER" "$DATASET_REPO" "$DATA_SCOPE" "$DATA_DIR" <<'PY'
 import json, re, sys
 from pathlib import Path
 
@@ -109,8 +136,10 @@ cfg = json.load(open(src, encoding="utf-8"))
 cfg.setdefault("hf_user", hf_user)
 cfg.setdefault("data_repo", data_repo)
 cfg.setdefault("data_scope", data_scope)
-if data_scope == "pilot" and "debug" not in cfg:
+if data_scope in ("stss_test_2", "pilot") and "debug" not in cfg:
     cfg["debug"] = True
+if data_scope == "pilot":
+    cfg.setdefault("data_scope", "stss_test_2")
 
 if "max_seq_len" not in cfg:
     jobs = cfg.get("jobs") or []
@@ -126,14 +155,15 @@ json.dump(cfg, open(dst, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
 print(f"Using RUN_CONFIG {src}: models={cfg.get('models')} jobs={cfg.get('jobs')} debug={cfg.get('debug')}")
 PY
 else
-  python - "$CONFIG_PATH" "$HF_USER" "$DATASET_REPO" "$DATA_SCOPE" "$MODELS" "$JOBS" <<'PY'
+  "$PY" - "$CONFIG_PATH" "$HF_USER" "$DATASET_REPO" "$DATA_SCOPE" "$MODELS" "$JOBS" <<'PY'
 import json, sys
 dst, hf_user, data_repo, data_scope, models, jobs = sys.argv[1:7]
 cfg = {
     "hf_user": hf_user,
     "data_repo": data_repo,
     "data_scope": data_scope,
-    "debug": data_scope == "pilot",
+    "debug": data_scope in ("stss_test_2", "pilot"),
+    "data_scope": "stss_test_2" if data_scope in ("stss_test_2", "pilot") else data_scope,
     "models": [m.strip() for m in models.split(",") if m.strip()],
     "jobs": [j.strip() for j in jobs.split(",") if j.strip()],
 }
@@ -155,7 +185,7 @@ hf upload "$DATASET_REPO" "$DATA_DIR" . --repo-type dataset \
 
 echo "[4/4] Launching compute (COMPUTE=$COMPUTE)..."
 if [ "$COMPUTE" = "local" ]; then
-  python - "$CONFIG_PATH" "$DATA_DIR" <<'PY'
+  "$PY" - "$CONFIG_PATH" "$DATA_DIR" <<'PY'
 import json, sys
 path, data_dir = sys.argv[1:3]
 cfg = json.load(open(path, encoding="utf-8"))
@@ -166,7 +196,7 @@ PY
   export HF_USER
   export RESUME
   echo "[$(_ts)] [4/4] Starting local train (RESUME=$RESUME)..."
-  python "$HERE/train_job.py"
+  "$PY" "$HERE/train_job.py"
   echo "Done. Adapters + metrics under https://huggingface.co/$HF_USER"
 elif [ "$COMPUTE" = "jobs" ]; then
   JOB_ARGS=(
