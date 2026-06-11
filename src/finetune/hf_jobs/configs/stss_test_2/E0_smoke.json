@@ -1,5 +1,5 @@
 {
-  "run_phase": "pilot_0_e0_smoke",
+  "run_phase": "stss_test_2_e0_smoke",
   "data_scope": "stss_test_2",
   "debug": true,
   "models": ["unsloth/Llama-3.2-3B-Instruct"],

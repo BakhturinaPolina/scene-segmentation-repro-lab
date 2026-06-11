@@ -4,7 +4,7 @@ decision_id: finetune_compute_hf_local
 title: "Fine-tuning compute: Hugging Face Hub + local GPU (Kaggle deprecated)"
 date: 2026-06-09
 decision_type: process
-status: active
+status: superseded
 decision_statement: "All new fine-tuning runs use Hugging Face Hub for datasets and adapters, with local CUDA GPU as the default compute path; HF Jobs cloud GPUs are optional fallback only."
 reasoning_summary: "HF Pro ($9/mo) covers private dataset storage and Hub publishing but does not include Jobs GPU credits. The developer machine has an RTX 2070 (8 GB) suitable for 3B QLoRA. Local runs cost $0 extra vs ~$35–50 prepaid credits for the full matrix on t4-small Jobs."
 related_experiments:
@@ -12,7 +12,7 @@ related_experiments:
 related_runs: []
 related_artifacts: []
 evidence_strength: moderate
-follow_up_action: "Run E0 smoke locally; use COMPUTE=jobs only if 8B repro OOMs on 8 GB VRAM."
+follow_up_action: "Superseded by decision__finetune-compute-hf-jobs.md (cloud Jobs default)."
 notion_targets:
   decisions: true
   runs: true
@@ -58,6 +58,6 @@ The original plan (`FINETUNING_EXPERIMENTS_PLAN.md`, Kaggle edition) targeted fr
 
 ## Follow-up
 
-- Execute E0 smoke with `RUN_CONFIG=src/finetune/hf_jobs/configs/E0_smoke.json`.
+- Superseded by [`decision__finetune-compute-hf-jobs.md`](decision__finetune-compute-hf-jobs.md) (2026-06-09).
 - Mark `experiment__finetune__kaggle-qlora-campaign` as superseded by
   `experiment__finetune__hf-jobs-qlora-campaign`.

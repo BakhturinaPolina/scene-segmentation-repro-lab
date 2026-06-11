@@ -514,6 +514,41 @@ class FinetuneF1Callback:
                 control.should_training_stop = True
 
 
+def _sft_config_kwargs(
+    cfg: Dict[str, Any], *, out_dir: str, eval_during: bool
+) -> Dict[str, Any]:
+    """Build SFTConfig kwargs compatible with TRL 0.9 (max_seq_length) and 0.10+ (max_length)."""
+    import inspect  # noqa: PLC0415
+
+    from trl import SFTConfig  # noqa: PLC0415
+
+    max_len = cfg["max_seq_len"]
+    params = inspect.signature(SFTConfig.__init__).parameters
+    max_key = "max_length" if "max_length" in params else "max_seq_length"
+
+    kwargs: Dict[str, Any] = {
+        "dataset_text_field": "text",
+        max_key: max_len,
+        "per_device_train_batch_size": cfg["batch_size"],
+        "gradient_accumulation_steps": cfg["grad_accum"],
+        "num_train_epochs": cfg["epochs"],
+        "learning_rate": cfg["lr"],
+        "warmup_ratio": 0.05,
+        "logging_steps": 10,
+        "optim": "adamw_8bit",
+        "weight_decay": 0.01,
+        "lr_scheduler_type": "cosine",
+        "seed": cfg["seed"],
+        "output_dir": out_dir,
+        "report_to": "none",
+        "save_strategy": "steps" if eval_during else "no",
+        "save_steps": int(cfg.get("save_steps", 50)) if eval_during else None,
+        "save_total_limit": int(cfg.get("save_total_limit", 2)) if eval_during else None,
+        "load_best_model_at_end": False,
+    }
+    return kwargs
+
+
 def train_one(
     model_id: str, job: str, cfg: Dict[str, Any], hf_token: str, data_root: Path
 ) -> Dict[str, Any]:
@@ -603,24 +638,7 @@ def train_one(
     out_dir = f"out-{short}-{job}"
     eval_during = bool(cfg.get("eval_during_training") and val_rows)
     sft_args = SFTConfig(
-        dataset_text_field="text",
-        max_length=cfg["max_seq_len"],
-        per_device_train_batch_size=cfg["batch_size"],
-        gradient_accumulation_steps=cfg["grad_accum"],
-        num_train_epochs=cfg["epochs"],
-        learning_rate=cfg["lr"],
-        warmup_ratio=0.05,
-        logging_steps=10,
-        optim="adamw_8bit",
-        weight_decay=0.01,
-        lr_scheduler_type="cosine",
-        seed=cfg["seed"],
-        output_dir=out_dir,
-        report_to="none",
-        save_strategy="steps" if eval_during else "no",
-        save_steps=int(cfg.get("save_steps", 50)) if eval_during else None,
-        save_total_limit=int(cfg.get("save_total_limit", 2)) if eval_during else None,
-        load_best_model_at_end=False,
+        **_sft_config_kwargs(cfg, out_dir=out_dir, eval_during=eval_during)
     )
 
     callbacks = []

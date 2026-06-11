@@ -7,6 +7,5 @@ Modules:
   same tolerant F1 metric as the prompting runner.
 - ``run_log``: shared timestamped logging, progress bars, and resumability.
 
-Training and eval live under ``finetune/hf_jobs/`` (local GPU or optional HF Jobs).
-The legacy Kaggle kernel under ``finetune/kaggle/`` is deprecated.
+Training and eval live under ``finetune/hf_jobs/`` (HF Jobs cloud GPUs by default).
 """

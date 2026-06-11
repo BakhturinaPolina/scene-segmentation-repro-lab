@@ -19,9 +19,10 @@ over-segments.
 
 ## Compute and model decisions (confirmed)
 
-- **Fine-tuning compute:** Kaggle Notebooks via API (free, T4 16GB, 30h/week), driven from the Cursor
-  terminal using `kaggle kernels push` with a `~/.kaggle/kaggle.json` API key. No Colab UI.
-- **Local `.venv-gpu`** (RTX 2070 8GB) used only for quick smoke tests of data prep.
+- **Fine-tuning compute:** Hugging Face Jobs (`COMPUTE=jobs`, `t4-small` ≈ $0.40/hr prepaid credits),
+  driven from the terminal via `src/finetune/hf_jobs/submit_job.sh`. See
+  [`FINETUNING_EXPERIMENTS_PLAN.md`](FINETUNING_EXPERIMENTS_PLAN.md).
+- **Local CPU** used only for data prep (`build_sft_dataset.py`); no local GPU training.
 - **Models to fine-tune and compare:** Llama-3.2-3B, Qwen2.5-3B, Gemma-2-2B (all Unsloth 4-bit QLoRA,
   fit a T4 16GB).
 
@@ -29,9 +30,9 @@ over-segments.
 
 | Option | Free? | Driven from Cursor | GPU | Notes |
 |--------|-------|--------------------|-----|-------|
-| Kaggle Notebooks API | Yes (30h/week) | `kaggle kernels push` + API key | T4 16GB / P100 | **Chosen.** Fits up to ~7-8B QLoRA |
-| Local `.venv-gpu` | Yes | `python` directly | RTX 2070 8GB | Only <=3B QLoRA; 8B OOM'd before |
-| HF Jobs | No (HF Pro needed) | `hf jobs uv run` / MCP | a10g/a100 | Cheapest paid cloud; within budget |
+| HF Jobs | No (HF Pro + prepaid credits) | `submit_job.sh` / `hf jobs uv run` | t4-small / t4-medium | **Chosen.** ~$34–45 for full matrix |
+| Local `.venv-gpu` | Yes | `python` directly | RTX 2070 8GB | Not used for fine-tuning |
+| Kaggle Notebooks API | Yes (30h/week) | deprecated | T4 16GB | Removed from pipeline |
 | Modal / RunPod / vast.ai | No (pay/use) | SDK/CLI + API key | T4-A100 | ~0.4-1 USD/hr; needs card |
 
 ### Free models to fine-tune (beyond Llama)
@@ -39,7 +40,7 @@ over-segments.
 Open-weight, permissive, good German, QLoRA-friendly: Qwen2.5 (0.5-7B), Gemma 2 (2B/9B),
 Llama 3.2 (1B/3B), Phi-3.5-mini (3.8B), Mistral 7B v0.3, SmolLM2 1.7B, EuroLLM (European-focused),
 and German-specialized LeoLM / DiscoLM-German / occiglot. Fit guide: 8GB local -> 0.5-3B;
-Kaggle T4 16GB -> up to 7-8B.
+HF Jobs t4-small (16GB) -> up to 7-8B QLoRA.
 
 ---
 
@@ -50,7 +51,7 @@ flowchart TD
   baseline["Step 1: Nemotron full_eval baseline (true natural distribution)"]
   prompts["Step 2: Improved precision prompts P1-P4 (one factor at a time)"]
   postproc["Step 3: Post-processing (min_scene_len_3 + confidence threshold)"]
-  finetune["Step 4: Kaggle QLoRA fine-tune 3 models (leakage-safe)"]
+  finetune["Step 4: HF Jobs QLoRA fine-tune 3 models (leakage-safe)"]
   verify["Step 5 (optional): Two-stage verifier"]
   baseline --> prompts --> postproc --> finetune --> verify
 ```
@@ -145,7 +146,7 @@ Apply on top of the Step 2 winner.
 
 ---
 
-## Step 4 — Kaggle QLoRA fine-tuning, 3 models (EUR 0)
+## Step 4 — HF Jobs QLoRA fine-tuning, 3 models
 
 ### 4a. Leakage-safe data prep
 
@@ -162,19 +163,26 @@ JSON label).
 
 Stratified split preserving the ~4% border rate.
 
-### 4b. Kaggle training kernel
+### 4b. HF Jobs training
 
-- `src/finetune/kaggle/train_kernel.py` — Unsloth QLoRA (4-bit), `FastLanguageModel`, LoRA r=16,
-  TRL `SFTTrainer`, seed=1337. Parametrized by base model via env so one kernel serves all three.
-- `src/finetune/kaggle/kernel-metadata.json` — Kaggle kernel metadata (GPU enabled).
-- `src/finetune/kaggle/push_kernel.sh` — `kaggle kernels push` wrapper (reads `~/.kaggle/kaggle.json`).
-- Trains Llama-3.2-3B, Qwen2.5-3B, Gemma-2-2B; pushes each LoRA adapter to HF Hub (Kaggle output is
-  ephemeral).
+- `src/finetune/hf_jobs/train_job.py` — Unsloth QLoRA (4-bit), `FastLanguageModel`, LoRA r=16,
+  TRL `SFTTrainer`, seed=1337. Runs on HF Jobs (`t4-small`) or locally if overridden.
+- `src/finetune/hf_jobs/submit_job.sh` — builds data, uploads private HF dataset, submits Jobs.
+- Per-experiment configs in `src/finetune/hf_jobs/configs/` (`E0_smoke.json`, `E1_anchor.json`, …).
+- Trains Llama-3.2-3B, Qwen2.5-3B, Gemma-2-2B; pushes each LoRA adapter to HF Hub.
+
+Example:
+
+```bash
+HF_USER=your-user DATA_SCOPE=pilot COMPUTE=jobs FLAVOR=t4-small TIMEOUT=6h \
+  RUN_CONFIG=src/finetune/hf_jobs/configs/E0_smoke.json \
+  bash src/finetune/hf_jobs/submit_job.sh
+```
 
 ### 4c. Evaluation
 
-- `src/finetune/eval_finetuned.py` — loads an adapter, predicts on the held-out fold, scores F1 at
-  tol 0/1/3 with the same `evaluate_sampled`. Report both folds (mirrors paper leave-one-text-out).
+- In-job eval in `train_job.py` scores F1@0/1/3 with post-process scenarios.
+- `src/finetune/eval_finetuned.py` — optional re-eval of an adapter on a held-out fold.
   Target F1@3 ~0.55-0.62.
 
 ---
@@ -212,6 +220,7 @@ sentences to just predicted borders. Cost scales with predicted-border count (~2
 
 ## Budget
 
-- Steps 1-4: EUR 0 (free Nemotron + free Kaggle).
+- Steps 1-3: EUR 0 (free Nemotron prompting).
+- Step 4 fine-tuning: ~$34–45 prepaid HF Jobs credits (see FINETUNING_EXPERIMENTS_PLAN.md §0).
 - Step 5 optional: EUR 7-15 (or free with a rate-limited model).
 - Total worst case: well under EUR 100.
