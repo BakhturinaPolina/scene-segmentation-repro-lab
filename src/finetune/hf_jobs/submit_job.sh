@@ -177,6 +177,8 @@ BUNDLE_DIR="$DATA_DIR/_hf_job_bundle"
 mkdir -p "$BUNDLE_DIR/finetune" "$BUNDLE_DIR/postprocess"
 cp "$ROOT/src/finetune/__init__.py" "$BUNDLE_DIR/finetune/"
 cp "$ROOT/src/finetune/run_log.py" "$BUNDLE_DIR/finetune/"
+cp "$ROOT/src/finetune/label_parse.py" "$BUNDLE_DIR/finetune/"
+cp "$ROOT/src/finetune/hf_jobs/train_job.py" "$BUNDLE_DIR/"
 cp "$ROOT/src/postprocess/__init__.py" "$BUNDLE_DIR/postprocess/"
 cp "$ROOT/src/postprocess/postprocess.py" "$BUNDLE_DIR/postprocess/"
 hf repo create "$DATASET_REPO" --repo-type dataset --private --exist-ok
