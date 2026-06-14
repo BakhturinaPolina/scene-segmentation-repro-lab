@@ -62,6 +62,7 @@ _HF_JOB_SRC_CACHE = Path("/tmp/scene_seg_src")
 def _has_project_modules(root: Path) -> bool:
     return (
         (root / "finetune" / "run_log.py").is_file()
+        and (root / "finetune" / "label_parse.py").is_file()
         and (root / "postprocess" / "postprocess.py").is_file()
     )
 
@@ -122,6 +123,13 @@ _SRC_ROOT = _resolve_src_root()
 if str(_SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(_SRC_ROOT))
 
+from finetune.label_parse import (  # noqa: E402
+    build_eval_warnings,
+    diagnose_generation,
+    parse_eval_label,
+    recommended_max_new_tokens,
+    summarize_parse_diagnostics,
+)
 from finetune.run_log import RunState, log, progress, upload_if_hub  # noqa: E402
 from postprocess.postprocess import apply_scenario  # noqa: E402
 
@@ -168,6 +176,7 @@ DEFAULTS: Dict[str, Any] = {
     "metric_for_best_model": "eval_macro_f1_tol3",
     "early_stopping_patience": 0,
     "val_eval_limit": 500,
+    "eval_preflight_rows": 0,
     "resume": True,
     # Run metadata (mirrors plan doc / research_log tags).
     "run_phase": "",
@@ -178,9 +187,12 @@ DEFAULTS: Dict[str, Any] = {
 
 def load_config() -> Dict[str, Any]:
     cfg = dict(DEFAULTS)
+    loaded: Dict[str, Any] = {}
     cfg_path = Path(os.environ.get("HF_RUN_CONFIG", "hf_run_config.json"))
     if cfg_path.exists():
-        cfg.update(json.loads(cfg_path.read_text(encoding="utf-8")))
+        loaded = json.loads(cfg_path.read_text(encoding="utf-8"))
+        cfg.update(loaded)
+    cfg["_eval_max_new_tokens_explicit"] = "eval_max_new_tokens" in loaded
     if os.environ.get("SCENE_SEG_MODELS"):
         cfg["models"] = [m.strip() for m in os.environ["SCENE_SEG_MODELS"].split(",") if m.strip()]
     if os.environ.get("SCENE_SEG_JOBS"):
@@ -196,6 +208,8 @@ def load_config() -> Dict[str, Any]:
         cfg["jobs"] = list(cfg["folds"])
     if not cfg.get("hf_user") and os.environ.get("HF_USER"):
         cfg["hf_user"] = os.environ["HF_USER"]
+    if "eval_preflight_rows" not in loaded:
+        cfg["eval_preflight_rows"] = 20 if cfg.get("debug") else 0
     return cfg
 
 
@@ -232,56 +246,6 @@ def model_short_name(model_id: str) -> str:
     base = model_id.split("/")[-1].lower()
     base = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
     return base
-
-
-def _extract_json_object(text: str) -> Optional[dict]:
-    if not text:
-        return None
-    start = text.find("{")
-    if start < 0:
-        return None
-    depth = 0
-    for i in range(start, len(text)):
-        ch = text[i]
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                try:
-                    obj = json.loads(text[start : i + 1])
-                    return obj if isinstance(obj, dict) else None
-                except Exception:  # noqa: BLE001
-                    start = text.find("{", i + 1)
-                    if start < 0:
-                        return None
-                    return _extract_json_object(text[start:])
-    return None
-
-
-def parse_label_confidence(text: str) -> Tuple[str, Optional[float]]:
-    obj = _extract_json_object(text or "")
-    label = None
-    conf: Optional[float] = None
-    if obj is not None:
-        raw = str(obj.get("label", "")).strip().upper()
-        if raw in {"BORDER", "TRUE", "YES"}:
-            label = "BORDER"
-        elif raw in {"NOBORDER", "NO_BORDER", "FALSE", "NO"}:
-            label = "NOBORDER"
-        try:
-            conf = float(obj["confidence"]) if obj.get("confidence") is not None else None
-        except Exception:  # noqa: BLE001
-            conf = None
-    if label is None:
-        upper = (text or "").upper()
-        if re.search(r"\bNOBORDER\b", upper):
-            label = "NOBORDER"
-        elif re.search(r"\bBORDER\b", upper):
-            label = "BORDER"
-        else:
-            label = "NOBORDER"
-    return label, conf
 
 
 def score_one_text(
@@ -398,8 +362,10 @@ def evaluate_adapter(
         eval_rows = eval_rows[:limit]
     bs = int(cfg["eval_batch_size"])
     max_new = int(cfg["eval_max_new_tokens"])
+    family = str(cfg.get("family", "L"))
 
     by_source: Dict[str, Dict[int, Tuple[str, str, Optional[float]]]] = {}
+    parse_entries: List[Dict[str, Any]] = []
     device = next(model.parameters()).device
     radius = int(cfg.get("cluster_merge_radius", 3))
 
@@ -431,11 +397,26 @@ def evaluate_adapter(
         gen = gen[:, inputs["input_ids"].shape[1] :]
         texts = tokenizer.batch_decode(gen, skip_special_tokens=True)
         for row, text in zip(batch, texts):
-            label, conf = parse_label_confidence(text)
+            parsed = parse_eval_label(text, family=family, mode="tolerant")
+            gen_diag = diagnose_generation(text, max_new)
             source = str(row.get("source", "doc"))
             idx = int(row.get("index", 0))
             gold = str(row["label"]).upper()
-            by_source.setdefault(source, {})[idx] = (label, gold, conf)
+            by_source.setdefault(source, {})[idx] = (parsed.label, gold, parsed.confidence)
+            parse_entries.append(
+                {
+                    "source": source,
+                    "index": idx,
+                    "pred": parsed.label,
+                    "gold": gold,
+                    "raw": text,
+                    "parse_ok": parsed.parse_ok,
+                    "parse_error": parsed.parse_error,
+                    "parse_method": parsed.parse_method,
+                    "output_chars": gen_diag["output_chars"],
+                    "truncation_suspect": gen_diag["truncation_suspect"],
+                }
+            )
 
     thr = float(cfg["confidence_threshold"])
     metrics: Dict[str, Any] = {"scenarios": {}}
@@ -449,6 +430,20 @@ def evaluate_adapter(
     metrics["n_gold_border"] = sum(
         1 for items in by_source.values() for (_, g, _) in items.values() if g == "BORDER"
     )
+    preds_raw = [entry["pred"] for entry in parse_entries]
+    metrics["n_pred_border"] = sum(1 for p in preds_raw if p == "BORDER")
+    diag = summarize_parse_diagnostics(parse_entries)
+    metrics.update(diag)
+    target_format = str(cfg.get("target_format", "cot_list"))
+    metrics["warnings"] = build_eval_warnings(
+        n_gold_border=metrics["n_gold_border"],
+        n_pred_border=metrics["n_pred_border"],
+        parse_failure_rate=diag["parse_failure_rate"],
+        truncation_suspect_rate=diag["truncation_suspect_rate"],
+        target_format=target_format,
+    )
+    for warning in metrics["warnings"]:
+        log(warning, level="warning")
     if was_training:
         model.train()
     return metrics
@@ -498,9 +493,22 @@ class FinetuneF1Callback:
         quick_cfg["eval_limit"] = int(self.cfg.get("val_eval_limit", 500))
         metrics = evaluate_adapter(model, self.tokenizer, self.val_rows, quick_cfg)
         f1 = metrics["scenarios"].get("none", {}).get("tol_3", {}).get("macro_f1", 0.0)
+        parse_rate = metrics.get("parse_failure_rate", 0.0)
+        n_pred_border = metrics.get("n_pred_border", 0)
         if self.trainer is not None:
-            self.trainer.log({"eval_macro_f1_tol3": f1, "eval_step": step})
-        log(f"[val] step={step} macro_f1@3={f1} (best={self.best_f1:.4f} @ step {self.best_step})")
+            self.trainer.log(
+                {
+                    "eval_macro_f1_tol3": f1,
+                    "eval_step": step,
+                    "eval_parse_failure_rate": parse_rate,
+                    "eval_n_pred_border": n_pred_border,
+                }
+            )
+        log(
+            f"[val] step={step} macro_f1@3={f1} "
+            f"parse_fail={parse_rate:.1%} n_pred_border={n_pred_border} "
+            f"(best={self.best_f1:.4f} @ step {self.best_step})"
+        )
         if f1 > self.best_f1:
             self.best_f1 = f1
             self.best_step = step
@@ -575,6 +583,18 @@ def train_one(
         cfg = dict(cfg)
         cfg["max_seq_len"] = job_meta["max_seq_len_recommended"]
         log(f"[1/5] max_seq_len from meta.json -> {cfg['max_seq_len']}")
+
+    if job_meta.get("target_format"):
+        cfg = dict(cfg)
+        cfg["target_format"] = job_meta["target_format"]
+        if not cfg.get("_eval_max_new_tokens_explicit"):
+            recommended = recommended_max_new_tokens(job_meta["target_format"])
+            if recommended != cfg.get("eval_max_new_tokens", 96):
+                cfg["eval_max_new_tokens"] = recommended
+                log(
+                    f"[1/5] target_format={job_meta['target_format']}: "
+                    f"eval_max_new_tokens -> {recommended}"
+                )
 
     if job_meta.get("debug_only") or cfg.get("debug"):
         log(
@@ -701,6 +721,24 @@ def train_one(
     if cfg["eval_after_train"] and eval_path.exists():
         log(f"=== Evaluating {short} on {job} (eval split) ===")
         eval_rows = read_jsonl(eval_path)
+        preflight = int(cfg.get("eval_preflight_rows", 0))
+        if preflight > 0:
+            log(f"=== Preflight eval ({preflight} rows) ===")
+            preflight_metrics = evaluate_adapter(
+                model, tokenizer, eval_rows[:preflight], cfg
+            )
+            preflight_f1 = (
+                preflight_metrics.get("scenarios", {})
+                .get("none", {})
+                .get("tol_3", {})
+                .get("macro_f1", 0.0)
+            )
+            log(
+                f"Preflight: macro_f1@3={preflight_f1} "
+                f"parse_fail={preflight_metrics.get('parse_failure_rate', 0):.1%} "
+                f"n_pred_border={preflight_metrics.get('n_pred_border', 0)} "
+                f"n_gold_border={preflight_metrics.get('n_gold_border', 0)}"
+            )
         metrics = evaluate_adapter(model, tokenizer, eval_rows, cfg)
         metrics.update(
             {

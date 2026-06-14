@@ -71,40 +71,35 @@ The log is designed to sync with a Notion research hub. Each note type maps to a
 
 ## Environment
 
-Ubuntu 24.04 + Cursor IDE + dual virtual environments:
+Ubuntu 24.04 + Cursor IDE + **one** virtual environment (`.venv`) with CUDA PyTorch for finetune/eval and smoke tests.
 
 | Environment | Purpose | Activation |
 |-------------|---------|------------|
-| `.venv` | CPU smoke tests | `source .venv/bin/activate` |
-| `.venv-gpu` | GPU training (Unsloth) | `source .venv-gpu/bin/activate` |
+| `.venv` | Finetune, eval, smoke tests (CUDA) | `source .venv/bin/activate` |
+
+Legacy `.venv-gpu` was removed (duplicate ~8.6 GB). Use `.venv` only.
 
 See `docs/setup/ENVIRONMENT_SETUP.md` for full details.
 
 ## Quick Start
 
-### CPU environment (smoke tests)
-
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-basic.txt
-```
-
-### GPU environment (training)
-
-```bash
-python3 -m venv .venv-gpu
-source .venv-gpu/bin/activate
-pip install --upgrade pip setuptools wheel
-pip install unsloth unsloth-zoo
+pip install -r requirements.txt
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+pip install -r requirements-finetune.txt
 ```
 
 ### Verify GPU
 
 ```bash
-source .venv-gpu/bin/activate
+source .venv/bin/activate
+nvidia-smi   # must work before torch CUDA will work
 python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 ```
+
+If `nvidia-smi` reports **Driver/library version mismatch**, reboot so the loaded kernel module matches the installed driver.
 
 ## Working Directory
 
