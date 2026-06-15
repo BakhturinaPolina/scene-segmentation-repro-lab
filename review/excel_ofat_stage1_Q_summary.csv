@@ -1,0 +1,5 @@
+model,run_dir,cost_class,est_run_cost_usd,f1_tol0,f1_tol1,f1_tol3,precision_tol3,recall_tol3,run_complete,overprediction_ratio,total_gold_borders,total_pred_borders,parse_failure_rate,avg_latency_s
+nvidia/nemotron-3-super-120b-a12b:free,full_nvidia_nemotron-3-super-120b-a12b_free_familyQ_reasoning-off,free,,0.478,0.5669,0.604,0.641,0.5714,True,0.9048,21,19,0.0,6.923
+poolside/laguna-xs.2:free,full_poolside_laguna-xs.2_free_familyQ_reasoning-off,free,,0.382,0.4375,0.5905,0.5268,0.6786,True,1.4762,21,31,0.0,3.905
+poolside/laguna-m.1:free,full_poolside_laguna-m.1_free_familyQ_reasoning-off,free,,0.2916,0.4275,0.4583,0.55,0.3929,True,0.7143,21,15,0.0,5.409
+nvidia/nemotron-3-nano-30b-a3b:free,full_nvidia_nemotron-3-nano-30b-a3b_free_familyQ_reasoning-off,free,,0.1943,0.2249,0.2785,0.1633,1.0,True,10.2857,21,216,0.0,3.898

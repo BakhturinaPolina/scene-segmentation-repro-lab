@@ -8,11 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-PROMPT_FAMILIES = tuple("ABCDEFGHIJKLM")
+PROMPT_FAMILIES = tuple("ABCDEFGHIJKLMNOPQ")
 
 # Families whose output contract is a JSON object carrying a "label" field
-# (and optionally "confidence"/"reason"). K/L/M are precision-focused variants of B.
-_JSON_LABEL_FAMILIES = {"B", "C", "D", "E", "F", "G", "J", "K", "L", "M"}
+# (and optionally "confidence"/"reason"). K/L/M/N/O/P are precision-focused variants of B.
+_JSON_LABEL_FAMILIES = {"B", "C", "D", "E", "F", "G", "J", "K", "L", "M", "N", "O", "P", "Q"}
+
+_DEFAULT_PROFILES_PATH = Path(__file__).resolve().parent / "openrouter_model_profiles.json"
 
 
 @dataclass
@@ -207,6 +209,44 @@ def parse_family_output(family: str, text: str) -> ParseResult:
     return ParseResult(label=None, is_valid=False, error=f"unsupported_family:{family}", payload=None)
 
 
+def load_model_profiles(path: Optional[Path] = None) -> Dict[str, Any]:
+    profile_path = path or _DEFAULT_PROFILES_PATH
+    with open(profile_path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def get_model_profile(model_id: str, profiles: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    data = profiles if profiles is not None else load_model_profiles()
+    return dict(data.get("models", {}).get(model_id, {}))
+
+
+def resolve_run_settings_from_profile(
+    model_id: str,
+    *,
+    reasoning: str,
+    response_format: str,
+    schema_file: Optional[Path],
+    profiles_path: Optional[Path] = None,
+    project_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Merge CLI settings with per-model OpenRouter profile defaults."""
+    profiles = load_model_profiles(profiles_path)
+    profile = get_model_profile(model_id, profiles)
+    effective_reasoning = profile.get("reasoning", reasoning)
+    effective_rf = profile.get("response_format", response_format)
+    effective_schema = schema_file
+    if effective_rf == "json_schema" and effective_schema is None:
+        schema_rel = profiles.get("default_schema_file", "src/prompts/json_schema_label_reason.json")
+        root = project_root or Path(__file__).resolve().parents[2]
+        effective_schema = root / schema_rel
+    return {
+        "reasoning": effective_reasoning,
+        "response_format": effective_rf if effective_rf != "none" else response_format,
+        "schema_file": effective_schema,
+        "profile": profile,
+    }
+
+
 def build_openrouter_model_kwargs(
     *,
     reasoning: str,
@@ -217,8 +257,12 @@ def build_openrouter_model_kwargs(
     seed: Optional[int] = None,
     max_tokens: Optional[int] = None,
     stop: Optional[list[str]] = None,
+    presence_penalty: Optional[float] = None,
+    frequency_penalty: Optional[float] = None,
+    logprobs: Optional[bool] = None,
     response_format: str = "none",
     json_schema: Optional[dict[str, Any]] = None,
+    model_profile: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {}
     if temperature is not None:
@@ -231,6 +275,14 @@ def build_openrouter_model_kwargs(
         kwargs["seed"] = seed
     if stop:
         kwargs["stop"] = stop
+
+    profile = model_profile or {}
+    if presence_penalty is not None and profile.get("presence_penalty_supported", True):
+        kwargs["presence_penalty"] = presence_penalty
+    if frequency_penalty is not None and profile.get("frequency_penalty_supported", True):
+        kwargs["frequency_penalty"] = frequency_penalty
+    if logprobs and profile.get("logprobs_supported", False):
+        kwargs["logprobs"] = True
 
     if response_format == "json_object":
         kwargs["response_format"] = {"type": "json_object"}

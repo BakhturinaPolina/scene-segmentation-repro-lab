@@ -91,8 +91,10 @@ def _load_train_job_module():
 
 
 tj = _load_train_job_module()
+DEFAULTS = tj.DEFAULTS
 evaluate_adapter = tj.evaluate_adapter
 load_config = tj.load_config
+_bootstrap_cfg = tj._bootstrap_cfg
 log = tj.log
 model_short_name = tj.model_short_name
 read_jsonl = tj.read_jsonl
@@ -169,7 +171,9 @@ def main() -> None:
         log("ERROR: CUDA required. Use HF Jobs or a machine with a GPU.", level="error")
         sys.exit(1)
 
-    cfg = load_config()
+    hf_token = resolve_hf_token(dict(DEFAULTS))
+    data_root = resolve_data_dir({**DEFAULTS, **_bootstrap_cfg()}, hf_token)
+    cfg = load_config(data_root)
     cfg["eval_after_train"] = False
     if os.environ.get("EVAL_LIMIT"):
         cfg["eval_limit"] = int(os.environ["EVAL_LIMIT"])
@@ -178,7 +182,6 @@ def main() -> None:
     if os.environ.get("ADAPTER"):
         cfg["adapter"] = os.environ["ADAPTER"]
 
-    hf_token = resolve_hf_token(cfg)
     if not cfg.get("hf_user"):
         try:
             from huggingface_hub import whoami  # noqa: PLC0415
@@ -187,7 +190,6 @@ def main() -> None:
         except Exception:  # noqa: BLE001
             pass
 
-    data_root = resolve_data_dir(cfg, hf_token)
     extra_cfg_path = data_root / "hf_eval_spotcheck.json"
     if extra_cfg_path.exists():
         cfg.update(json.loads(extra_cfg_path.read_text(encoding="utf-8")))

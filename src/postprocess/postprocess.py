@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence
 
+from .discourse_filters import apply_discourse_filter
+
 
 # ---------------------------------------------------------------------------
 # Rules
@@ -114,20 +116,52 @@ def apply_confidence_threshold(
     return out
 
 
+def apply_n_per_k(
+    pred_labels: Sequence[str],
+    *,
+    k_sentences: int,
+    max_borders: int = 1,
+) -> List[str]:
+    """Allow at most ``max_borders`` BORDER labels in each block of ``k_sentences``.
+
+    Keeps the first BORDER(s) in each block; demotes the rest to NOBORDER.
+    """
+    if k_sentences <= 0:
+        raise ValueError("k_sentences must be positive")
+    out = list(pred_labels)
+    block_start = 0
+    while block_start < len(out):
+        block_end = min(block_start + k_sentences, len(out))
+        kept = 0
+        for i in range(block_start, block_end):
+            if out[i] != "BORDER":
+                continue
+            if kept >= max_borders:
+                out[i] = "NOBORDER"
+            else:
+                kept += 1
+        block_start = block_end
+    return out
+
+
 def apply_scenario(
     pred_labels: Sequence[str],
     scenario: str,
     confidences: Optional[Sequence[Optional[float]]] = None,
     confidence_threshold: float = 0.85,
     cluster_merge_radius: int = 3,
+    sentences: Optional[Sequence[str]] = None,
+    n_per_k: int = 15,
 ) -> List[str]:
     """Dispatch a named scenario to the corresponding rule(s)."""
     if scenario in {"none", "baseline"}:
         return list(pred_labels)
-    if scenario == "min_scene_len_3":
-        return apply_min_scene_len(pred_labels, min_gap=3)
-    if scenario == "min_scene_len_5":
-        return apply_min_scene_len(pred_labels, min_gap=5)
+    if scenario.startswith("min_scene_len_"):
+        try:
+            gap = int(scenario.removeprefix("min_scene_len_"))
+        except ValueError as exc:
+            raise ValueError(f"Unsupported scenario: {scenario}") from exc
+        return apply_min_scene_len(pred_labels, min_gap=gap)
     if scenario == "burst_collapse":
         return apply_burst_collapse(pred_labels)
     if scenario == "burst_collapse_plus_min_scene_len_3":
@@ -146,19 +180,43 @@ def apply_scenario(
             raise ValueError("scenario requires confidences")
         thr = apply_confidence_threshold(pred_labels, confidences, confidence_threshold)
         return apply_min_scene_len(thr, min_gap=3)
+    if scenario.startswith("n_per_k_"):
+        try:
+            k = int(scenario.removeprefix("n_per_k_"))
+        except ValueError as exc:
+            raise ValueError(f"Unsupported scenario: {scenario}") from exc
+        return apply_n_per_k(pred_labels, k_sentences=k, max_borders=1)
+    if scenario == "n_per_k":
+        return apply_n_per_k(pred_labels, k_sentences=n_per_k, max_borders=1)
+    if scenario == "discourse":
+        if sentences is None:
+            raise ValueError("discourse scenario requires sentences")
+        return apply_discourse_filter(pred_labels, sentences)
+    if scenario == "discourse_plus_min_scene_len_3":
+        if sentences is None:
+            raise ValueError("discourse_plus_min_scene_len_3 requires sentences")
+        filtered = apply_discourse_filter(pred_labels, sentences)
+        return apply_min_scene_len(filtered, min_gap=3)
     raise ValueError(f"Unsupported scenario: {scenario}")
 
 
 SCENARIOS = (
     "none",
+    "min_scene_len_2",
     "min_scene_len_3",
+    "min_scene_len_4",
     "min_scene_len_5",
+    "min_scene_len_6",
     "burst_collapse",
     "burst_collapse_plus_min_scene_len_3",
     "cluster_merge",
     "cluster_merge_plus_min_scene_len_3",
     "confidence_threshold",
     "confidence_threshold_plus_min_scene_len_3",
+    "n_per_k",
+    "n_per_k_15",
+    "discourse",
+    "discourse_plus_min_scene_len_3",
 )
 
 

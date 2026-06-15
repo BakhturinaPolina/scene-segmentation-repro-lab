@@ -1,0 +1,51 @@
+Task: Decide whether the marked sentence starts a new event/scene segment.
+
+Definition:
+A new segment starts when there is a significant change in time, location,
+participating characters, or ongoing action.
+
+Study these German fairy-tale examples (sparse borders):
+
+Example 1 — Gänsemagd excerpt (scene 1 continues):
+Context before:
+Es lebte einmal eine alte Königin, der war ihr Gemahl schon lange Jahre gestorben, und sie hatte eine schöne Tochter.
+Wie die erwuchs, wurde sie weit über Feld an einen Königssohn versprochen.
+
+Target sentence:
+<sentence>Als nun die Zeit kam, wo sie vermählt werden sollten und das Kind in das fremde Reich abreisen musste, packte ihr die Alte gar viel köstliches Gerät und Geschmeide ein, Gold und Silber, Becher und Kleinode, kurz alles, was nur zu einem königlichen Brautschatz gehörte, denn sie hatte ihr Kind von Herzen lieb.</sentence>
+
+Context after:
+Auch gab sie ihr eine Kammerjungfer bei, welche mitreisen und die Braut in die Hände des Bräutigams überliefern sollte, und jede bekam ein Pferd zur Reise, aber das Pferd der Königstochter hieß Falada und konnte sprechen.
+
+Expected JSON:
+{"label": "NOBORDER", "confidence": 0.9}
+
+Example 2 — Gänsemagd excerpt (new scene: departure):
+Context before:
+Wie nun die Abschiedsstunde da war, begab sich die alte Mutter in ihre Schlafkammer, nahm ein Messerlein und schnitt damit in ihre Finger, dass sie bluteten: darauf hielt sie ein weißes Läppchen unter und ließ drei Tropfen Blut hineinfallen, gab sie der Tochter und sprach „liebes Kind, verwahre sie wohl, sie werden dir unterweges Not tun.“
+
+Target sentence:
+<sentence>Also nahmen beide von einander betrübten Abschied: das Läppchen steckte die Königstochter in ihren Busen vor sich, setzte sich aufs Pferd und zog nun fort zu ihrem Bräutigam.</sentence>
+
+Context after:
+Da sie eine Stunde geritten waren, empfand sie heißen Durst und sprach zu ihrer Kammerjungfer „steig ab, und schöpfe mir mit meinem Becher, den du für mich mitgenommen hast, Wasser aus dem Bache, ich möchte gern einmal trinken.“
+
+Expected JSON:
+{"label": "BORDER", "confidence": 0.85}
+
+Now classify the target below using the same JSON format.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "label": "BORDER" or "NOBORDER",
+  "confidence": 0.0 to 1.0
+}

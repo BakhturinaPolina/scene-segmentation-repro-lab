@@ -57,16 +57,23 @@ def _parse_confidence(reason: Any) -> Optional[float]:
 
 
 def load_cache(path: Path) -> Dict[str, List[Any]]:
-    """Return ordered indices, preds, golds, confidences from a cache JSON."""
+    """Return ordered indices, preds, golds, confidences, sentences from a cache JSON."""
     cache = json.loads(path.read_text(encoding="utf-8"))
     indices = sorted(int(k) for k in cache.keys())
-    preds, golds, confs = [], [], []
+    preds, golds, confs, sentences = [], [], [], []
     for i in indices:
         entry = cache[str(i)]
         preds.append(str(entry.get("pred", "NOBORDER")).upper())
         golds.append(str(entry.get("gold", "NOBORDER")).upper())
         confs.append(_parse_confidence(entry.get("reason")))
-    return {"indices": indices, "preds": preds, "golds": golds, "confidences": confs}
+        sentences.append(str(entry.get("sentence", "")).strip())
+    return {
+        "indices": indices,
+        "preds": preds,
+        "golds": golds,
+        "confidences": confs,
+        "sentences": sentences,
+    }
 
 
 def load_results(path: Path) -> Dict[str, List[Any]]:
@@ -111,6 +118,14 @@ def main() -> None:
         "--confidence_threshold", type=float, default=0.85,
         help="Threshold for confidence_threshold scenarios (default: 0.85)",
     )
+    parser.add_argument(
+        "--min_gap", type=int, default=None,
+        help="If set, run min_scene_len_<min_gap> scenario (in addition to --scenario)",
+    )
+    parser.add_argument(
+        "--n_per_k", type=int, default=15,
+        help="Block size k for n_per_k scenario (default: 15 ≈ 6.7%% border rate)",
+    )
     parser.add_argument("--out", type=Path, default=None, help="Optional JSON output path")
     args = parser.parse_args()
 
@@ -119,9 +134,12 @@ def main() -> None:
     preds = loaded["preds"]
     golds = loaded["golds"]
     confs = loaded["confidences"]
+    sentences = loaded.get("sentences", [])
     full_gold = build_full_gold(indices, golds)
 
     scenarios = list(SCENARIOS) if args.scenario == "all" else [args.scenario]
+    if args.min_gap is not None:
+        scenarios.append(f"min_scene_len_{args.min_gap}")
 
     n_gold = sum(1 for g in golds if g == "BORDER")
     n_pred = sum(1 for p in preds if p == "BORDER")
@@ -133,12 +151,18 @@ def main() -> None:
         "n_gold_border": n_gold,
         "n_pred_border_raw": n_pred,
         "confidence_threshold": args.confidence_threshold,
+        "n_per_k": args.n_per_k,
         "scenarios": {},
     }
 
     for scenario in scenarios:
         new_preds = apply_scenario(
-            preds, scenario, confidences=confs, confidence_threshold=args.confidence_threshold
+            preds,
+            scenario,
+            confidences=confs,
+            confidence_threshold=args.confidence_threshold,
+            sentences=sentences if sentences else None,
+            n_per_k=args.n_per_k,
         )
         kept = sum(1 for p in new_preds if p == "BORDER")
         metrics = {

@@ -24,10 +24,11 @@ with one subdirectory per job (``train.jsonl`` + ``eval.jsonl``), plus an option
 ``hf_run_config.json`` at the dataset root.
 
 Configuration priority:
-  1. ``hf_run_config.json`` in the working directory
-  2. ``HF_RUN_CONFIG`` env var (path to JSON)
-  3. environment variables (``SCENE_SEG_MODELS``, ``SCENE_SEG_JOBS``, …)
-  4. defaults below
+  1. ``HF_RUN_CONFIG`` env var (path to JSON)
+  2. ``hf_run_config.json`` in the working directory
+  3. ``hf_run_config.json`` at the dataset root (Hub download or ``data_dir``)
+  4. environment variables (``SCENE_SEG_MODELS``, ``SCENE_SEG_JOBS``, …)
+  5. defaults below
 
 Adapters: ``{hf_user}/scene-seg-{model_short}-{job}``.
 
@@ -185,13 +186,41 @@ DEFAULTS: Dict[str, Any] = {
 }
 
 
-def load_config() -> Dict[str, Any]:
+def resolve_config_path(data_root: Optional[Path] = None) -> Optional[Path]:
+    """Locate ``hf_run_config.json`` (explicit env > cwd > dataset root)."""
+    candidates: List[Path] = []
+    env_path = os.environ.get("HF_RUN_CONFIG")
+    if env_path:
+        candidates.append(Path(env_path))
+    candidates.append(Path("hf_run_config.json"))
+    if data_root is not None:
+        candidates.append(Path(data_root) / "hf_run_config.json")
+    for path in candidates:
+        if path.is_file():
+            return path.resolve()
+    return None
+
+
+def _bootstrap_cfg() -> Dict[str, Any]:
+    """Env-only fields needed to download the dataset before full config merge."""
+    cfg: Dict[str, Any] = {}
+    if os.environ.get("DATA_REPO"):
+        cfg["data_repo"] = os.environ["DATA_REPO"]
+    if os.environ.get("HF_USER"):
+        cfg["hf_user"] = os.environ["HF_USER"]
+    if os.environ.get("DATA_DIR"):
+        cfg["data_dir"] = os.environ["DATA_DIR"]
+    return cfg
+
+
+def load_config(data_root: Optional[Path] = None) -> Dict[str, Any]:
     cfg = dict(DEFAULTS)
     loaded: Dict[str, Any] = {}
-    cfg_path = Path(os.environ.get("HF_RUN_CONFIG", "hf_run_config.json"))
-    if cfg_path.exists():
+    cfg_path = resolve_config_path(data_root)
+    if cfg_path is not None:
         loaded = json.loads(cfg_path.read_text(encoding="utf-8"))
         cfg.update(loaded)
+        log(f"Loaded hf_run_config from {cfg_path}")
     cfg["_eval_max_new_tokens_explicit"] = "eval_max_new_tokens" in loaded
     if os.environ.get("SCENE_SEG_MODELS"):
         cfg["models"] = [m.strip() for m in os.environ["SCENE_SEG_MODELS"].split(",") if m.strip()]
@@ -798,10 +827,11 @@ def main() -> None:
         log("ERROR: CUDA required. Use HF Jobs or a machine with a GPU.", level="error")
         sys.exit(1)
 
-    cfg = load_config()
+    hf_token = resolve_hf_token(dict(DEFAULTS))
+    data_root = resolve_data_dir({**DEFAULTS, **_bootstrap_cfg()}, hf_token)
+    cfg = load_config(data_root)
     if os.environ.get("RESUME", "1") == "0":
         cfg["resume"] = False
-    hf_token = resolve_hf_token(cfg)
     if not cfg.get("hf_user"):
         try:
             from huggingface_hub import whoami  # noqa: PLC0415
@@ -809,10 +839,12 @@ def main() -> None:
             cfg["hf_user"] = whoami(token=hf_token or None)["name"]
         except Exception:  # noqa: BLE001
             pass
-
-    data_root = resolve_data_dir(cfg, hf_token)
     jobs = cfg.get("jobs") or []
-    log(f"Config: models={cfg['models']} jobs={jobs} data_root={data_root}")
+    log(
+        f"Config: models={cfg['models']} jobs={jobs} epochs={cfg.get('epochs')} "
+        f"debug={cfg.get('debug')} preflight={cfg.get('eval_preflight_rows')} "
+        f"data_root={data_root}"
+    )
 
     state = RunState(Path("run_state.json"))
     queue: List[Tuple[str, str]] = [(m, j) for m in cfg["models"] for j in jobs]

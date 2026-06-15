@@ -1,0 +1,237 @@
+{
+  "documents": {
+    "cache_gaensemagd_sentence_level": {
+      "cache": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/outputs/runs/prompting/2026-06-14-excel-ofat-s1-Q/full_nvidia_nemotron-3-super-120b-a12b_free_familyQ_reasoning-off/cache_gaensemagd_sentence_level.json",
+      "verifier_model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "context_window": 3,
+      "verify_style": "yes_no",
+      "confidence_below": null,
+      "n_pred_border": 7,
+      "n_verified": 7,
+      "cost_estimate": {
+        "in_tokens": 2065,
+        "out_tokens": 210,
+        "est_usd": 0.0
+      },
+      "metrics_before": {
+        "tol_0": {
+          "tp": 4,
+          "fp": 3,
+          "fn": 3,
+          "precision": 0.5714,
+          "recall": 0.5714,
+          "f1": 0.5714
+        },
+        "tol_1": {
+          "tp": 4,
+          "fp": 2,
+          "fn": 3,
+          "precision": 0.6667,
+          "recall": 0.5714,
+          "f1": 0.6154
+        },
+        "tol_3": {
+          "tp": 4,
+          "fp": 2,
+          "fn": 3,
+          "precision": 0.6667,
+          "recall": 0.5714,
+          "f1": 0.6154
+        }
+      },
+      "decisions": [
+        {
+          "index": 0,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 22,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 23,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 42,
+          "keep": null,
+          "raw": "We need to determine if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactl"
+        },
+        {
+          "index": 45,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 51,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 70,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        }
+      ],
+      "n_rejected": 0,
+      "metrics_after": {
+        "tol_0": {
+          "tp": 4,
+          "fp": 3,
+          "fn": 3,
+          "precision": 0.5714,
+          "recall": 0.5714,
+          "f1": 0.5714
+        },
+        "tol_1": {
+          "tp": 4,
+          "fp": 2,
+          "fn": 3,
+          "precision": 0.6667,
+          "recall": 0.5714,
+          "f1": 0.6154
+        },
+        "tol_3": {
+          "tp": 4,
+          "fp": 2,
+          "fn": 3,
+          "precision": 0.6667,
+          "recall": 0.5714,
+          "f1": 0.6154
+        }
+      }
+    },
+    "cache_kleist_sentence_level": {
+      "cache": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/outputs/runs/prompting/2026-06-14-excel-ofat-s1-Q/full_nvidia_nemotron-3-super-120b-a12b_free_familyQ_reasoning-off/cache_kleist_sentence_level.json",
+      "verifier_model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "context_window": 3,
+      "verify_style": "yes_no",
+      "confidence_below": null,
+      "n_pred_border": 12,
+      "n_verified": 12,
+      "cost_estimate": {
+        "in_tokens": 3540,
+        "out_tokens": 360,
+        "est_usd": 0.0
+      },
+      "metrics_before": {
+        "tol_0": {
+          "tp": 5,
+          "fp": 7,
+          "fn": 9,
+          "precision": 0.4167,
+          "recall": 0.3571,
+          "f1": 0.3846
+        },
+        "tol_1": {
+          "tp": 7,
+          "fp": 6,
+          "fn": 7,
+          "precision": 0.5385,
+          "recall": 0.5,
+          "f1": 0.5185
+        },
+        "tol_3": {
+          "tp": 8,
+          "fp": 5,
+          "fn": 6,
+          "precision": 0.6154,
+          "recall": 0.5714,
+          "f1": 0.5926
+        }
+      },
+      "decisions": [
+        {
+          "index": 0,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 4,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 18,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 23,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 45,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 59,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 62,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 68,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 138,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 163,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 222,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        },
+        {
+          "index": 239,
+          "keep": null,
+          "raw": "We need to decide if the marked sentence is the first sentence of a new scene, i.e., a major narrative discontinuity (clear change in time and/or place and/or character constellation) begins exactly a"
+        }
+      ],
+      "n_rejected": 0,
+      "metrics_after": {
+        "tol_0": {
+          "tp": 5,
+          "fp": 7,
+          "fn": 9,
+          "precision": 0.4167,
+          "recall": 0.3571,
+          "f1": 0.3846
+        },
+        "tol_1": {
+          "tp": 7,
+          "fp": 6,
+          "fn": 7,
+          "precision": 0.5385,
+          "recall": 0.5,
+          "f1": 0.5185
+        },
+        "tol_3": {
+          "tp": 8,
+          "fp": 5,
+          "fn": 6,
+          "precision": 0.6154,
+          "recall": 0.5714,
+          "f1": 0.5926
+        }
+      }
+    }
+  }
+}
