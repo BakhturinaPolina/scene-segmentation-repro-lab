@@ -120,6 +120,42 @@
       "placeholders": ["left_context", "target_sentence", "right_context"],
       "precision_variant_of": "B",
       "factor": "P4_fp_pattern_guard"
+    },
+    {
+      "id": "N",
+      "file": "N_zero_shot_json_rarity_prior.txt",
+      "family": "zero_shot_json_rarity_prior",
+      "schema": "json_label_confidence",
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "precision_variant_of": "B",
+      "factor": "3A_border_rarity_prior"
+    },
+    {
+      "id": "O",
+      "file": "O_few_shot_german_fairy.txt",
+      "family": "few_shot_german_fairy",
+      "schema": "json_label_confidence",
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "precision_variant_of": "B",
+      "factor": "3B_german_fairy_few_shot"
+    },
+    {
+      "id": "P",
+      "file": "P_zero_shot_json_anti_example.txt",
+      "family": "zero_shot_json_anti_example",
+      "schema": "json_label_confidence",
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "precision_variant_of": "B",
+      "factor": "3C_anti_example"
+    },
+    {
+      "id": "Q",
+      "file": "Q_zero_shot_json_precision_fixed.txt",
+      "family": "zero_shot_json_precision_fixed",
+      "schema": "json_label_confidence",
+      "placeholders": ["left_context", "target_sentence", "right_context"],
+      "precision_variant_of": "B",
+      "factor": "precision_fixed_N+L+M"
     }
   ]
 }

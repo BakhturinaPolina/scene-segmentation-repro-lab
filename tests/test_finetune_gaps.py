@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import importlib.util
+import json
+import os
 import sys
+import tempfile
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
@@ -130,6 +134,45 @@ class LabelParseTest(unittest.TestCase):
         self.assertEqual(recommended_max_new_tokens("cot_list"), 256)
         self.assertEqual(recommended_max_new_tokens("json"), 96)
         self.assertEqual(recommended_max_new_tokens("no_cot"), 128)
+
+
+def _import_train_job():
+    path = _SRC / "finetune" / "hf_jobs" / "train_job.py"
+    spec = importlib.util.spec_from_file_location("scene_seg_train_job", path)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class HfRunConfigLoadTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self._env = os.environ.copy()
+
+    def tearDown(self) -> None:
+        os.environ.clear()
+        os.environ.update(self._env)
+
+    def test_resolve_config_path_uses_data_root(self) -> None:
+        mod = _import_train_job()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_path = root / "hf_run_config.json"
+            cfg_path.write_text("{}", encoding="utf-8")
+            self.assertEqual(mod.resolve_config_path(root), cfg_path.resolve())
+
+    def test_load_config_merges_dataset_epochs_and_preflight(self) -> None:
+        mod = _import_train_job()
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "hf_run_config.json").write_text(
+                json.dumps({"epochs": 2, "debug": True, "completion_only_loss": True}),
+                encoding="utf-8",
+            )
+            cfg = mod.load_config(root)
+            self.assertEqual(cfg["epochs"], 2)
+            self.assertTrue(cfg["debug"])
+            self.assertEqual(cfg["eval_preflight_rows"], 20)
 
 
 if __name__ == "__main__":

@@ -172,6 +172,17 @@ print(f"Generated config: models={cfg['models']} jobs={cfg['jobs']}")
 PY
 fi
 
+if [ -n "${JOBS:-}" ]; then
+  "$PY" - "$CONFIG_PATH" "$JOBS" <<'PY'
+import json, sys
+path, jobs = sys.argv[1:3]
+cfg = json.load(open(path, encoding="utf-8"))
+cfg["jobs"] = [j.strip() for j in jobs.split(",") if j.strip()]
+json.dump(cfg, open(path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
+print(f"JOBS override -> {cfg['jobs']}")
+PY
+fi
+
 echo "[3/4] Staging HF Jobs helper bundle + uploading dataset -> $DATASET_REPO (private)..."
 BUNDLE_DIR="$DATA_DIR/_hf_job_bundle"
 mkdir -p "$BUNDLE_DIR/finetune" "$BUNDLE_DIR/postprocess"
@@ -181,6 +192,7 @@ cp "$ROOT/src/finetune/label_parse.py" "$BUNDLE_DIR/finetune/"
 cp "$ROOT/src/finetune/hf_jobs/train_job.py" "$BUNDLE_DIR/"
 cp "$ROOT/src/postprocess/__init__.py" "$BUNDLE_DIR/postprocess/"
 cp "$ROOT/src/postprocess/postprocess.py" "$BUNDLE_DIR/postprocess/"
+cp "$ROOT/src/postprocess/discourse_filters.py" "$BUNDLE_DIR/postprocess/"
 hf repo create "$DATASET_REPO" --repo-type dataset --private --exist-ok
 hf upload "$DATASET_REPO" "$DATA_DIR" . --repo-type dataset \
   --commit-message "update $(date -u +%FT%TZ)"
@@ -213,6 +225,9 @@ elif [ "$COMPUTE" = "jobs" ]; then
     JOB_ARGS+=(-d)
   fi
   JOB_ARGS+=(-e "RESUME=$RESUME")
+  if [ -n "${JOBS:-}" ]; then
+    JOB_ARGS+=(-e "SCENE_SEG_JOBS=$JOBS")
+  fi
   JOB_ARGS+=("$HERE/train_job.py")
   "${JOB_ARGS[@]}"
   echo "Job submitted. Track at: https://huggingface.co/jobs/$HF_USER"

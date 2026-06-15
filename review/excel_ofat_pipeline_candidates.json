@@ -1,0 +1,62 @@
+[
+  {
+    "key": "nemotron",
+    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+    "family": "Q",
+    "date": "2026-06-14-excel-ofat-s1-Q",
+    "f3": 0.604,
+    "recall": 0.5714,
+    "overpred": 0.9048,
+    "summary_path": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/outputs/runs/prompting/2026-06-14-excel-ofat-s1-Q/full_nvidia_nemotron-3-super-120b-a12b_free_familyQ_reasoning-off/summary.json"
+  },
+  {
+    "key": "nemotron",
+    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+    "family": "Q+verify",
+    "date": "2026-06-14-excel-ofat-s1-Q",
+    "f3": 0.604,
+    "recall": 0.5714,
+    "overpred": null,
+    "summary_path": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/review/verify_Q_nemotron.json"
+  },
+  {
+    "key": "laguna_xs",
+    "model": "poolside/laguna-xs.2:free",
+    "family": "Q",
+    "date": "2026-06-14-excel-ofat-s1-Q",
+    "f3": 0.5905,
+    "recall": 0.6786,
+    "overpred": 1.4762,
+    "summary_path": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/outputs/runs/prompting/2026-06-14-excel-ofat-s1-Q/full_poolside_laguna-xs.2_free_familyQ_reasoning-off/summary.json"
+  },
+  {
+    "key": "laguna_xs",
+    "model": "poolside/laguna-xs.2:free",
+    "family": "Q+verify",
+    "date": "2026-06-14-excel-ofat-s1-Q",
+    "f3": 0.5905,
+    "recall": 0.6786000000000001,
+    "overpred": null,
+    "summary_path": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/review/verify_Q_laguna_xs.json"
+  },
+  {
+    "key": "laguna_xs",
+    "model": "poolside/laguna-xs.2:free",
+    "family": "Q/O+min_gap_kleist",
+    "date": "2026-06-14-excel-ofat-O",
+    "f3": 0.5455,
+    "recall": 0.6429,
+    "overpred": 1.3571428571428572,
+    "summary_path": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/review/postprocess_laguna_xs_kleist_min_gap.json"
+  },
+  {
+    "key": "nemotron",
+    "model": "nvidia/nemotron-3-super-120b-a12b:free",
+    "family": "O",
+    "date": "2026-06-14-excel-ofat-O",
+    "f3": 0.4248,
+    "recall": 0.8571,
+    "overpred": 4.2857,
+    "summary_path": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/outputs/runs/prompting/2026-06-14-excel-ofat-O/full_nvidia_nemotron-3-super-120b-a12b_free_familyO_reasoning-off/summary.json"
+  }
+]

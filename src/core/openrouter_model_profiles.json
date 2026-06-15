@@ -1,0 +1,99 @@
+{
+  "version": "1.0",
+  "default_schema_file": "src/prompts/json_schema_label_reason.json",
+  "models": {
+    "meta-llama/llama-3.3-70b-instruct:free": {
+      "reasoning": "off",
+      "response_format": "json_object",
+      "presence_penalty_supported": true,
+      "frequency_penalty_supported": true,
+      "cost_class": "free"
+    },
+    "poolside/laguna-xs.2:free": {
+      "reasoning": "off",
+      "response_format": "json_object",
+      "presence_penalty_supported": false,
+      "cost_class": "free",
+      "notes": "coding agent; watch for tool-call leakage"
+    },
+    "poolside/laguna-m.1:free": {
+      "reasoning": "off",
+      "response_format": "json_object",
+      "presence_penalty_supported": false,
+      "cost_class": "free",
+      "notes": "coding agent; watch for tool-call leakage"
+    },
+    "openrouter/owl-alpha": {
+      "reasoning": "off",
+      "response_format": "json_schema",
+      "presence_penalty_supported": true,
+      "cost_class": "free",
+      "notes": "prompts may be logged by provider"
+    },
+    "nex-agi/nex-n2-pro:free": {
+      "reasoning": "off",
+      "response_format": "json_schema",
+      "logprobs_supported": true,
+      "cost_class": "free"
+    },
+    "nvidia/nemotron-3-ultra-550b-a55b:free": {
+      "reasoning": "off",
+      "response_format": "json_object",
+      "cost_class": "free"
+    },
+    "nvidia/nemotron-3-super-120b-a12b:free": {
+      "reasoning": "off",
+      "response_format": "json_schema",
+      "cost_class": "free"
+    },
+    "nvidia/nemotron-3-nano-30b-a3b:free": {
+      "reasoning": "off",
+      "response_format": "json_object",
+      "cost_class": "free"
+    },
+    "openai/gpt-oss-120b:free": {
+      "reasoning": "off",
+      "response_format": "json_object",
+      "cost_class": "free",
+      "notes": "Harmony format; monitor parse rate"
+    },
+    "meta-llama/llama-3.1-8b-instruct": {
+      "reasoning": "off",
+      "response_format": "json_schema",
+      "presence_penalty_supported": true,
+      "cost_class": "paid",
+      "est_run_cost_usd": 0.005
+    },
+    "openai/gpt-oss-20b": {
+      "reasoning": "off",
+      "response_format": "json_schema",
+      "presence_penalty_supported": true,
+      "logprobs_supported": true,
+      "cost_class": "paid",
+      "est_run_cost_usd": 0.009
+    },
+    "openai/gpt-oss-120b": {
+      "reasoning": "off",
+      "response_format": "json_schema",
+      "presence_penalty_supported": true,
+      "logprobs_supported": true,
+      "cost_class": "paid",
+      "est_run_cost_usd": 0.012
+    },
+    "qwen/qwen3.5-flash-02-23": {
+      "reasoning": "off",
+      "response_format": "json_schema",
+      "presence_penalty_supported": true,
+      "cost_class": "paid",
+      "est_run_cost_usd": 0.02
+    },
+    "google/gemma-4-26b-a4b-it": {
+      "reasoning": "off",
+      "response_format": "json_schema",
+      "presence_penalty_supported": true,
+      "logprobs_supported": true,
+      "cost_class": "paid",
+      "est_run_cost_usd": 0.021
+    }
+  }
+}

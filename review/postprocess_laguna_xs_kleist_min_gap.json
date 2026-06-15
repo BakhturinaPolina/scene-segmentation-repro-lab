@@ -1,0 +1,10 @@
+{
+  "gap": 2,
+  "cache": "/home/polina/Documents/Cursor_Projects/scene-segmentation-research/outputs/runs/prompting/2026-06-14-excel-ofat-s1-Q/full_poolside_laguna-xs.2_free_familyQ_reasoning-off/cache_kleist_sentence_level.json",
+  "f3": 0.5455,
+  "precision": 0.4737,
+  "recall": 0.6429,
+  "pred_borders": 19,
+  "gold_borders": 14,
+  "overpred": 1.3571428571428572
+}

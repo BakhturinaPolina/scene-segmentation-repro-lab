@@ -1,0 +1,6 @@
+model,run_dir,cost_class,est_run_cost_usd,f1_tol0,f1_tol1,f1_tol3,precision_tol3,recall_tol3,run_complete,overprediction_ratio,total_gold_borders,total_pred_borders,parse_failure_rate,avg_latency_s
+poolside/laguna-m.1:free,full_poolside_laguna-m.1_free_familyB_reasoning-off,free,,0.2072,0.3182,0.3929,0.25,1.0,True,6.5238,21,137,0.0,6.29
+nvidia/nemotron-3-super-120b-a12b:free,full_nvidia_nemotron-3-super-120b-a12b_free_familyB_reasoning-off,free,,0.2238,0.3,0.3701,0.2302,1.0,True,6.8095,21,143,0.0,5.436
+poolside/laguna-xs.2:free,full_poolside_laguna-xs.2_free_familyB_reasoning-off,free,,0.1749,0.2578,0.3377,0.2116,0.9285,True,7.5714,21,159,0.0,6.661
+nvidia/nemotron-3-nano-30b-a3b:free,full_nvidia_nemotron-3-nano-30b-a3b_free_familyB_reasoning-off,free,,0.1504,0.1731,0.2324,0.1341,1.0,True,14.4762,21,304,0.0,7.53
+meta-llama/llama-3.3-70b-instruct:free,full_meta-llama_llama-3.3-70b-instruct_free_familyB_reasoning-off,free,,,,,,,False,,,,,

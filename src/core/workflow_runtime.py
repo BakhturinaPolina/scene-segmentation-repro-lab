@@ -3,9 +3,28 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
 from pathlib import Path
 from typing import Any, Sequence
+
+
+def write_json_atomic(path: Path, data: Any, *, indent: int = 2) -> None:
+    """Write JSON atomically so interrupted writes never corrupt the target file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(
+        json.dumps(data, indent=indent, ensure_ascii=False, sort_keys=False) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(tmp, path)
+
+
+def load_json_if_exists(path: Path) -> Any | None:
+    if not path.is_file():
+        return None
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def src_root(from_file: Path) -> Path:
@@ -55,7 +74,4 @@ def write_repro_files(output_dir: Path, argv: Sequence[str], config: dict[str, A
     """Write command/config files required for reproducibility."""
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "command.txt").write_text(command_string(argv) + "\n", encoding="utf-8")
-    (output_dir / "config.json").write_text(
-        json.dumps(config, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    write_json_atomic(output_dir / "config.json", config)

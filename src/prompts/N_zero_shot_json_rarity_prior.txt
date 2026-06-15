@@ -1,0 +1,24 @@
+Task: Decide whether the marked sentence starts a new event/scene segment.
+
+Definition:
+A new segment starts when there is a significant change in time, location,
+participating characters, or ongoing action.
+
+Important: Scene borders are RARE. In typical German narrative prose only about
+7% of sentences start a new scene. Label BORDER sparingly — only when a concrete
+new situation clearly begins at the target sentence.
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "label": "BORDER" or "NOBORDER",
+  "confidence": 0.0 to 1.0
+}

@@ -1,0 +1,32 @@
+Task: Decide whether the marked sentence starts a new event/scene segment.
+
+Definition:
+A new segment starts when there is a significant change in time, location,
+participating characters, or ongoing action.
+
+Anti-example (WRONG — do not copy this mistake):
+A model wrongly labeled the following as BORDER because the sentence mentions travel,
+but the journey continues in the same scene without a new concrete situation:
+
+Context before:
+Also nahmen beide von einander betrübten Abschied.
+
+Target sentence:
+<sentence>Da sie eine Stunde geritten waren, empfand sie heißen Durst und sprach zu ihrer Kammerjungfer „steig ab, und schöpfe mir Wasser aus dem Bache.“</sentence>
+
+Correct label: NOBORDER (same journey, no new scene).
+
+Context before:
+{left_context}
+
+Target sentence:
+<sentence>{target_sentence}</sentence>
+
+Context after:
+{right_context}
+
+Return JSON only:
+{
+  "label": "BORDER" or "NOBORDER",
+  "confidence": 0.0 to 1.0
+}
