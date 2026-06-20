@@ -1,0 +1,2 @@
+# Direct Gemini API (Batch API pilot). Install after requirements-basic.txt.
+google-genai==2.9.0
