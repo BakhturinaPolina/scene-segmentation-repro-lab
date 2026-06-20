@@ -206,7 +206,7 @@ inspection of 20 FP + 20 FN, and comparison of No-CoT vs CoT-List vs stricter fi
 | [`../../src/finetune/hf_jobs/train_job.py`](../../src/finetune/hf_jobs/train_job.py) | Train + eval script (HF Jobs via UV). |
 | [`../../src/finetune/hf_jobs/submit_job.sh`](../../src/finetune/hf_jobs/submit_job.sh) | Builds data, uploads private HF dataset, submits Jobs (`COMPUTE=jobs` default). |
 | [`../../src/finetune/hf_jobs/configs/`](../../src/finetune/hf_jobs/configs/) | Per-experiment JSON configs (`E0_smoke`, `E0_pilot_full`, `E1_anchor`, …). |
-| [`../../requirements-finetune.txt`](../../requirements-finetune.txt) | Pinned fine-tuning deps (CUDA torch installed separately). |
+| [`../../requirements.txt`](../../requirements.txt) | Pinned deps for finetune, eval, and Gemini pilot (CUDA torch installed separately). |
 | [`../../src/finetune/eval_finetuned.py`](../../src/finetune/eval_finetuned.py) | Standalone re-eval of an adapter (e.g. after train-only cloud run). |
 
 **Training defaults** (E0/E1 configs): `batch_size=1`, `grad_accum=8`, `eval_batch_size=8` (Jobs `t4-small`).

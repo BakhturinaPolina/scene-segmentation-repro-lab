@@ -29,7 +29,8 @@ upstream/
 
 # Local-only artifacts
 unsloth_compiled_cache/
-gpu_env_report.txt
+eval_partial.jsonl
+outputs/artifacts/logs/gpu_env_report.txt
 
 # Test / lint / coverage caches
 .pytest_cache/

@@ -778,6 +778,7 @@ Added to `.gitignore`:
 .venv-gpu/
 unsloth_compiled_cache/
 gpu_env_report.txt
+outputs/artifacts/logs/gpu_env_report.txt
 ```
 
 ---
