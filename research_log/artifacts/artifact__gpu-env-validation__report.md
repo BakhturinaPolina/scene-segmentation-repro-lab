@@ -6,7 +6,7 @@ date: 2026-03-31
 artifact_type: log
 produced_by_run: "run_20260331_gpu_env_validation"
 track: cross-project
-path: "gpu_env_report.txt"
+path: "outputs/artifacts/logs/gpu_env_report.txt"
 url: ""
 description: "Full nvidia-smi output, CUDA toolkit version, Python toolchain, and torch GPU detection results captured during GPU environment setup"
 report_worthy: false

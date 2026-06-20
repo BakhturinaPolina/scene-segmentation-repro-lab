@@ -42,8 +42,13 @@ from finetune.label_parse import (  # noqa: E402
     recommended_max_new_tokens,
     summarize_parse_diagnostics,
 )
+from core.workflow_runtime import project_root
 from finetune.run_log import append_jsonl, log, progress, row_key, upload_if_hub
 from postprocess.postprocess import apply_scenario, evaluate_sampled
+
+_DEFAULT_PARTIAL = (
+    project_root(_FILE) / "outputs/runs/llama/eval-cache/eval_partial.jsonl"
+)
 
 
 def read_eval_jsonl(path: Path) -> List[Dict[str, Any]]:
@@ -213,7 +218,7 @@ def main() -> None:
     if partial_path is None and args.out:
         partial_path = args.out.with_suffix(".partial.jsonl")
     elif partial_path is None:
-        partial_path = Path("eval_partial.jsonl")
+        partial_path = _DEFAULT_PARTIAL
 
     cached: Dict[str, dict] = {}
     if args.resume and partial_path.exists():

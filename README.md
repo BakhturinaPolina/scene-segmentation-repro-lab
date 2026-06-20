@@ -27,8 +27,7 @@ Next: Phase 3 baseline execution.
 .
 ├── README.md
 ├── rule.md                  # Research logging rules (strict YAML version)
-├── requirements.txt         # Base pip/setuptools/wheel
-├── requirements-basic.txt   # Pinned CPU smoke-test dependencies
+├── requirements.txt         # Pinned deps (CUDA torch installed separately)
 ├── docs/
 │   ├── planning/            # Roadmap and progress
 │   ├── setup/               # Environment setup
@@ -88,7 +87,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-pip install -r requirements-finetune.txt
 ```
 
 ### Verify GPU

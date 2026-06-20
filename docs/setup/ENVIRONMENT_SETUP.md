@@ -37,26 +37,21 @@ This document records the environment preparation work for Phases 1–2 of the p
 
 ## Virtual Environment Strategy
 
-Two separate environments are maintained to avoid dependency conflicts:
+A single CUDA-enabled environment (`.venv`) is used for finetune, eval, prompting, and Gemini pilots. See `README.md` Quick Start.
+
+Historical note: Phase 2 maintained separate CPU (`.venv`) and GPU (`.venv-gpu`) environments because SSC smoke tests required `transformers==4.46.3` while Unsloth required `transformers>=4.51.3`. The unified `requirements.txt` targets the finetune/Gemini stack (`transformers==4.57.3`). Upstream SSC imports may still need a separate CPU venv with older pins if required.
 
 | Environment | Purpose | PyTorch | GPU Support |
 |-------------|---------|---------|-------------|
-| `.venv` | CPU smoke tests, SSC/prompting import validation | `2.5.1+cpu` | No |
-| `.venv-gpu` | GPU training, Unsloth fine-tuning | `2.10.0+cu128` | Yes |
-
-### Why two environments?
-
-1. **transformers compatibility**: SSC smoke tests require `transformers==4.46.3` to avoid dataclass errors; Unsloth requires `transformers>=4.51.3`.
-2. **torch/torchvision pairing**: CPU-only wheels avoid CUDA complexity for quick validation; GPU env needs CUDA-enabled wheels.
-3. **Unsloth GPU requirement**: Unsloth raises `NotImplementedError` on CPU-only torch.
+| `.venv` | Finetune, eval, prompting, Gemini pilot | CUDA (cu128 wheel) | Yes |
 
 ---
 
-## CPU Environment (`.venv`)
+## Primary Environment (`.venv`)
 
 ### Purpose
 
-Fast smoke testing of SSC and prompting imports without GPU dependencies.
+Finetune/eval, prompting runners, and Gemini Batch API pilots.
 
 ### Creation
 
@@ -64,22 +59,30 @@ Fast smoke testing of SSC and prompting imports without GPU dependencies.
 cd $PROJECT_ROOT
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-basic.txt
+pip install -r requirements.txt
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 ```
 
-### Key pinned versions (`requirements-basic.txt`)
+### Key pinned versions (`requirements.txt`)
 
 ```
---extra-index-url https://download.pytorch.org/whl/cpu
+pip>=24.0
+setuptools>=81.0.0
+wheel>=0.45.1
 
-pip==24.0
-setuptools==81.0.0
-wheel==0.45.1
+google-genai==2.9.0
 
-torch==2.5.1+cpu
-torchvision==0.20.1+cpu
-transformers==4.46.3
-datasets==4.8.4
+huggingface_hub>=0.34
+unsloth==2026.6.1
+unsloth_zoo==2026.6.1
+trl==0.22.2
+transformers==4.57.3
+datasets>=3.0
+accelerate>=1.4
+peft>=0.7
+bitsandbytes>=0.49
+tqdm>=4.66
+
 scikit-learn==1.8.0
 loguru==0.7.3
 langchain==0.1.9
@@ -89,26 +92,40 @@ langchain==0.1.9
 
 | Issue | Root cause | Resolution |
 |-------|-----------|------------|
-| `SSCModelConfig` dataclass error | `transformers>=5.0` changed `PretrainedConfig` to auto-dataclass | Pin `transformers==4.46.3` |
+| `SSCModelConfig` dataclass error | `transformers>=5.0` changed `PretrainedConfig` to auto-dataclass | Use separate CPU venv with `transformers==4.46.3` for SSC smoke only |
 | `ModuleNotFoundError: langchain.adapters` | `langchain>=0.2` restructured module layout | Pin `langchain==0.1.9` |
-| `torchvision::nms` operator missing | torch/torchvision version mismatch | Pin compatible pair `2.5.1+cpu` / `0.20.1+cpu` |
+| Unsloth GPU requirement | Unsloth raises `NotImplementedError` on CPU-only torch | Install CUDA torch before other deps |
 
 ### Smoke test results (from clone root)
 
 | Command | Result |
 |---------|--------|
-| `python -c "import ssc.model"` | **PASS** |
+| `python -c "import ssc.model"` | **PASS** (CPU venv only; may fail with finetune transformers pin) |
 | `python -c "import ssc.dataset"` | FAIL (Unsloth GPU check) |
 | `python -c "import prompting.classify"` | **PASS** |
 | `python -m ssc.main --help` | FAIL (Unsloth GPU check) |
 | `python -m ssc.train --help` | FAIL (Unsloth GPU check) |
 | `python prompting/classify.py` | FAIL (`utils` import path) |
 
-The Unsloth failures are expected in CPU-only mode; they are not blocking for prompting or pure SSC model validation.
+The Unsloth failures in the table above were observed under the historical CPU-only `.venv`; with CUDA torch they should pass.
+
+### Validation commands
+
+```bash
+source .venv/bin/activate
+
+# GPU detection
+python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+
+# Unsloth import
+python -c "import unsloth; print('unsloth', unsloth.__version__)"
+```
 
 ---
 
-## GPU Environment (`.venv-gpu`)
+## Legacy GPU Environment (`.venv-gpu`, removed)
+
+> **Superseded:** `.venv-gpu` was merged into `.venv` (see `README.md`). This section is kept as a historical record of the March 2026 setup.
 
 ### Purpose
 
@@ -209,7 +226,8 @@ The following are excluded from version control (`.gitignore`):
 .venv/
 .venv-gpu/
 unsloth_compiled_cache/
-gpu_env_report.txt
+eval_partial.jsonl
+outputs/artifacts/logs/gpu_env_report.txt
 ```
 
 ---
