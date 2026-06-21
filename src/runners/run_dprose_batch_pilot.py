@@ -321,7 +321,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--context_sentences", type=int, default=12)
     parser.add_argument("--temperature", type=float, default=0.0)
-    parser.add_argument("--max_output_tokens", type=int, default=1024)
+    parser.add_argument("--max_output_tokens", type=int, default=2048)
     parser.add_argument("--thinking_budget", type=int, default=-1)
     parser.add_argument("--max_sentences", type=int, default=None)
     parser.add_argument("--poll_interval", type=int, default=30)

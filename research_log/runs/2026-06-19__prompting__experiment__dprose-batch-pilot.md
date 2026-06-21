@@ -5,7 +5,7 @@ title: "dProse Gemini Batch API pilot (989 sentences, 3 files)"
 date: 2026-06-19
 track: prompting
 run_type: experiment
-status: partial
+status: success
 goal: "Pilot dProse scene-boundary prediction via Gemini Batch API on 989 sentences (dprose_100, dprose_806, dprose_2158) to validate token costs, parse success rate, and output quality before full 120k corpus run."
 entrypoint: "scripts/data/prepare_dprose_prompting_inputs.py + src/runners/run_dprose_batch_pilot.py"
 command: "set -a && source .env && set +a && .venv/bin/python scripts/data/prepare_dprose_prompting_inputs.py --files dprose_100.csv dprose_806.csv dprose_2158.csv --manifest_out data/manifests/dprose_pilot.json && PYTHONUNBUFFERED=1 .venv/bin/python -u src/runners/run_dprose_batch_pilot.py --manifest data/manifests/dprose_pilot.json --mode file --model gemini-2.5-pro --prompt_family B --schema_file src/prompts/json_schema_label_reason.json --context_sentences 12 --temperature 0 --max_output_tokens 1024 --thinking_budget -1 --poll_interval 30 --date 2026-06-19-dprose-batch-pilot"
@@ -98,6 +98,10 @@ Failure breakdown: 59× `no_json_found`, 59× truncated/malformed JSON (mostly u
 
 Batch path is viable at ~$4.4 per 1k sentences (below $10 pilot budget). Token averages differ from cost doc: input ~934 vs ~620 estimated; output+thinking ~758 vs ~700 estimated. Parse rate 88% is below the 95% smoke bar — recommend raising `max_output_tokens` (e.g. 2048) or capping `thinking_budget` before full corpus.
 
+## Resolution
+
+Parse failures resolved by full rerun at `max_output_tokens=2048` — see [2026-06-20 pilot rerun](2026-06-20__prompting__experiment__dprose-batch-pilot-2048.md) (99.90% parse rate, 988/989).
+
 ## Next step
 
-Qualitative review of predictions; consider `min_scene_len_5` post-processing; scale to full 327-file corpus in chunked JSONL batches.
+Proceed to full 327-file corpus in chunked JSONL batches at max_output_tokens=2048.
