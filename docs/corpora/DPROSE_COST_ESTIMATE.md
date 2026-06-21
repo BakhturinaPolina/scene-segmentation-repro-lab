@@ -1,6 +1,6 @@
 # dProse Corpus Scene Segmentation — Cost Estimate
 
-**Updated:** 2026-06-19 (post batch pilot)  
+**Updated:** 2026-06-21 (post 2048-token pilot rerun)  
 **Model:** Gemini 2.5 Pro, reasoning ON, Prompt Family B  
 **Provider:** Direct [Gemini Batch API](https://ai.google.dev/gemini-api/docs/batch-api) (50% off standard rates)
 
@@ -36,14 +36,15 @@ No gold labels — output is model predictions only (BORDER / NOBORDER per sente
 
 ## Token usage per request
 
-| Component | Excel estimate | **Pilot actual** (989 req) |
-|-----------|----------------|----------------------------|
+| Component | Excel estimate | **Pilot actual @ 2048** (989 req) |
+|-----------|----------------|-----------------------------------|
 | Input | ~620 | **~934** |
-| Visible JSON | ~85 | **~65** |
-| Thinking | ~500–800 | **~693** |
-| **Output (billed)** | **~700** | **~758** |
+| Visible JSON | ~85 | **~73** |
+| Thinking | ~500–800 | **~701** |
+| **Output (billed)** | **~700** | **~774** |
 
-Pilot job: `outputs/runs/dprose_batch/2026-06-19-dprose-batch-pilot/pilot_summary.json`
+Pilot job (validated): `outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/pilot_summary.json`  
+Prior 1024 run (superseded): `outputs/runs/dprose_batch/2026-06-19-dprose-batch-pilot/pilot_summary.json`
 
 ---
 
@@ -64,12 +65,13 @@ Pilot job: `outputs/runs/dprose_batch/2026-06-19-dprose-batch-pilot/pilot_summar
 |--|--|
 | Files | `dprose_100`, `dprose_806`, `dprose_2158` |
 | Sentences | 989 |
-| Actual cost | **$4.33** |
-| Parse rate @ 1024 tokens | 88% → fix with 2048 |
+| Actual cost @ 2048 | **$4.40** |
+| Parse rate @ 2048 tokens | **99.9%** (988/989) |
+| Parse rate @ 1024 tokens | 88% (118 failures; fixed by 2048) |
 
 ### Full corpus (120,369 sentences)
 
-Using pilot averages (934 in + 758 out):
+Using pilot averages @ 2048 (934 in + 774 out):
 
 | | Tokens | Batch cost |
 |--|--------|------------|
@@ -87,13 +89,11 @@ Add ~$15–30 headroom for `max_output_tokens=2048` on long-thinking sentences �
 | Thinking capped (512–768) | $400–490 |
 | Standard (non-batch) API | ~2× batch |
 
-**Budget:** pilot $10 (done) + full run **$550–600** → **~$560–610 total**.
-
 ---
 
 ## Runtime
 
-Batch API SLO: up to 24h; pilot (989 req) completed in **~4 min**. Full corpus: expect hours, not days, depending on queue load. No concurrency tuning needed (async batch).
+Batch API SLO: up to 24h. Pilot (989 req): **~4 min** wall (submit → complete; `job_meta.json` → `pilot_summary.json`). Extrapolated full corpus (120,369 req, same config): **~8 h** at pilot throughput (~4.1 req/s); likely **4–12 h** in practice (queue load, batch chunking). No concurrency tuning needed (async batch).
 
 ---
 
@@ -118,6 +118,7 @@ Prep: `scripts/data/prepare_dprose_prompting_inputs.py`
 
 ## Next steps
 
-1. Re-run failed keys (118) with `max_output_tokens=2048`; confirm parse rate ≥ 95%.
+1. ~~Re-run pilot at `max_output_tokens=2048`; confirm parse rate ≥ 95%.~~ **Done** — 99.9% (988/989), $4.40 batch.
 2. Full run: chunk 327 files into ~10–20 JSONL batches (~6k–12k req each).
-3. Optional post-process: `min_scene_len_5` (as in Excel experiments).
+3. Optional: re-run single residual failure (`dprose_100:22`, thought_tokens=1973) at 4096.
+4. Optional post-process: `min_scene_len_5` (as in Excel experiments).
