@@ -1,0 +1,26 @@
+{
+  "request_count": 989,
+  "parse_ok_count": 988,
+  "parse_ok_rate": 0.9989888776541962,
+  "fail_count": 1,
+  "label_counts": {
+    "BORDER": 235,
+    "NOBORDER": 753
+  },
+  "avg_input_tokens": 934.1122345803842,
+  "avg_output_tokens": 72.77148634984833,
+  "avg_thought_tokens": 701.0,
+  "total_input_tokens": 923837,
+  "total_output_tokens": 71971,
+  "total_thought_tokens": 693289,
+  "estimated_batch_cost_usd": 4.4037,
+  "model": "gemini-2.5-pro",
+  "job_name": "batches/0qof7m2muid5gha07qqdwu1gxs7v10chy818",
+  "job_state": "JOB_STATE_SUCCEEDED",
+  "mode": "file",
+  "manifest": "data/manifests/dprose_pilot.json",
+  "prompt_family": "B",
+  "context_sentences": 12,
+  "thinking_budget": -1,
+  "completed_at": "2026-06-21T04:14:35.438604+00:00"
+}

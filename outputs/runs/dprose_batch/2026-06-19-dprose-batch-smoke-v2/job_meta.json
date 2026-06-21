@@ -1,0 +1,40 @@
+{
+  "job_name": "batches/rdtcyrdwjje4p4i4lspho3uvyjp5sliwznmy",
+  "model": "gemini-2.5-pro",
+  "mode": "inline",
+  "manifest": "data/manifests/dprose_pilot.json",
+  "request_count": 5,
+  "records": [
+    {
+      "key": "dprose_100:0",
+      "source_file": "dprose_100.csv",
+      "sentence_index": 0,
+      "sentence_text_full": "Sturms Heimkehr  I  Mitten im Waldgebirge lag, verschrumpft und verfallen, von viel Sommern und Wintern alt und m\u00fcrbe geworden, ein St\u00e4dtchen."
+    },
+    {
+      "key": "dprose_100:1",
+      "source_file": "dprose_100.csv",
+      "sentence_index": 1,
+      "sentence_text_full": "K\u00fcmmerlich hatte sichs in die Talecke gedr\u00e4ngt und konnte froh sein, da\u00df die gro\u00dfen, dicken Berge es sich heranschmiegen lie\u00dfen und ihm gn\u00e4dig erlaubten, sich zu ducken mit allen niedrigen D\u00e4chern und W\u00e4rme zu suchen an den Tannenpelzen und den breiten Flanken der Berge."
+    },
+    {
+      "key": "dprose_100:2",
+      "source_file": "dprose_100.csv",
+      "sentence_index": 2,
+      "sentence_text_full": "Und es hatte doch soviel S\u00f6hne und T\u00f6chter gehabt, das k\u00fcmmerliche, bauf\u00e4llige Stadtm\u00e4uerchen, in Kammern und Stuben \u2013 ja, die waren nun alle gro\u00df und alle von dannen, und keinen verlangte es, ihm im bed\u00fcrftigen Alter alle Sorgen und die vieltausend losen N\u00e4chte aus Jugend\u00fcberkraft zur\u00fcckzuerstatten und ihm seine Gebrechlichkeit zu st\u00fctzen in dankbarer Liebe."
+    },
+    {
+      "key": "dprose_100:3",
+      "source_file": "dprose_100.csv",
+      "sentence_index": 3,
+      "sentence_text_full": "Aber einer von ihren S\u00f6hnen, die es gro\u00dfgezogen in der Talecke auf den gr\u00fcnen H\u00e4ngematten, zwischen den Bergen \u2013 einer war von allen der gr\u00f6\u00dfte geworden, und an ihn dachte sie am allermeisten und war stolz auf ihn wie auf keinen andern, obgleich er nur ein Pflegesohn war, ein Versto\u00dfener."
+    },
+    {
+      "key": "dprose_100:4",
+      "source_file": "dprose_100.csv",
+      "sentence_index": 4,
+      "sentence_text_full": "Das war der Sturm, der zwischen den H\u00e4ngen am Waldgebirge seine zweite Heimat gefunden hatte, ihr Herzensjunge."
+    }
+  ],
+  "submitted_at": "2026-06-20T02:59:47.044897+00:00"
+}

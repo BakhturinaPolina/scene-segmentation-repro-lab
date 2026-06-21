@@ -71,6 +71,9 @@ outputs/runs/*
 outputs/runs/ssc/
 outputs/runs/llama/
 outputs/runs/prompting/
+!outputs/runs/dprose_batch/
+!outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/
+!outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/**
 # Review outputs: ignore all by default; keep only selected package trackable
 outputs/review/**
 !outputs/review/markdown/
