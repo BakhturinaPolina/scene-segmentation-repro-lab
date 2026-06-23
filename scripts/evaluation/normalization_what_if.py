@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,10 @@ def clean(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def norm_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", clean(value))
 
 
 def as_label(value: Any) -> str:
@@ -47,27 +52,37 @@ def read_review_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 def build_aligned_sequences(gold_rows: list[dict[str, Any]], pred_rows: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
+    """Align gold CSV rows to review predictions.
+
+    Gold CSVs use 1-based ``sentence_index`` values from Excel; runner review
+    JSONL uses 0-based indices. Match by 0-based row position first, then by
+    normalized sentence text.
+    """
     pred_by_idx: dict[int, str] = {}
+    pred_by_text: dict[str, str] = {}
     for row in pred_rows:
         idx_raw = clean(row.get("sentence_index"))
-        if not idx_raw:
-            continue
-        try:
-            idx = int(float(idx_raw))
-        except Exception:
-            continue
-        pred_by_idx[idx] = as_label(row.get("prediction_label"))
+        if idx_raw:
+            try:
+                pred_by_idx[int(float(idx_raw))] = as_label(row.get("prediction_label"))
+            except Exception:
+                pass
+        text_key = norm_text(row.get("sentence_text_full"))
+        if text_key and text_key not in pred_by_text:
+            pred_by_text[text_key] = as_label(row.get("prediction_label"))
 
     gold_labels: list[str] = []
     pred_labels: list[str] = []
-    for i, row in enumerate(gold_rows):
-        idx_raw = clean(row.get("sentence_index"))
-        try:
-            idx = int(float(idx_raw)) if idx_raw else i
-        except Exception:
-            idx = i
+    for pos, row in enumerate(gold_rows):
         gold_labels.append(as_label(row.get("ground_truth_label")))
-        pred_labels.append(pred_by_idx.get(idx, "NOBORDER"))
+        text_key = norm_text(row.get("sentence_text_full"))
+
+        pred = pred_by_idx.get(pos)
+        if pred is None and text_key:
+            pred = pred_by_text.get(text_key)
+        if pred is None:
+            pred = "NOBORDER"
+        pred_labels.append(pred)
     return gold_labels, pred_labels
 
 

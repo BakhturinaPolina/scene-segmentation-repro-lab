@@ -61,20 +61,13 @@ def score_rows(gold_rows: list[dict[str, Any]], pred_rows: list[dict[str, Any]])
     tp = fp = fn = tn = 0
     match_counts = {"index": 0, "text": 0, "default_noborder": 0}
 
-    for row in gold_rows:
+    for pos, row in enumerate(gold_rows):
         g = as_label(row.get("ground_truth_label"))
-        idx = None
-        idx_raw = clean(row.get("sentence_index"))
-        if idx_raw:
-            try:
-                idx = int(float(idx_raw))
-            except Exception:
-                idx = None
         text_key = norm_text(row.get("sentence_text_full"))
 
         pred = None
-        if idx is not None and idx in pred_by_idx:
-            pred = pred_by_idx[idx]
+        if pos in pred_by_idx:
+            pred = pred_by_idx[pos]
             match_counts["index"] += 1
         elif text_key and text_key in pred_by_text:
             pred = pred_by_text[text_key]
