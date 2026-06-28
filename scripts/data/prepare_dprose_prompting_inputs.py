@@ -118,13 +118,56 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def numeric_sort_key(csv_name: str) -> int:
+    stem = Path(csv_name).stem
+    if stem.startswith("dprose_"):
+        return int(stem.replace("dprose_", ""))
+    return 0
+
+
+def list_all_csv_files(raw_dir: Path) -> list[str]:
+    return sorted(
+        (p.name for p in raw_dir.glob("dprose_*.csv")),
+        key=numeric_sort_key,
+    )
+
+
+def load_existing_manifest(manifest_path: Path) -> dict[str, dict[str, Any]]:
+    if not manifest_path.is_file():
+        return {}
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return {entry["source_file"]: entry for entry in payload.get("files", [])}
+
+
+def should_skip_existing(
+    *,
+    csv_name: str,
+    txt_out: Path,
+    existing: dict[str, dict[str, Any]],
+) -> bool:
+    entry = existing.get(csv_name)
+    if not entry or not txt_out.is_file():
+        return False
+    return entry.get("md5") == md5sum(txt_out)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--files",
         nargs="+",
-        default=DEFAULT_PILOT_FILES,
-        help="dProse CSV filenames under --raw_dir (default: pilot trio).",
+        default=None,
+        help="dProse CSV filenames under --raw_dir (default: pilot trio unless --all).",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Process all dprose_*.csv files under --raw_dir (sorted by numeric ID).",
+    )
+    parser.add_argument(
+        "--skip_existing",
+        action="store_true",
+        help="Skip files whose processed txt md5 matches the existing manifest entry.",
     )
     parser.add_argument(
         "--raw_dir",
@@ -153,11 +196,21 @@ def main() -> int:
     out_dir = args.out_dir.expanduser()
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    if args.all:
+        file_list = list_all_csv_files(raw_dir)
+    elif args.files:
+        file_list = args.files
+    else:
+        file_list = DEFAULT_PILOT_FILES
+
+    existing_manifest = load_existing_manifest(args.manifest_out) if args.skip_existing else {}
+
     manifest_files: list[dict[str, Any]] = []
     profile_rows: list[dict[str, Any]] = []
     total_sentences = 0
+    skipped = 0
 
-    for csv_name in args.files:
+    for csv_name in file_list:
         csv_path = (raw_dir / csv_name).resolve()
         if not csv_path.exists():
             raise FileNotFoundError(f"dProse CSV not found: {csv_path}")
@@ -166,11 +219,33 @@ def main() -> int:
         target_dir = out_dir / slug
         target_dir.mkdir(parents=True, exist_ok=True)
 
-        df = pd.read_csv(csv_path)
-        df.columns = [str(c).strip() for c in df.columns]
-
         txt_out = target_dir / f"{slug}__for_prompting.txt"
         jsonl_out = target_dir / f"{slug}__for_prompting.jsonl"
+
+        if args.skip_existing and should_skip_existing(
+            csv_name=csv_path.name,
+            txt_out=txt_out,
+            existing=existing_manifest,
+        ):
+            entry = existing_manifest[csv_path.name]
+            manifest_files.append(entry)
+            total_sentences += int(entry.get("sentence_count", 0))
+            profile_rows.append(
+                {
+                    "csv_file": str(csv_path),
+                    "rows_raw": int(entry.get("sentence_count", 0)),
+                    "rows_used": int(entry.get("sentence_count", 0)),
+                    "txt_out": str(txt_out),
+                    "jsonl_out": str(jsonl_out),
+                    "skipped": True,
+                }
+            )
+            skipped += 1
+            print(f"Skipped (unchanged): {csv_path.name} ({entry.get('sentence_count', 0)} sentences)")
+            continue
+
+        df = pd.read_csv(csv_path)
+        df.columns = [str(c).strip() for c in df.columns]
 
         prompting_rows = derive_prompting_rows(df, source_name=csv_path.name)
         txt_out.write_text(
@@ -202,8 +277,9 @@ def main() -> int:
         )
         print(f"Processed: {csv_path.name} -> {target_dir} ({len(prompting_rows)} sentences)")
 
+    dataset_name = "dprose_full" if args.all else "dprose_pilot"
     manifest = {
-        "dataset": "dprose_pilot",
+        "dataset": dataset_name,
         "source": "local/dprose_sentence_level",
         "retrieved_at": date.today().isoformat(),
         "total_sentences": total_sentences,
@@ -223,6 +299,8 @@ def main() -> int:
     )
 
     print(f"Total sentences: {total_sentences}")
+    if skipped:
+        print(f"Skipped unchanged: {skipped}")
     print(f"Wrote manifest: {args.manifest_out}")
     print(f"Wrote processing report: {profile_out}")
     return 0
