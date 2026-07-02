@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import time
 from collections import Counter
@@ -48,6 +49,56 @@ class BatchRunConfig:
     max_output_tokens: int = 2048
     thinking_budget: int = -1
     poll_interval: int = 30
+    upload_rate_kbps: int | None = None
+
+
+class RateLimitedFile(io.RawIOBase):
+    """Binary file wrapper that throttles read() to at most *kbps* kilobytes per second."""
+
+    def __init__(self, path: Path | str, *, kbps: int):
+        if kbps <= 0:
+            raise ValueError("kbps must be positive")
+        self._handle = Path(path).open("rb")
+        self._max_bps = kbps * 1024
+        self._sent = 0
+        self._start = time.monotonic()
+
+    def _throttle(self, nbytes: int) -> None:
+        if nbytes <= 0:
+            return
+        self._sent += nbytes
+        expected = self._sent / self._max_bps
+        elapsed = time.monotonic() - self._start
+        delay = expected - elapsed
+        if delay > 0:
+            time.sleep(delay)
+
+    def read(self, size: int = -1) -> bytes:
+        if size < 0:
+            chunks: list[bytes] = []
+            while True:
+                chunk = self._handle.read(65536)
+                if not chunk:
+                    break
+                self._throttle(len(chunk))
+                chunks.append(chunk)
+            return b"".join(chunks)
+        chunk = self._handle.read(size)
+        if chunk:
+            self._throttle(len(chunk))
+        return chunk
+
+    def readable(self) -> bool:
+        return True
+
+    def close(self) -> None:
+        self._handle.close()
+
+    def __enter__(self) -> RateLimitedFile:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
 
 
 def log(msg: str) -> None:
@@ -479,15 +530,28 @@ def submit_batch_job(
         ]
         batch_jsonl = out_dir / "batch_requests.jsonl"
         write_jsonl(batch_jsonl, file_lines)
-        log(f"Wrote batch JSONL: {batch_jsonl} ({batch_jsonl.stat().st_size} bytes)")
+        size_bytes = batch_jsonl.stat().st_size
+        log(f"Wrote batch JSONL: {batch_jsonl} ({size_bytes} bytes)")
+
+        upload_target: str | RateLimitedFile = str(batch_jsonl)
+        if config.upload_rate_kbps:
+            mbps = config.upload_rate_kbps * 8 / 1000
+            est_sec = size_bytes / (config.upload_rate_kbps * 1024)
+            log(
+                f"Upload rate cap: {config.upload_rate_kbps} KB/s "
+                f"(~{mbps:.1f} Mbps, est {est_sec:.0f}s for this file)"
+            )
+            upload_target = RateLimitedFile(batch_jsonl, kbps=config.upload_rate_kbps)
 
         uploaded = client.files.upload(
-            file=str(batch_jsonl),
+            file=upload_target,
             config=types.UploadFileConfig(
                 display_name=batch_jsonl.name,
                 mime_type="jsonl",
             ),
         )
+        if isinstance(upload_target, RateLimitedFile):
+            upload_target.close()
         log(f"Uploaded input file: {uploaded.name}")
         src = uploaded.name
     else:

@@ -228,6 +228,17 @@ def run_book_review(
     return subprocess.run(cmd, cwd=_ROOT, check=False).returncode
 
 
+def load_predictions_rows(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        return []
+    rows: list[dict[str, Any]] = []
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                rows.append(json.loads(line))
+    return rows
+
+
 def load_failed_keys(predictions: Path) -> set[str]:
     if not predictions.is_file():
         return set()
@@ -281,6 +292,33 @@ def run_one_book(
 
     meta_path = job_meta_path(args.output_root, slug)
     pred_path = predictions_path(args.output_root, slug)
+
+    if pred_path.is_file() and not args.retry_failed:
+        existing_rows = load_predictions_rows(pred_path)
+        if len(existing_rows) >= sentence_count:
+            parse_ok = sum(1 for r in existing_rows if r.get("parse_ok"))
+            parse_rate = parse_ok / len(existing_rows) if existing_rows else 0.0
+            if parse_rate >= PARSE_OK_GATE:
+                summary_path = out / "book_summary.json"
+                if summary_path.is_file():
+                    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+                else:
+                    summary = {
+                        "slug": slug,
+                        "source_file": source_file,
+                        "request_count": len(existing_rows),
+                        "parse_ok_count": parse_ok,
+                        "parse_ok_rate": parse_rate,
+                    }
+                log(
+                    f"Resume from disk: {slug} ({len(existing_rows)} predictions, "
+                    f"parse {parse_rate:.1%}, skip API submit)"
+                )
+                return existing_rows, summary
+            log(
+                f"On-disk predictions below parse gate ({parse_rate:.1%}) for {slug}; "
+                "will re-submit"
+            )
 
     keys_filter = None
     if args.retry_failed and pred_path.is_file():
@@ -372,10 +410,13 @@ def run_one_book(
         }
     )
 
-    with pred_path.open("w", encoding="utf-8") as handle:
+    tmp_pred = pred_path.with_suffix(pred_path.suffix + ".tmp")
+    with tmp_pred.open("w", encoding="utf-8") as handle:
         for row in predictions:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
-    (out / "book_summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp_pred, pred_path)
+    write_json_atomic(out / "book_summary.json", summary)
+    log(f"Wrote predictions: {pred_path} ({len(predictions)} rows)")
     return predictions, summary
 
 
@@ -399,6 +440,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_output_tokens", type=int, default=2048)
     parser.add_argument("--thinking_budget", type=int, default=-1)
     parser.add_argument("--poll_interval", type=int, default=30)
+    parser.add_argument(
+        "--upload_rate_kbps",
+        type=int,
+        default=None,
+        help="Cap batch JSONL upload read rate in KB/s (e.g. 250 ≈ 2 Mbps).",
+    )
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--max_cost_usd", type=float, default=None)
     parser.add_argument("--max_books", type=int, default=None)
@@ -446,7 +493,11 @@ def main() -> int:
         wave_books = wave.get("books", [])
 
     spent_usd = spent_usd_for_cap(progress)
+    session_start = datetime.now(timezone.utc).isoformat()
+    log(f"=== dProse corpus session started {session_start} ===")
     log(f"Wave: {wave.get('wave_id', args.wave_manifest.stem)}")
+    log(f"Output root: {args.output_root}")
+    log(f"Config hash: {config_hash(args)}")
     log(f"Books in wave: {len(wave_books)}  Session API spend (excl. pilot seed): ${spent_usd:.2f}")
 
     planned: list[dict[str, Any]] = []
@@ -454,11 +505,16 @@ def main() -> int:
     for book in wave_books:
         slug = book["slug"]
         if args.resume and progress.get("books", {}).get(slug, {}).get("status") == "complete":
-            log(f"Skip complete: {slug}")
-            continue
+            if args.retry_failed and load_failed_keys(predictions_path(args.output_root, slug)):
+                log(f"Retry failed keys: {slug}")
+            else:
+                log(f"Skip complete: {slug}")
+                continue
         meta = next((f for f in full_manifest.get("files", []) if f.get("slug") == slug), book)
         sentence_count = int(meta.get("sentence_count", book.get("sentence_count", 0)))
-        est = estimate_cost_usd(sentence_count)
+        pred_path = predictions_path(args.output_root, slug)
+        failed_keys = load_failed_keys(pred_path) if args.retry_failed and pred_path.is_file() else set()
+        est = estimate_cost_usd(len(failed_keys) if failed_keys else sentence_count)
         planned.append(
             {
                 "slug": slug,
@@ -519,6 +575,7 @@ def main() -> int:
         max_output_tokens=args.max_output_tokens,
         thinking_budget=args.thinking_budget,
         poll_interval=args.poll_interval,
+        upload_rate_kbps=args.upload_rate_kbps,
     )
 
     books_run = 0
@@ -546,16 +603,24 @@ def main() -> int:
         )
 
         pred_path = predictions_path(args.output_root, slug)
+        book_out = book_dir(args.output_root, slug)
         run_book_review(
             predictions=pred_path,
-            book_out=book_dir(args.output_root, slug),
+            book_out=book_out,
             source_file=source_file,
         )
 
-        parse_ok_rate = float(summary.get("parse_ok_rate", 0))
-        border_count = int(summary.get("label_counts", {}).get("BORDER", 0))
-        border_rate = border_count / len(predictions) if predictions else 0.0
-        book_cost = float(summary.get("estimated_batch_cost_usd", 0))
+        review_path = book_out / "book_review.json"
+        if review_path.is_file():
+            review = json.loads(review_path.read_text(encoding="utf-8"))
+            parse_ok_rate = float(review.get("parse_ok_rate", 0))
+            border_rate = float(review.get("border_rate", 0))
+            book_cost = float(review.get("estimated_cost_usd", 0))
+        else:
+            parse_ok_rate = float(summary.get("parse_ok_rate", 0))
+            border_count = int(summary.get("label_counts", {}).get("BORDER", 0))
+            border_rate = border_count / len(predictions) if predictions else 0.0
+            book_cost = float(summary.get("estimated_batch_cost_usd", 0))
 
         progress = load_progress(progress_path)
         status = "complete" if parse_ok_rate >= PARSE_OK_GATE else "blocked"
@@ -575,6 +640,12 @@ def main() -> int:
         )
         progress["config_hash"] = config_hash(args)
         write_json_atomic(progress_path, progress)
+        totals = progress.get("totals", {})
+        log(
+            f"Progress saved: {slug} status={status} "
+            f"corpus={totals.get('books_complete', 0)}/{totals.get('books_total', 0)} books, "
+            f"${totals.get('cost_usd', 0):.2f} cumulative"
+        )
         books_run += 1
 
         if status == "blocked":
