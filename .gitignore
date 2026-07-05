@@ -70,12 +70,18 @@ outputs/runs/*
 outputs/runs/ssc/
 outputs/runs/llama/
 outputs/runs/prompting/
-outputs/runs/dprose_batch/
+!outputs/runs/dprose_batch/
+outputs/runs/dprose_batch/*
 !outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/
 !outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/pilot_summary.json
 !outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/predictions.jsonl
 !outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/job_meta.json
 !outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/predictions_readable.csv
+!outputs/runs/dprose_batch/dprose-full-corpus/
+outputs/runs/dprose_batch/dprose-full-corpus/*
+!outputs/runs/dprose_batch/dprose-full-corpus/final_outputs/
+outputs/runs/dprose_batch/dprose-full-corpus/final_outputs/*
+!outputs/runs/dprose_batch/dprose-full-corpus/final_outputs/final_report.md
 # Review outputs: ignore all by default; keep only selected package trackable
 outputs/review/**
 !outputs/review/markdown/
