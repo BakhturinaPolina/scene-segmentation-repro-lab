@@ -40,22 +40,21 @@ outputs/artifacts/logs/gpu_env_report.txt
 coverage.xml
 htmlcov/
 *.log
+logs/
 
-# Data artifacts (keep folder structure only)
-data/raw/*
-!data/raw/.gitkeep
-data/interim/*
-!data/interim/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-data/review/*
-!data/review/.gitkeep
-!data/review/excel/.gitkeep
+# Large run artifacts (regenerable; paths documented in research_log)
+**/batch_requests.jsonl
+**/all_sentences.csv
+
+# Data — ignore all bulk artifacts; track layout docs (.md), .gitkeep, and small manifest JSON
+data/**
+!data/**/
+!data/**/*.md
+!data/**/.gitkeep
+!data/manifests/
 data/manifests/*
 !data/manifests/.gitkeep
-!data/manifests/raw_txt.json
-!data/manifests/stss_test_2.json
-!data/manifests/excel_prompting.json
+!data/manifests/**/*.json
 
 # Run outputs (keep structure, ignore contents)
 outputs/artifacts/*
@@ -71,9 +70,12 @@ outputs/runs/*
 outputs/runs/ssc/
 outputs/runs/llama/
 outputs/runs/prompting/
-!outputs/runs/dprose_batch/
+outputs/runs/dprose_batch/
 !outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/
-!outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/**
+!outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/pilot_summary.json
+!outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/predictions.jsonl
+!outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/job_meta.json
+!outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/predictions_readable.csv
 # Review outputs: ignore all by default; keep only selected package trackable
 outputs/review/**
 !outputs/review/markdown/
