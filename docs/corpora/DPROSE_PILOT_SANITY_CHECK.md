@@ -7,7 +7,7 @@
 
 No gold labels exist for dProse. This document summarizes manual sanity-check findings: text content, border quality, and recommended follow-ups before scaling to the full corpus (~120k sentences).
 
-Related: [DPROSE_COST_ESTIMATE.md](./DPROSE_COST_ESTIMATE.md)
+Related: [DPROSE_COST_ESTIMATE.md](./DPROSE_COST_ESTIMATE.md) · [DPROSE_CORPUS_SPOT_CHECKS.md](./DPROSE_CORPUS_SPOT_CHECKS.md) (full-corpus wave spot-checks)
 
 ---
 
@@ -217,6 +217,7 @@ If reviewing ~20 predictions manually, prioritize:
 
 | Resource | Path |
 |----------|------|
+| Full-corpus spot-checks | [`DPROSE_CORPUS_SPOT_CHECKS.md`](./DPROSE_CORPUS_SPOT_CHECKS.md) |
 | Predictions | `outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/predictions.jsonl` |
 | Summary | `outputs/runs/dprose_batch/2026-06-20-dprose-batch-pilot-2048/pilot_summary.json` |
 | Manifest | `data/manifests/dprose_pilot.json` |

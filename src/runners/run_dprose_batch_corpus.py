@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Run dProse full-corpus prompting one book at a time via Gemini Batch API."""
+"""Run dProse full-corpus prompting one book at a time via Gemini Batch API.
+
+Parse-failure remediation (see docs/corpora/DPROSE_CORPUS_SPOT_CHECKS.md):
+  - ``--retry_failed``: re-submit only keys with ``parse_ok=false``; merges via
+    ``merge_predictions()``. Use ``--max_output_tokens 4096`` for thinking overflow.
+  - Wrapper: ``scripts/sweeps/retry_dprose_corpus_failed.sh``
+  - Sync fallback: ``src/runners/run_dprose_sync_retry.py``
+  - Neighbor patch: ``scripts/evaluation/patch_failed_predictions.py``
+"""
 
 from __future__ import annotations
 

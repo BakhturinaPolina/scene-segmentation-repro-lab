@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import time
 from collections import Counter
 from dataclasses import dataclass
@@ -90,6 +91,19 @@ class RateLimitedFile(io.RawIOBase):
 
     def readable(self) -> bool:
         return True
+
+    def seekable(self) -> bool:
+        return True
+
+    @property
+    def mode(self) -> str:
+        return self._handle.mode
+
+    def tell(self) -> int:
+        return self._handle.tell()
+
+    def seek(self, offset: int, whence: int = os.SEEK_SET) -> int:
+        return self._handle.seek(offset, whence)
 
     def close(self) -> None:
         self._handle.close()

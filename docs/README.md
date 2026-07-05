@@ -22,6 +22,9 @@ docs/
 | §5.2 prompting results | [`prompting/PROMPTING_RESULTS_REPORT.md`](prompting/PROMPTING_RESULTS_REPORT.md) |
 | Excel experiments | [`prompting/EXCEL_EXPERIMENTS_COMPARISON_REPORT.md`](prompting/EXCEL_EXPERIMENTS_COMPARISON_REPORT.md) |
 | NAACL 2025 paper corpus | [`corpora/SCENE_SEGMENTATION_DE_BOOK_LIST.md`](corpora/SCENE_SEGMENTATION_DE_BOOK_LIST.md) |
+| dProse pilot sanity check | [`corpora/DPROSE_PILOT_SANITY_CHECK.md`](corpora/DPROSE_PILOT_SANITY_CHECK.md) |
+| dProse full-corpus spot-checks | [`corpora/DPROSE_CORPUS_SPOT_CHECKS.md`](corpora/DPROSE_CORPUS_SPOT_CHECKS.md) |
+| dProse cost estimate | [`corpora/DPROSE_COST_ESTIMATE.md`](corpora/DPROSE_COST_ESTIMATE.md) |
 | Reproducibility gaps | [`reproducibility/REPRODUCIBILITY_GAP_REVIEW.md`](reproducibility/REPRODUCIBILITY_GAP_REVIEW.md) |
 | Source paper (PDF) | [`reference/2025.naacl-long.500.pdf`](reference/2025.naacl-long.500.pdf) |
 
