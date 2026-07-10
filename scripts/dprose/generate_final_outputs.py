@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate final review artifacts for the dProse full-corpus batch run.
 
-Produces four files in ``final_outputs/``:
+Produces the following in ``final_outputs/``:
 
 1. ``corpus_stats.csv``      -- one row per book with the most useful
                                 scene-segmentation metrics, plus a corpus
@@ -11,10 +11,17 @@ Produces four files in ``final_outputs/``:
                                 filled here; the qualitative columns
                                 (first_sentence_preview / likely_cause /
                                 review_notes) are left for manual review.
-3. ``all_sentences.csv``     -- one row per sentence (border as 0/1) with the
-                                model reasoning and per-sentence merge/split
-                                review flags.
-4. ``final_report.md``       -- short plain-language corpus report.
+3. ``all_sentences.csv`` / ``all_sentences.xlsx`` -- one row per sentence in
+                                the Kleist-scenes column order
+                                (``Sentence``, ``Phrase``, ``Text``,
+                                ``is_scene_boundary``, ``scene_id``) plus
+                                ``slug`` and ``model_reason``. Sentence 0 of
+                                every book is forced to a scene boundary so
+                                ``scene_id`` and ``is_scene_boundary`` stay
+                                aligned.
+4. ``per_book_xlsx/<slug>.xlsx`` -- one workbook per book with the same
+                                Kleist-scenes columns + ``model_reason``.
+5. ``final_report.md``       -- short plain-language corpus report.
 
 The script reads per-book ``book_review.json`` (pre-computed scene stats) and
 ``predictions.jsonl`` (sentence-level labels + reasoning) under the run's
@@ -27,10 +34,24 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import statistics
 import sys
 from pathlib import Path
 from typing import Any
+
+import openpyxl
+from openpyxl.utils import get_column_letter
+
+# openpyxl rejects ASCII control chars (except tab/LF/CR) in cell values.
+_ILLEGAL_XLSX_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def sanitize_xlsx_text(value: Any) -> Any:
+    """Strip characters that openpyxl refuses to write into a cell."""
+    if not isinstance(value, str):
+        return value
+    return _ILLEGAL_XLSX_RE.sub("", value)
 
 # Reuse the per-book scene-stat logic from the review script so that books
 # missing a pre-computed book_review.json (e.g. pilot-seeded books) still get
@@ -235,10 +256,43 @@ def scene_length_by_index(border_flags: list[bool]) -> list[int]:
     return lengths
 
 
+def force_opening_border(border_flags: list[bool]) -> list[bool]:
+    """Ensure sentence 0 is a scene boundary.
+
+    A book's first sentence always opens scene 1; ``NOBORDER`` on index 0 is
+    meaningless (continuation of nothing). Forcing True keeps
+    ``is_scene_boundary`` and ``scene_id`` aligned for every book.
+    """
+    if not border_flags:
+        return border_flags
+    forced = list(border_flags)
+    forced[0] = True
+    return forced
+
+
+def cumulative_scene_ids(border_flags: list[bool]) -> list[int]:
+    """Cumulative 1-based scene index per sentence.
+
+    Requires ``border_flags[0] is True`` (see ``force_opening_border``).
+    Every subsequent BORDER=True increments the counter, so
+    ``max(scene_id) == sum(border_flags)``.
+    """
+    scene_ids: list[int] = []
+    current = 0
+    for is_border in border_flags:
+        if is_border:
+            current += 1
+        scene_ids.append(current)
+    return scene_ids
+
+
 def per_sentence_flags(rows_sorted: list[dict[str, Any]]) -> list[dict[str, int]]:
-    """Compute merge_candidate / split_candidate / review_flag per sentence."""
-    border_flags = [bool(r.get("prediction_bool")) for r in rows_sorted]
+    """Compute merge/split/review flags + scene_id; force opening border."""
+    border_flags = force_opening_border(
+        [bool(r.get("prediction_bool")) for r in rows_sorted]
+    )
     scene_lens = scene_length_by_index(border_flags)
+    scene_ids = cumulative_scene_ids(border_flags)
     n = len(rows_sorted)
     out: list[dict[str, int]] = []
     for i in range(n):
@@ -250,9 +304,11 @@ def per_sentence_flags(rows_sorted: list[dict[str, Any]]) -> list[dict[str, int]
         # Under-segmentation suspect: a NOBORDER buried inside a long scene.
         split = int((not is_border) and scene_lens[i] >= LONG_SCENE_MIN)
         out.append({
+            "is_scene_boundary": int(is_border),
             "merge_candidate": merge,
             "split_candidate": split,
             "review_flag": int(bool(merge or split)),
+            "scene_id": scene_ids[i],
         })
     return out
 
@@ -411,31 +467,52 @@ def write_anomalous(path: Path, rows: list[dict[str, Any]]) -> None:
             writer.writerow(row)
 
 
-# --- Artifact 3: all_sentences.csv ----------------------------------------
+# --- Artifact 3: all_sentences.csv / .xlsx ---------------------------------
+# Column order matches Scenes_example output.xlsx, plus slug (corpus files)
+# and model_reason. dProse has no phrase split, so Phrase == 0-based index
+# and Sentence == index + 1 (1-based), matching the example's numbering roles.
 
 SENTENCE_FIELDS = [
     "slug",
-    "sentence_index",
-    "sentence_text_full",
-    "border",
+    "Sentence",
+    "Phrase",
+    "Text",
+    "is_scene_boundary",
+    "scene_id",
     "model_reason",
-    "merge_candidate",
-    "split_candidate",
-    "review_flag",
-    "manual_fix",
-    "manual_fix_confidence",
+]
+
+# Per-book xlsx: unnamed leading index column like the Kleist example, then
+# the same named columns (no slug — one book per file) + model_reason.
+PER_BOOK_XLSX_HEADERS = [
+    None,
+    "Sentence",
+    "Phrase",
+    "Text",
+    "is_scene_boundary",
+    "scene_id",
+    "model_reason",
+]
+
+CORPUS_XLSX_HEADERS = [
+    "slug",
+    "Sentence",
+    "Phrase",
+    "Text",
+    "is_scene_boundary",
+    "scene_id",
+    "model_reason",
 ]
 
 
 def process_book_sentences(
     slug: str, rows: list[dict[str, Any]]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Return (sentence rows for CSV, per-book aggregates).
+    """Return (sentence rows for export, per-book aggregates).
 
-    Aggregates include merge/split candidate totals and the true opening
-    sentence (index 0), which is more reliable than book_review.json's
-    ``first_sentence_preview`` when a book's predictions.jsonl is not stored in
-    strict index order (retried rows can shift the first physical line).
+    Sentence 0 is forced to a scene boundary so ``is_scene_boundary`` and
+    ``scene_id`` stay aligned. Aggregates include merge/split candidate
+    totals (for anomalous_books.csv) and the true opening-sentence preview.
     """
     rows_sorted = sorted(rows, key=lambda r: int(r.get("sentence_index", 0)))
     flags = per_sentence_flags(rows_sorted)
@@ -443,34 +520,111 @@ def process_book_sentences(
     out_rows: list[dict[str, Any]] = []
     merge_total = 0
     split_total = 0
+    forced_opening = 0
     for row, flag in zip(rows_sorted, flags):
         merge_total += flag["merge_candidate"]
         split_total += flag["split_candidate"]
+        idx = int(row.get("sentence_index", 0))
+        model_border = bool(row.get("prediction_bool"))
+        if idx == 0 and not model_border:
+            forced_opening = 1
         out_rows.append({
             "slug": slug,
-            "sentence_index": int(row.get("sentence_index", 0)),
-            "sentence_text_full": row.get("sentence_text_full", ""),
-            "border": 1 if row.get("prediction_bool") else 0,
+            "index": idx,
+            "Sentence": idx + 1,
+            "Phrase": idx,
+            "Text": row.get("sentence_text_full", ""),
+            "is_scene_boundary": bool(flag["is_scene_boundary"]),
+            "scene_id": flag["scene_id"],
             "model_reason": extract_reason(row.get("raw_model_response")),
-            "merge_candidate": flag["merge_candidate"],
-            "split_candidate": flag["split_candidate"],
+            # Internal fields used by report / anomaly aggregates only:
             "review_flag": flag["review_flag"],
             "manual_fix": row.get("manual_fix", ""),
-            "manual_fix_confidence": row.get("manual_fix_confidence", ""),
         })
     opening = rows_sorted[0].get("sentence_text_full", "")[:120] if rows_sorted else ""
     return out_rows, {
         "merge_candidate": merge_total,
         "split_candidate": split_total,
         "first_opening": opening,
+        "forced_opening_border": forced_opening,
     }
 
 
-def write_all_sentences(path: Path, rows: list[dict[str, Any]]) -> None:
+def write_all_sentences_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=SENTENCE_FIELDS)
+        writer = csv.DictWriter(handle, fieldnames=SENTENCE_FIELDS, extrasaction="ignore")
         writer.writeheader()
-        writer.writerows(rows)
+        for row in rows:
+            writer.writerow({
+                **row,
+                # CSV cannot store real booleans; write TRUE/FALSE so Excel
+                # imports them as Wahr/Falsch under a German locale.
+                "is_scene_boundary": "TRUE" if row["is_scene_boundary"] else "FALSE",
+            })
+
+
+def _style_text_column(ws: Any, col_letter: str) -> None:
+    for cell in ws[col_letter][1:]:
+        cell.alignment = openpyxl.styles.Alignment(wrap_text=True, vertical="top")
+
+
+def write_all_sentences_xlsx(path: Path, rows: list[dict[str, Any]]) -> None:
+    """Corpus-wide workbook with the same columns as all_sentences.csv."""
+    wb = openpyxl.Workbook(write_only=True)
+    ws = wb.create_sheet("scenes")
+    # write_only Workbooks start with no usable default sheet; create_sheet
+    # is the supported entry point.
+    ws.append(CORPUS_XLSX_HEADERS)
+    for row in rows:
+        ws.append([
+            row["slug"],
+            int(row["Sentence"]),
+            int(row["Phrase"]),
+            sanitize_xlsx_text(row["Text"]),
+            bool(row["is_scene_boundary"]),
+            int(row["scene_id"]),
+            sanitize_xlsx_text(row["model_reason"]),
+        ])
+    wb.save(path)
+
+
+def write_per_book_xlsx(out_dir: Path, all_sentence_rows: list[dict[str, Any]]) -> int:
+    """Write one .xlsx per book in the Kleist-scenes example layout + model_reason.
+
+    Columns: unnamed 0-based index, Sentence (1-based), Phrase (0-based unit
+    index; equals Phrase==index because dProse has no phrase split), Text,
+    is_scene_boundary (Excel bool -> Wahr/Falsch), scene_id, model_reason.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    by_slug: dict[str, list[dict[str, Any]]] = {}
+    for row in all_sentence_rows:
+        by_slug.setdefault(row["slug"], []).append(row)
+
+    for slug, rows in by_slug.items():
+        rows_sorted = sorted(rows, key=lambda r: int(r["index"]))
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "scenes"
+        ws.append(PER_BOOK_XLSX_HEADERS)
+        for row in rows_sorted:
+            ws.append([
+                int(row["index"]),
+                int(row["Sentence"]),
+                int(row["Phrase"]),
+                sanitize_xlsx_text(row["Text"]),
+                bool(row["is_scene_boundary"]),
+                int(row["scene_id"]),
+                sanitize_xlsx_text(row["model_reason"]),
+            ])
+        ws.freeze_panes = "A2"
+        widths = {"A": 8, "B": 10, "C": 10, "D": 100, "E": 18, "F": 10, "G": 60}
+        for letter, width in widths.items():
+            ws.column_dimensions[letter].width = width
+        _style_text_column(ws, get_column_letter(4))
+        _style_text_column(ws, get_column_letter(7))
+        wb.save(out_dir / f"{slug}.xlsx")
+
+    return len(by_slug)
 
 
 # --- Artifact 4: final_report.md ------------------------------------------
@@ -562,13 +716,14 @@ def write_report(
         "",
         "## Known data-quality notes",
         "",
-        f"- **{total_manual_fixes} sentences** carry a `manual_fix` = "
-        "`neighbor_agreement` flag (see the `manual_fix` column in "
-        "`all_sentences.csv`); these were labelled by consensus of their "
-        "neighbours, not by the model, and are the first place to look during "
-        "review.",
+        f"- **{total_manual_fixes} sentences** were labelled by neighbour "
+        "agreement (not by the model) after retries failed; they live in the "
+        "per-book `predictions.jsonl` under `manual_fix=neighbor_agreement`.",
         "- A few sentences were originally blocked by the model's safety filter "
         "(`PROHIBITED_CONTENT`); these are among the patched rows.",
+        "- Sentence 0 of every book is forced to `is_scene_boundary=True` so "
+        "`scene_id` and the boundary flag stay aligned (a book's first sentence "
+        "always opens scene 1).",
         "- The older `corpus_summary.json` and `predictions_full.jsonl` in the run "
         "root are **stale pilot artifacts** (3 books only) and should be ignored; "
         "the authoritative state is `corpus_progress.json` plus the per-book "
@@ -578,8 +733,12 @@ def write_report(
         "",
         "- `corpus_stats.csv` — per-book metrics + a corpus aggregate row.",
         "- `anomalous_books.csv` — BORDER-rate outliers with review guidance.",
-        "- `all_sentences.csv` — every sentence, `border` as 0/1, with model "
-        "reasoning and review flags.",
+        "- `all_sentences.csv` / `all_sentences.xlsx` — every sentence in the "
+        "Kleist-scenes column order (`Sentence`, `Phrase`, `Text`, "
+        "`is_scene_boundary`, `scene_id`) plus `slug` and `model_reason`.",
+        "- `per_book_xlsx/<slug>.xlsx` — one workbook per book with the same "
+        "Kleist-scenes columns + `model_reason` (`is_scene_boundary` as "
+        "True/False → Wahr/Falsch in German Excel).",
         "- `final_report.md` — this file.",
         "",
     ]
@@ -610,6 +769,7 @@ def main() -> int:
     all_sentence_rows: list[dict[str, Any]] = []
     total_review_flags = 0
     total_manual_fixes = 0
+    total_forced_opening = 0
 
     for slug in sorted(dirs):
         book_dir = dirs[slug]
@@ -631,15 +791,18 @@ def main() -> int:
         all_sentence_rows.extend(sent_rows)
         total_review_flags += sum(r["review_flag"] for r in sent_rows)
         total_manual_fixes += sum(1 for r in sent_rows if r["manual_fix"])
+        total_forced_opening += int(counts.get("forced_opening_border", 0))
 
-    all_sentence_rows.sort(key=lambda r: (r["slug"], r["sentence_index"]))
+    all_sentence_rows.sort(key=lambda r: (r["slug"], r["index"]))
 
     corpus_rows = build_corpus_stats(reviews)
     anomalies = build_anomalous(reviews, candidate_counts, args.z_threshold)
 
     write_corpus_stats(out_dir / "corpus_stats.csv", corpus_rows)
     write_anomalous(out_dir / "anomalous_books.csv", anomalies)
-    write_all_sentences(out_dir / "all_sentences.csv", all_sentence_rows)
+    write_all_sentences_csv(out_dir / "all_sentences.csv", all_sentence_rows)
+    write_all_sentences_xlsx(out_dir / "all_sentences.xlsx", all_sentence_rows)
+    n_xlsx = write_per_book_xlsx(out_dir / "per_book_xlsx", all_sentence_rows)
     write_report(
         out_dir / "final_report.md",
         progress=progress,
@@ -654,8 +817,11 @@ def main() -> int:
     print(f"  corpus_stats.csv     : {len(corpus_rows)} book rows (+1 aggregate)")
     print(f"  anomalous_books.csv  : {len(anomalies)} outlier books")
     print(f"  all_sentences.csv    : {len(all_sentence_rows):,} sentence rows")
+    print(f"  all_sentences.xlsx   : {len(all_sentence_rows):,} sentence rows")
+    print(f"  per_book_xlsx/       : {n_xlsx} workbooks")
     print(f"  review flags         : {total_review_flags:,}")
     print(f"  manual_fix rows      : {total_manual_fixes}")
+    print(f"  forced opening border: {total_forced_opening} books")
     missing_review = [a["slug"] for a in anomalies if a["slug"] not in MANUAL_REVIEW]
     if missing_review:
         print(
