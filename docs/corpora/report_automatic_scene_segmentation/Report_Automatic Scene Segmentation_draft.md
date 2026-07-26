@@ -10,85 +10,122 @@ This report stands in the context of our CHR-conference submission *EmoEvent: *x
 
 #### Close-reading texts (labelled gold standard)
 
-We use two texts from our close-reading approach: *Das Erdbeben in Chili* by Heinrich von Kleist (1807) and *Die Gänsemagd*, a fairy tale from the Brothers Grimm's *Kinder- und Hausmärchen* (edition XXXX).^[TODO-colleagues: specify exact edition of *Die Gänsemagd*.]
+For the close-reading validation sample, we use two short German-language narratives that differ strongly in genre, length, and explicitness of narrative structure: Heinrich von Kleist's novella *The Earthquake in Chile* (*Das Erdbeben in Chili*, 1807) and the Brothers Grimm fairy tale *The Goose Girl* (*Die Gänsemagd*), from *Children's and Household Tales* (*Kinder- und Hausmärchen*, edition XXXX).^[TODO-colleagues: specify exact edition of *The Goose Girl* (*Die Gänsemagd*).]
 
-For Kleist's text, we reused manual scene annotations created in the context of the GermAn Prose dataset (Hatzel et al. 2026). For the fairy tale, we used the same annotation guidelines and collected the respective annotation data.^[TODO-colleagues: describe annotation setup for *Die Gänsemagd* — number of annotators, adjudication procedure, and IAA (if computed).]
+The pairing is deliberately contrastive. As a novella, *The Earthquake in Chile* compresses novelistic density into a narrow textual space: the earthquake interrupts Jeronimo's suicide mid-sentence, the lovers' survival and pastoral reunion give way to mob lynching inside a single cathedral scene — all without chapter breaks or transitional formulae. *The Goose Girl*, by contrast, signals every episode boundary through spatial relocation, formulaic refrains ("O du Falada, da du hangest" / "O Falada, hanging there"), and dialogue ritual. This contrast tests the model on two segmentation problems: recognising conventional, explicitly cued boundaries in a fairy tale, and detecting implicit transitions in compressed prose where setting, pacing, and perspective shift without surface markers.
 
-The labelling task is binary at the sentence level: each sentence is assigned either BORDER (a new scene starts at this sentence) or NOBORDER (the current scene continues). The *Scene Rate* in the table below denotes the proportion of sentences labelled as scene boundaries (i.e. number of scenes divided by total sentences). By convention, the first sentence of each text is counted as a scene boundary (it opens scene 1).
+For *The Earthquake in Chile*, we reused manual scene annotations created in the context of the GermAn Prose dataset (Hatzel et al. 2026). For *The Goose Girl*, we used the same annotation guidelines and collected the respective annotation data.^[TODO-colleagues: describe annotation setup for *The Goose Girl* (*Die Gänsemagd*) — number of annotators, adjudication procedure, and IAA (if computed).]
 
-**Note on annotation format.** The original manual annotations use a *numbered scene ID* per sentence (e.g. `scene_id = 1, 1, 1, 2, 2, 3, …`), where each change in the scene number marks a boundary. For the automated LLM-based labelling pipeline, these were converted to a binary representation: a sentence receives the label BORDER if its scene ID differs from the preceding sentence's, and NOBORDER otherwise. The final output columns (`is_scene_boundary`, `scene_id`) are derived from this binary prediction by cumulative counting. Both representations are equivalent and losslessly interconvertible, but downstream evaluation and the model prompt operate on the binary BORDER/NOBORDER scheme.^[TODO-colleagues: confirm that the scene-ID numbering in the Excel source files is authoritative and whether any additional annotation layers (e.g. scene type, non-scene segments) should be reflected in the evaluation.]
+The labelling task is binary at the sentence level: each sentence is assigned either BORDER (a new scene starts at this sentence) or NOBORDER (the current scene continues). By convention, the first sentence of each text is counted as a scene boundary (it opens scene 1).
 
-| Text | Author (Year) | Genre | Sentences | Scenes | Scene Rate | Mean sents/scene | Median sents/scene |
-|------|---------------|-------|-----------|--------|------------|------------------|--------------------|
-| *Das Erdbeben in Chili* | H. v. Kleist (1807) | Novella | 245 | 14 | 5.7% | 17.5 | 15 |
-| *Die Gänsemagd* | Brüder Grimm (XXXX) | Fairy tale | 71 | 7 | 9.9% | 10.1 | 7 |
-| **Both together** | — | — | **316** | **21** | **6.6%** | **15.0** | — |
+
+| Text                                                | Sentences | Scenes | Scene Rate | Mean sents/scene | Median sents/scene |
+| --------------------------------------------------- | --------- | ------ | ---------- | ---------------- | ------------------ |
+| *The Earthquake in Chile* (*Das Erdbeben in Chili*) | 245       | 14     | 5.7%       | 17.5             | 11.5               |
+| *The Goose Girl* (*Die Gänsemagd*)                  | 71        | 7      | 9.9%       | 10.1             | 7                  |
+| **Both**                                            | **316**   | **21** | **6.6%**   | **15.0**         | **7**              |
+
+
+**Note on annotation format.** Manual annotations assign each sentence a numbered scene ID; a change in this number marks a new scene. For the LLM-based labelling pipeline, this was converted into a binary BORDER/NOBORDER format: BORDER if the scene ID changes from the previous sentence, NOBORDER otherwise. The output columns `is_scene_boundary` and `scene_id` are reconstructed from these binary labels, so both formats are equivalent, while evaluation and prompting use the binary scheme.
 
 #### Distant-reading corpus (unlabelled)
 
 Our distant-reading approach reuses the dProse dataset (Gius et al. 2020). From this corpus, we received a subsample of 327 texts with approximately the same length.^[TODO-colleagues: describe sampling rationale — length window, filtering criteria, and random seed (if applicable).] No gold scene annotations exist for these texts; the automatic segmentation described in this report is their first scene labelling. The table below summarises the subsample:
 
-| Metric | Value |
-|--------|-------|
-| Number of texts | 327 |
-| Total sentences | 120,369 |
-| Mean sentences per text | 368 |
-| Median sentences per text | 359 |
+
+| Metric                     | Value   |
+| -------------------------- | ------- |
+| Number of texts            | 327     |
+| Total sentences            | 120,369 |
+| Mean sentences per text    | 368     |
+| Median sentences per text  | 359     |
 | IQR (25th–75th percentile) | 284–438 |
-| Range (min–max) | 76–762 |
+| Range (min–max)            | 76–762  |
+
 
 Figure 1 shows the distribution of text lengths in the subsample. The distribution is approximately normal with a slight right skew; the interquartile range (284–438 sentences) indicates that the majority of texts fall within a relatively narrow band despite the full range spanning 76 to 762 sentences.
 
-![Figure 1: dProse subsample — text length distribution (n = 327). Vertical lines mark the median (359) and mean (368); the shaded band shows ±1 SD (112).](Report_Automatic_Scene_Segmentation_assets/dprose_sentence_count_histogram.png)
+Figure 1: dProse subsample — text length distribution (n = 327). Vertical lines mark the median (359) and mean (368); the shaded band shows ±1 SD (112).
 
 ### Task Definition
 
-*Binary labelling task for sentences, related to Zehe et al. (1-2 Sents)*
-
-*Scene definition goes back to Gius et al. (evtl. look up in Zehe paper) (2 Sents)*
+Following Zehe et al. (2021a; 2025), we frame scene segmentation as a binary sentence-level classification task: each sentence is labelled either BORDER, if it opens a new scene, or NOBORDER, if the current scene continues. The concept of a narrative scene draws on narratological tradition (Genette 1983) and was elaborated for computational literary studies by Gius et al. (2019), who characterise a scene as a segment of text exhibiting a coherent pattern across the four dimensions: time, space, characters, and action. A significant break in one or more of these dimensions marks a scene boundary. Zehe et al. (2021a) formalised this definition into the annotation and classification task we adopt here. We keep that shared four-dimensional framing; operational differences—label names, JSON schema, explicit context slots, and restoring “ongoing action” into the zero-shot prompt text—are described with the production template below.
 
 ### Model Selection and Evaluation
 
-In their paper, Zehe et al. (2025) pursue and compare two approaches: one with LLMs, the other with traditional Machine Learning (ML)-techniques. While, in their setting, the ML-approach achieved better results, we decided to move on with current LLMs, mainly due to the missing availability of respective training data.
+Zehe et al. (2025) compare supervised BERT-based scene segmentation, zero-shot LLM prompting, and Chain-of-Thought fine-tuning of Llama 3. Their strongest supervised model reaches a relaxed F1 of 0.68 with a tolerance of (t = 3), while the best zero-shot LLM result, GPT-4o, reaches 0.45. Since the training data required for the supervised and fine-tuned alternatives were not available for our pipeline, we focused on a zero-shot LLM approach.
 
-To decide which LLM to use, we compared different state-of-the-art LLMs such as Gemini 2.5 Pro or Claude Opus 4 and experimented with varying settings, e.g. considering the reasoning-mode (see below).
+We started from Zehe et al.'s zero-shot prompt (No-CoT; Appendix A.2) and adapted it for our setting. Their template asks for a free-text `True`/`False` answer with a prose reason, names three dimensions in the prompt text (characters, location, time), and wraps the target in `<sentence>...</sentence>` inside an unlabelled context window of roughly 512 tokens (kept comparable to their BERT baselines). A second template, CoT-List, enumerates action, location, time, and characters step by step, but Zehe et al. used it only for fine-tuning, not for zero-shot prompting. Their No-CoT prompt reads:
 
-Based on the prompt specified by Zehe et al., we used the following prompt:
+```text
+Does the sentence in <sentence>...</sentence> introduce the beginning of a new
+scene and a significant break in time, location or characters? Answer 'True' or
+'False' and provide a reason for your decision. A scene is defined as a segment
+of text with a coherent structure across the dimensions 'characters' (which
+characters are present in the narration), 'location' (where does the narration
+take place), and 'time' (continuous time in the narration). A significant break
+in any of these dimensions corresponds to a scenes change.
+```
 
-![](Report_Automatic_Scene_Segmentation_assets/image_1.png)
+Our production prompt (Family B) differs in four main ways: (1) labels are the task’s own `BORDER`/`NOBORDER` names rather than `True`/`False`; (2) output is strict JSON (`label` + `reason`) enforced by a provider-side schema, instead of free-text parsing with retries; (3) the definition restores **ongoing action** alongside time, location, and participating characters; (4) left and right context are labelled explicitly as “Context before” / “Context after” around the marked target. We tested several prompt variants (rubrics, few-shot examples, multi-stage and CoT-style prompts); the short JSON zero-shot form performed best. The Family B template used for the dProse production run is:
 
-*Quickly explain what is different to Zehe et al and why (2-3 Sents?)*
+```text
+Task: Decide whether the marked sentence starts a new event/scene segment.
 
-*Add one note to the context sizes, temperature and whatever is important here (1 Sent)*
+Definition:
+A new segment starts when there is a significant change in time, location,
+participating characters, or ongoing action.
 
-Finally, to evaluate the models' results, we report …
+Context before:
+{left_context}
 
-*🡪Quickly explain the used metrics: exact and relaxed F1-Score (in line with Zehe et al.) (1-2 Sents)*
+Target sentence:
+<sentence>{target_sentence}</sentence>
 
-We considered our two texts – Das Erdbeben in Chili and Die Gänsemagd – as gold standard. The following table presents the results of the different models' overall performance:
+Context after:
+{right_context}
 
-| Rank | Model | Reasoning mode | Exact F1 (tol0) | Relaxed F1 (tol3) |
-|------|-------|----------------|-----------------|-------------------|
-| 1 | Gemini 2.5 Pro | On | **0.50** | **0.76** |
-| 2 | Gemini 2.5 Pro | Low | 0.49 | 0.72 |
-| 3 | Claude Opus 4 | Off | 0.44 | 0.61 |
-| 4 | GPT-4.1 | Off | 0.42 | 0.62 |
-| 5 | Claude Sonnet 4 | Off | 0.35 | 0.50 |
+Return JSON only:
+{
+  "label": "BORDER" or "NOBORDER",
+  "reason": "<short justification>"
+}
+```
 
-Given that our best combination exceeds not only Zehe et al.'s reported relaxed F1-score of 0.45 (with gpt-4o) for their LLM-approach, but also the relaxed F1-score of 0.68 for the ML-approach, we consider the results to be sufficient and decided to move on with Gemini 2.5 Pro with reasoning mode.
+On the gold evaluation texts, models were compared under temperature 0, a fixed seed, and a shared context budget around each target sentence (token-budget mode inherited from Zehe et al., ~409 tokens of surrounding context). For the dProse corpus run we switched to a fixed **12 sentences of context on each side**, still with temperature 0 and the same Family B + JSON schema contract.
+
+Evaluation was conducted on the two manually annotated gold texts, *The Earthquake in Chile* and *The Goose Girl*. Following Zehe et al. (2025), we report relaxed F1 with (t = 3) as the main metric, because it allows near-boundary predictions within three sentences. For transparency, we also report exact F1 with (t = 0), which only counts the precise boundary sentence as correct.
+
+
+| Model           | Reasoning mode | Exact F1 (t = 0) | Relaxed F1 (t = 3) |
+| --------------- | -------------- | ---------------- | ------------------ |
+| Gemini 2.5 Pro  | On             | 0.50             | 0.76               |
+| Gemini 2.5 Pro  | Low            | 0.49             | 0.72               |
+| Claude Opus 4   | Off            | 0.44             | 0.61               |
+| GPT-4.1         | Off            | 0.42             | 0.62               |
+| Claude Sonnet 4 | Off            | 0.35             | 0.50               |
+
+
+Gemini 2.5 Pro with reasoning mode on achieved the best overall result, with a relaxed F1 of 0.76. This is above Zehe et al.'s reported zero-shot benchmark and also above their supervised result, although the comparison is only directional because the test corpora are different. We therefore use Gemini 2.5 Pro with reasoning mode on as the production setting.
 
 ### Application to dProse-Dataset
 
-*Write 1 to 2 sentences on the application to dProse (mention i.e. the overall costs and batch-processing, evtl. the overall runtime – or whatever you deem relevant) (1-2 Sents)*
+We applied the production pipeline (Gemini 2.5 Pro with reasoning on, Prompt Family B, 12 sentences of context on each side, temperature 0, strict JSON schema) to the 327-text dProse subsample through the Gemini Batch API. The corpus was processed in seven cost-capped waves between 2026-06-28 and 2026-07-03 for a total of approximately **$514 USD**; after a three-tier remediation pass (batch retry with a larger token budget, synchronous retry with relaxed safety filters, and a neighbour-consensus patch for 40 sentences that remained blocked), parse success reached **100%** (120,369 / 120,369 sentences).
 
-*Mention corpus stats: scene share, median scene length (1 Sent)*
+Across the 327 books, the median BORDER rate is **24.0%** (range 8.9%–41.4%), the corpus-median of per-book median scene lengths is **2 sentences**, and on average **54%** of inferred scenes span only one or two sentences — a first signal that the model tends to segment more finely than coarse narrative scenes.
 
 To verify that Gemini's segmentation approximates our preceding analyses with the other two texts, we took random samples from dProse and checked the annotations manually for plausibility.
 
 ### Final Remarks
 
-Write something on potential optimization approaches (e.g. post-processing by rules such as "do not allow consecutive borders") and pick up the observation of over-segmentation which becomes also visible in the corpus stats *(2-3 Sents)*
+The corpus statistics point to a consistent tendency to over-segment: roughly 54% of inferred scenes span only 1–2 sentences, and consecutive-BORDER runs reach up to 13 sentences in a single book (`dprose_1060`). Two lightweight optimisations mitigate this without changing the underlying model: a post-processing rule enforcing a minimum scene length substantially lifts relaxed F1 in our controlled Excel-manifest sweep (t = 3 F1 rises from 0.36 to 0.51 with `min_scene_len ≥ 3`), and a stricter prompt definition (Family L, MAJOR-discontinuity criterion) reduces the BORDER rate by 7–11 pp per text on a four-book dProse spot-check (aggregate borders 234 → 153, −35%). Neither fully dissolves the dense montage or stichomythic-dialogue runs, so a post-processing merge over consecutive borders remains the most direct complement to any prompt-side change.
 
-Eventually: back-ref to Zehe paper. Just in case, they write something relevant *(1 Sent)*
+This over-prediction behaviour aligns with Zehe et al.'s (2025) broader observation that zero-shot LLMs handle sentence-level boundary decisions less reliably than supervised or fine-tuned setups — their supervised BERT baseline uses an overlapping half-stride window that implicitly smooths predictions across neighbouring sentences, an effect our proposed post-processing rules approximate at inference time.
 
-Mention our reflections on A. there are indeed some REAL false positive borders and B. there are also some "false positive" borders where we could still understand the model's choice. -> model seems to be more fine-grained *(2 Sents)*
+Manual spot-checks suggest two kinds of “false positives.” Some are clearly excessive splits inside one continuous action. In *Die Erscheinung* (`dprose_806`), for example, the model assigns three consecutive BORDER labels as the protagonist stands up, notices a woman across the deck, and walks over to her. In *Die überlaute Frau Bautz* (`dprose_979`), a sanatorium dinner gives way to Sylvester’s exit—fresh air, headache, street, bar, an elbow nudge, a turn of the head, and a girl in a blue jacket—and nearly every physical micro-step becomes its own scene (eleven consecutive BORDERs).
+
+Other over-predictions are more understandable: the model reacts to meaningful but very fine-grained narrative shifts. In *Keuschheitslegende* (`dprose_151`), five consecutive BORDERs track a compressed journey montage (cold → blurred perception → train platform → familiar voices → collapse in her room). In *Der Schein trügt* (`dprose_119`), over-segmentation is driven by a text-within-the-text structure: the frame story’s campfire epilogue, the new section title *Ein Ferienabenteuer*, and the holiday preamble that follows trigger a cluster of seven consecutive BORDERs because narrative-layer and formal chapter cues coincide. In *Das Grab des Herrn Schefbeck* (`dprose_1712`), nine BORDERs cut rapidly between a courtship memory, the funeral bed, phone calls, a car ride, and arrival at the mortuary.
+
+By contrast, under-segmentation also occurs, though less often. In *Das höllische Automobil* (`dprose_137`), a comic dialogue/action episode between the giant Rumbo and Frechdachs remains largely unsegmented for 54 sentences. In *Empfang beim Ministerpräsidenten* (`dprose_702`), a countess’s confidential reception story runs for about forty sentences as a single scene before the listener agrees to help.
+
+These examples indicate that the model is often more fine-grained than the target annotation scheme, rather than simply random or unstable—and that its rarer misses tend to be long unbroken dialogues or single-location social scenes. A post-processing step should therefore distinguish clearly excessive splits inside a continuous action from narratively interpretable fine-grained shifts (montage, section titles, frame transitions, compressed summary), while also watching for conservative stretches that bury a late location or time jump. This is exactly why relaxed F1 (t = 3) remains the more informative headline metric against our gold annotation.

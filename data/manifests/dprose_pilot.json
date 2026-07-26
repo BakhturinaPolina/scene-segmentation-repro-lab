@@ -1,0 +1,35 @@
+{
+  "dataset": "dprose_pilot",
+  "source": "local/dprose_sentence_level",
+  "retrieved_at": "2026-06-19",
+  "total_sentences": 989,
+  "files": [
+    {
+      "source_file": "dprose_100.csv",
+      "slug": "dprose_100",
+      "name": "processed/dprose/dprose_100/dprose_100__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_100/dprose_100__for_prompting.jsonl",
+      "size_bytes": 36874,
+      "sentence_count": 161,
+      "md5": "050a6730338512347311357f83539b04"
+    },
+    {
+      "source_file": "dprose_806.csv",
+      "slug": "dprose_806",
+      "name": "processed/dprose/dprose_806/dprose_806__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_806/dprose_806__for_prompting.jsonl",
+      "size_bytes": 64763,
+      "sentence_count": 752,
+      "md5": "7bd54ab25412bd313622b425d31c1e8d"
+    },
+    {
+      "source_file": "dprose_2158.csv",
+      "slug": "dprose_2158",
+      "name": "processed/dprose/dprose_2158/dprose_2158__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2158/dprose_2158__for_prompting.jsonl",
+      "size_bytes": 30965,
+      "sentence_count": 76,
+      "md5": "4f7baafc9a3af622a2fc60ac3b4369a9"
+    }
+  ]
+}

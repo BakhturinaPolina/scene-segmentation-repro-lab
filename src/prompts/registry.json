@@ -157,5 +157,25 @@
       "precision_variant_of": "B",
       "factor": "precision_fixed_N+L+M"
     }
-  ]
+  ],
+  "gemini_batch_schema_map": {
+    "_comment": "Maps each prompt family to the Gemini Batch response schema file used by src/runners/run_excel_batch_families.py. null means plain-text output (no JSON schema enforced). Chunk families H/I build one request per centered chunk instead of per sentence.",
+    "A": "json_schema_label_only.json",
+    "B": "json_schema_label_reason.json",
+    "C": "json_schema_rubric_label.json",
+    "D": "json_schema_label_reason.json",
+    "E": "json_schema_label_reason.json",
+    "F": "json_schema_rubric_label.json",
+    "G": "json_schema_analysis_label.json",
+    "H": null,
+    "I": "json_schema_score_array.json",
+    "J": "json_schema_changes_label.json",
+    "K": "json_schema_label_reason.json",
+    "L": "json_schema_label_reason.json",
+    "M": "json_schema_label_reason.json",
+    "N": "json_schema_label_reason.json",
+    "O": "json_schema_label_reason.json",
+    "P": "json_schema_label_reason.json",
+    "Q": "json_schema_label_reason.json"
+  }
 }

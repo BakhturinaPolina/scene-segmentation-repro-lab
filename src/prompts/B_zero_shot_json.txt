@@ -16,5 +16,5 @@ Context after:
 Return JSON only:
 {
   "label": "BORDER" or "NOBORDER",
-  "confidence": 0.0 to 1.0
+  "reason": "<short justification>"
 }

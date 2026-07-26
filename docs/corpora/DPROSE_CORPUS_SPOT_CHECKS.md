@@ -197,7 +197,7 @@ Both books reached **100% parse** after retry.
 Not an outlier by rate (25.1%), but reviewed as the final automated review in the wave log.
 
 - **idx 0–1 both BORDER:** idx 0 correct (story start); idx 1 debatable (shift to general authorial comment on women).
-- **idx 259–263 (run of 5):** disoriented journey montage — “Sie fror” → blurred perception → train/platform → familiar sounds → enters room. Coherent reasoning; too granular for film-level scenes (pilot `dprose_806` pattern).
+- **idx 259–263 (run of 5):** disoriented journey montage — “Sie fror” → blurred perception → train/platform → familiar sounds → enters room. Coherent reasoning; too granular for coarse narrative scenes (pilot `dprose_806` pattern).
 
 ---
 
@@ -489,7 +489,7 @@ Six of the seven sub-14% books are **Karl Hans Strobl detective novellas** featu
 | dprose_695 | 13.3% | 2 | 7.4 | Dramatic opening (fire in room) then extended dialogue; **70-sent gap** idx 72–142 |
 | dprose_696 | 14.5% | 3 | 6.8 | Frau Violet / husband subplot — same series, just above threshold |
 
-**Assessment:** Mirror image of Wave 2 low-BORDER realist novellas (`dprose_661`). The model correctly treats **one dinner/reception as one macro-scene** and only BORDERs on chapter titles, late arrivals (Dagobert), or time jumps (“Essenszeit geworden”). Conservative labeling is structurally plausible; optional post-process if film-level granularity is needed.
+**Assessment:** Mirror image of Wave 2 low-BORDER realist novellas (`dprose_661`). The model correctly treats **one dinner/reception as one macro-scene** and only BORDERs on chapter titles, late arrivals (Dagobert), or time jumps (“Essenszeit geworden”). Conservative labeling is structurally plausible; optional post-process if coarser scene granularity is needed.
 
 ---
 
@@ -539,7 +539,7 @@ Six of the seven sub-14% books are **Karl Hans Strobl detective novellas** featu
 
 **Findings:** **64%** short scenes. Cluster idx 354–360: rapid emotional reversals (throws light away → kneels → weeps → dialogue beats) — seven BORDERs in seven sentences during climax.
 
-**Assessment:** **Stichomythic/emotional dialogue** at scene peak — not a parsing error; merge candidate for film-level boundaries.
+**Assessment:** **Stichomythic/emotional dialogue** at scene peak — not a parsing error; merge candidate for coarser scene boundaries.
 
 ---
 
@@ -1358,3 +1358,51 @@ Applied rows get `parse_ok=true`, `manual_fix=<method>`, `manual_fix_confidence=
 | After patch (low, 2nd pass) | **0** | **120,369 / 120,369 (100%)** |
 
 The 3 keys skipped on the first apply (`dprose_435:211`, `dprose_1925:144`, `dprose_2234:125`) had no parsed neighbors until adjacent keys were patched; the second pass immediately promoted them to high-confidence `neighbor_agreement`.
+
+---
+
+## Family L spot-rerun vs production B (2026-07-22)
+
+**Purpose:** Transfer-check the Excel-gold finding that Family L (strict MAJOR-discontinuity definition) cuts over-segmentation, on a small contrasting subset of the production corpus.
+
+**Run:** `outputs/runs/dprose_batch/2026-07-22-dprose-familyL-spot-rerun/`  
+**Manifest:** `data/manifests/dprose_family_L_spot_rerun.json`  
+**Config:** identical to production (`gemini-2.5-pro` batch, `context_sentences=12`, `temperature=0`, `max_output_tokens=2048`, `thinking_budget=-1`, `json_schema_label_reason.json`) — only prompt family = **L**.  
+**Cost:** $4.19 / 941 sentences; parse-ok 939/941 (99.8%).  
+**Run note:** [`research_log/runs/2026-07-22__prompting__experiment__dprose-familyL-spot-rerun.md`](../../research_log/runs/2026-07-22__prompting__experiment__dprose-familyL-spot-rerun.md)  
+**Comparison:** `B_vs_L_comparison.json` (via `scripts/evaluation/compare_dprose_B_vs_L.py`)
+
+### Texts chosen (deliberately non-representative)
+
+| Slug | Spot-check role | Production B |
+|------|-----------------|--------------|
+| dprose_52 | Wave 1 highest BORDER (32.8%); fairy-tale travel montage | 75 / 229 |
+| dprose_119 | Worst consecutive BORDER run (7) at frame/part boundary | 62 / 220 |
+| dprose_137 | Wave 1 lowest BORDER (14.5%); dialogue-heavy | 48 / 331 |
+| dprose_100 | Pilot book; mid-high rate; header pattern | 49 / 161 |
+
+### B vs L
+
+| slug | B rate | L rate | Δ | B bord | L bord | B maxRun | L maxRun | L∩B F1 | onlyB | onlyL |
+|------|--------|--------|---|--------|--------|----------|----------|--------|-------|-------|
+| dprose_52 | 32.8% | 23.6% | −9.2pp | 75 | 54 | 6 | 6 | 0.760 | 26 | 5 |
+| dprose_119 | 28.2% | 16.8% | −11.4pp | 62 | 37 | 7 | 5 | 0.727 | 26 | 1 |
+| dprose_137 | 14.5% | 7.6% | −7.0pp | 48 | 25 | 3 | 2 | 0.630 | 25 | 2 |
+| dprose_100 | 30.4% | 23.0% | −7.4pp | 49 | 37 | 3 | 3 | 0.767 | 16 | 4 |
+
+Aggregate on these four: **234 → 153 borders (−35%)**; mean BORDER rate **24.9% → 16.3%**.
+
+### Flagged spots under L
+
+| Spot | Production B | Family L |
+|------|--------------|----------|
+| dprose_52 montage idx 57–62 | 6× consecutive | 5× (57–61) — barely thinned |
+| dprose_119 frame/part idx 155–161 | 7× consecutive | 5× (157–161) — dropped first two |
+| dprose_137 gap idx 40–94 | borders at 40 and 94 | only 94 — more conservative |
+
+### Assessment
+
+- **L transfers:** border rate drops on every contrast type, including the already-low dialogue text. L is mostly a **subset of B** (only_L = 1–5 per book).
+- **Not a full fix for montage/structural runs:** consecutive clusters shrink by 1–2 sentences, not dissolve — post-process merge rules remain necessary for those patterns.
+- **Under-segmentation risk** on low-BORDER texts (dprose_137 → 7.6%) if event-level granularity is desired.
+- **No full-corpus L re-run recommended** from this spot sample alone; useful Final-Remarks evidence that a stricter definition reduces over-segmentation on production texts under the same batch config.

@@ -1,0 +1,41 @@
+{
+  "dataset": "dprose_family_L_spot_rerun",
+  "source": "local/dprose_sentence_level",
+  "note": "Contrasting spot-check cases from DPROSE_CORPUS_SPOT_CHECKS.md for Family L (strict definition) vs production Family B comparison. Chosen for diversity, not representativeness: high over-seg fairy tale, low dialogue, structural consecutive-BORDER, pilot baseline.",
+  "total_sentences": 941,
+  "files": [
+    {
+      "source_file": "dprose_52.csv",
+      "slug": "dprose_52",
+      "name": "processed/dprose/dprose_52/dprose_52__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_52/dprose_52__for_prompting.jsonl",
+      "size_bytes": 48526,
+      "sentence_count": 229,
+      "selection_reason": "Wave 1 highest BORDER (32.8%); fairy-tale travel montage over-segmentation idx 57-62"
+    },
+    {
+      "source_file": "dprose_119.csv",
+      "slug": "dprose_119",
+      "name": "processed/dprose/dprose_119/dprose_119__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_119/dprose_119__for_prompting.jsonl",
+      "sentence_count": 220,
+      "selection_reason": "Wave 1 worst consecutive BORDER run (7) at frame coda / Part 2 title structural boundary"
+    },
+    {
+      "source_file": "dprose_137.csv",
+      "slug": "dprose_137",
+      "name": "processed/dprose/dprose_137/dprose_137__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_137/dprose_137__for_prompting.jsonl",
+      "sentence_count": 331,
+      "selection_reason": "Wave 1 lowest BORDER (14.5%); episodic dialogue-heavy with 54-sent gap"
+    },
+    {
+      "source_file": "dprose_100.csv",
+      "slug": "dprose_100",
+      "name": "processed/dprose/dprose_100/dprose_100__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_100/dprose_100__for_prompting.jsonl",
+      "sentence_count": 161,
+      "selection_reason": "Pilot book; mid-high BORDER (30.4%); Roman-numeral header pattern known from pilot"
+    }
+  ]
+}

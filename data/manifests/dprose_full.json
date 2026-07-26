@@ -1,0 +1,2951 @@
+{
+  "dataset": "dprose_full",
+  "source": "local/dprose_sentence_level",
+  "retrieved_at": "2026-06-28",
+  "total_sentences": 120369,
+  "files": [
+    {
+      "source_file": "dprose_51.csv",
+      "slug": "dprose_51",
+      "name": "processed/dprose/dprose_51/dprose_51__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_51/dprose_51__for_prompting.jsonl",
+      "size_bytes": 45464,
+      "sentence_count": 238,
+      "md5": "16d538ce167995bfa51bf4ec2bf6994b"
+    },
+    {
+      "source_file": "dprose_52.csv",
+      "slug": "dprose_52",
+      "name": "processed/dprose/dprose_52/dprose_52__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_52/dprose_52__for_prompting.jsonl",
+      "size_bytes": 48526,
+      "sentence_count": 229,
+      "md5": "e14708ecd428b6280be93b2a4c8f9b81"
+    },
+    {
+      "source_file": "dprose_56.csv",
+      "slug": "dprose_56",
+      "name": "processed/dprose/dprose_56/dprose_56__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_56/dprose_56__for_prompting.jsonl",
+      "size_bytes": 47791,
+      "sentence_count": 284,
+      "md5": "a970481c035653d06858aaa00a7a7983"
+    },
+    {
+      "source_file": "dprose_59.csv",
+      "slug": "dprose_59",
+      "name": "processed/dprose/dprose_59/dprose_59__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_59/dprose_59__for_prompting.jsonl",
+      "size_bytes": 32681,
+      "sentence_count": 266,
+      "md5": "0bf90488ef12dae0d645a4f877b51e1e"
+    },
+    {
+      "source_file": "dprose_74.csv",
+      "slug": "dprose_74",
+      "name": "processed/dprose/dprose_74/dprose_74__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_74/dprose_74__for_prompting.jsonl",
+      "size_bytes": 51264,
+      "sentence_count": 414,
+      "md5": "16a710da4d970ffbef71de5dca685a9a"
+    },
+    {
+      "source_file": "dprose_77.csv",
+      "slug": "dprose_77",
+      "name": "processed/dprose/dprose_77/dprose_77__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_77/dprose_77__for_prompting.jsonl",
+      "size_bytes": 49803,
+      "sentence_count": 282,
+      "md5": "03b16d4a0eaec3ae30d987d3dcf02ae2"
+    },
+    {
+      "source_file": "dprose_100.csv",
+      "slug": "dprose_100",
+      "name": "processed/dprose/dprose_100/dprose_100__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_100/dprose_100__for_prompting.jsonl",
+      "size_bytes": 36874,
+      "sentence_count": 161,
+      "md5": "050a6730338512347311357f83539b04"
+    },
+    {
+      "source_file": "dprose_106.csv",
+      "slug": "dprose_106",
+      "name": "processed/dprose/dprose_106/dprose_106__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_106/dprose_106__for_prompting.jsonl",
+      "size_bytes": 61176,
+      "sentence_count": 364,
+      "md5": "490fc6afe43daa5a093c420757903147"
+    },
+    {
+      "source_file": "dprose_119.csv",
+      "slug": "dprose_119",
+      "name": "processed/dprose/dprose_119/dprose_119__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_119/dprose_119__for_prompting.jsonl",
+      "size_bytes": 38089,
+      "sentence_count": 220,
+      "md5": "6007ea69e19cb45402e941ce0673e236"
+    },
+    {
+      "source_file": "dprose_120.csv",
+      "slug": "dprose_120",
+      "name": "processed/dprose/dprose_120/dprose_120__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_120/dprose_120__for_prompting.jsonl",
+      "size_bytes": 46672,
+      "sentence_count": 241,
+      "md5": "e67d3d7985b470b9d77e1993b679cba0"
+    },
+    {
+      "source_file": "dprose_121.csv",
+      "slug": "dprose_121",
+      "name": "processed/dprose/dprose_121/dprose_121__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_121/dprose_121__for_prompting.jsonl",
+      "size_bytes": 46970,
+      "sentence_count": 271,
+      "md5": "b13a969e5bc31a600b236c0a338e7da9"
+    },
+    {
+      "source_file": "dprose_135.csv",
+      "slug": "dprose_135",
+      "name": "processed/dprose/dprose_135/dprose_135__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_135/dprose_135__for_prompting.jsonl",
+      "size_bytes": 37750,
+      "sentence_count": 362,
+      "md5": "be6fc24f216973599d9945b8db864372"
+    },
+    {
+      "source_file": "dprose_137.csv",
+      "slug": "dprose_137",
+      "name": "processed/dprose/dprose_137/dprose_137__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_137/dprose_137__for_prompting.jsonl",
+      "size_bytes": 44709,
+      "sentence_count": 331,
+      "md5": "dd7a529e2f70fb6b81d4ed8cbabb72f4"
+    },
+    {
+      "source_file": "dprose_146.csv",
+      "slug": "dprose_146",
+      "name": "processed/dprose/dprose_146/dprose_146__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_146/dprose_146__for_prompting.jsonl",
+      "size_bytes": 46211,
+      "sentence_count": 434,
+      "md5": "f046b47e59826dae6521167937d48fc2"
+    },
+    {
+      "source_file": "dprose_148.csv",
+      "slug": "dprose_148",
+      "name": "processed/dprose/dprose_148/dprose_148__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_148/dprose_148__for_prompting.jsonl",
+      "size_bytes": 46958,
+      "sentence_count": 577,
+      "md5": "6830325402cf248f547794b5831097ad"
+    },
+    {
+      "source_file": "dprose_151.csv",
+      "slug": "dprose_151",
+      "name": "processed/dprose/dprose_151/dprose_151__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_151/dprose_151__for_prompting.jsonl",
+      "size_bytes": 51029,
+      "sentence_count": 367,
+      "md5": "28264257dc3f23ac3e0225237158262d"
+    },
+    {
+      "source_file": "dprose_161.csv",
+      "slug": "dprose_161",
+      "name": "processed/dprose/dprose_161/dprose_161__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_161/dprose_161__for_prompting.jsonl",
+      "size_bytes": 56675,
+      "sentence_count": 648,
+      "md5": "bc03eb5cd2d3ef1357d1dad55b137c4b"
+    },
+    {
+      "source_file": "dprose_162.csv",
+      "slug": "dprose_162",
+      "name": "processed/dprose/dprose_162/dprose_162__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_162/dprose_162__for_prompting.jsonl",
+      "size_bytes": 37368,
+      "sentence_count": 458,
+      "md5": "293791898b229b82794b495e48cde849"
+    },
+    {
+      "source_file": "dprose_166.csv",
+      "slug": "dprose_166",
+      "name": "processed/dprose/dprose_166/dprose_166__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_166/dprose_166__for_prompting.jsonl",
+      "size_bytes": 33532,
+      "sentence_count": 330,
+      "md5": "8b2f32a1995f08c41324ff72112ec3d0"
+    },
+    {
+      "source_file": "dprose_178.csv",
+      "slug": "dprose_178",
+      "name": "processed/dprose/dprose_178/dprose_178__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_178/dprose_178__for_prompting.jsonl",
+      "size_bytes": 58174,
+      "sentence_count": 395,
+      "md5": "8aac82f1dfa69d59cf03f03423a629a8"
+    },
+    {
+      "source_file": "dprose_196.csv",
+      "slug": "dprose_196",
+      "name": "processed/dprose/dprose_196/dprose_196__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_196/dprose_196__for_prompting.jsonl",
+      "size_bytes": 38986,
+      "sentence_count": 243,
+      "md5": "ed931b0ad4ba70d2dd29ff073298e23a"
+    },
+    {
+      "source_file": "dprose_209.csv",
+      "slug": "dprose_209",
+      "name": "processed/dprose/dprose_209/dprose_209__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_209/dprose_209__for_prompting.jsonl",
+      "size_bytes": 41980,
+      "sentence_count": 202,
+      "md5": "a5dd5d37b3c97b171c6a85f6a75a7793"
+    },
+    {
+      "source_file": "dprose_218.csv",
+      "slug": "dprose_218",
+      "name": "processed/dprose/dprose_218/dprose_218__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_218/dprose_218__for_prompting.jsonl",
+      "size_bytes": 46374,
+      "sentence_count": 483,
+      "md5": "b5580d9b5567f7bfbc534b2f69b8b271"
+    },
+    {
+      "source_file": "dprose_221.csv",
+      "slug": "dprose_221",
+      "name": "processed/dprose/dprose_221/dprose_221__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_221/dprose_221__for_prompting.jsonl",
+      "size_bytes": 61487,
+      "sentence_count": 500,
+      "md5": "c2f558dd72d141f778aab2909861dc7a"
+    },
+    {
+      "source_file": "dprose_251.csv",
+      "slug": "dprose_251",
+      "name": "processed/dprose/dprose_251/dprose_251__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_251/dprose_251__for_prompting.jsonl",
+      "size_bytes": 43517,
+      "sentence_count": 373,
+      "md5": "9a0eada18be22fecefa99000b1c7bd6d"
+    },
+    {
+      "source_file": "dprose_254.csv",
+      "slug": "dprose_254",
+      "name": "processed/dprose/dprose_254/dprose_254__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_254/dprose_254__for_prompting.jsonl",
+      "size_bytes": 43692,
+      "sentence_count": 314,
+      "md5": "270dd314c4a34cc3e083680d03bbc652"
+    },
+    {
+      "source_file": "dprose_256.csv",
+      "slug": "dprose_256",
+      "name": "processed/dprose/dprose_256/dprose_256__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_256/dprose_256__for_prompting.jsonl",
+      "size_bytes": 34140,
+      "sentence_count": 210,
+      "md5": "8240aef203c270bd7c6203d50439daad"
+    },
+    {
+      "source_file": "dprose_259.csv",
+      "slug": "dprose_259",
+      "name": "processed/dprose/dprose_259/dprose_259__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_259/dprose_259__for_prompting.jsonl",
+      "size_bytes": 34955,
+      "sentence_count": 218,
+      "md5": "ad5ac105b65adc3d0f9d8ceebfb72efd"
+    },
+    {
+      "source_file": "dprose_261.csv",
+      "slug": "dprose_261",
+      "name": "processed/dprose/dprose_261/dprose_261__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_261/dprose_261__for_prompting.jsonl",
+      "size_bytes": 41118,
+      "sentence_count": 326,
+      "md5": "029f73f9c26e8dd668bb5638f79bc0f5"
+    },
+    {
+      "source_file": "dprose_262.csv",
+      "slug": "dprose_262",
+      "name": "processed/dprose/dprose_262/dprose_262__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_262/dprose_262__for_prompting.jsonl",
+      "size_bytes": 54122,
+      "sentence_count": 402,
+      "md5": "b0279f4427eb98a32e2d6d601f963bc4"
+    },
+    {
+      "source_file": "dprose_263.csv",
+      "slug": "dprose_263",
+      "name": "processed/dprose/dprose_263/dprose_263__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_263/dprose_263__for_prompting.jsonl",
+      "size_bytes": 36902,
+      "sentence_count": 237,
+      "md5": "f9747848b06fe604db1a75190e823987"
+    },
+    {
+      "source_file": "dprose_265.csv",
+      "slug": "dprose_265",
+      "name": "processed/dprose/dprose_265/dprose_265__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_265/dprose_265__for_prompting.jsonl",
+      "size_bytes": 31913,
+      "sentence_count": 196,
+      "md5": "d55fa455174ee7b2caa1502738496973"
+    },
+    {
+      "source_file": "dprose_270.csv",
+      "slug": "dprose_270",
+      "name": "processed/dprose/dprose_270/dprose_270__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_270/dprose_270__for_prompting.jsonl",
+      "size_bytes": 38794,
+      "sentence_count": 436,
+      "md5": "8f302eaf6eb27e79520cca0cedc863f3"
+    },
+    {
+      "source_file": "dprose_275.csv",
+      "slug": "dprose_275",
+      "name": "processed/dprose/dprose_275/dprose_275__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_275/dprose_275__for_prompting.jsonl",
+      "size_bytes": 33168,
+      "sentence_count": 348,
+      "md5": "f8dce55ac7c4e3aecace6ed4384bedd3"
+    },
+    {
+      "source_file": "dprose_276.csv",
+      "slug": "dprose_276",
+      "name": "processed/dprose/dprose_276/dprose_276__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_276/dprose_276__for_prompting.jsonl",
+      "size_bytes": 47139,
+      "sentence_count": 309,
+      "md5": "b9f86dffd76f2afa08a26d7d790a3136"
+    },
+    {
+      "source_file": "dprose_289.csv",
+      "slug": "dprose_289",
+      "name": "processed/dprose/dprose_289/dprose_289__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_289/dprose_289__for_prompting.jsonl",
+      "size_bytes": 53353,
+      "sentence_count": 442,
+      "md5": "db27a296c6279b4d910f68a35a80b47a"
+    },
+    {
+      "source_file": "dprose_293.csv",
+      "slug": "dprose_293",
+      "name": "processed/dprose/dprose_293/dprose_293__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_293/dprose_293__for_prompting.jsonl",
+      "size_bytes": 48638,
+      "sentence_count": 521,
+      "md5": "92c52a1b0509ca219191f40031d9182c"
+    },
+    {
+      "source_file": "dprose_317.csv",
+      "slug": "dprose_317",
+      "name": "processed/dprose/dprose_317/dprose_317__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_317/dprose_317__for_prompting.jsonl",
+      "size_bytes": 38373,
+      "sentence_count": 276,
+      "md5": "44d82d9f4d9629fd93d2e18985e4b83e"
+    },
+    {
+      "source_file": "dprose_320.csv",
+      "slug": "dprose_320",
+      "name": "processed/dprose/dprose_320/dprose_320__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_320/dprose_320__for_prompting.jsonl",
+      "size_bytes": 43314,
+      "sentence_count": 322,
+      "md5": "3ac12a49941689260188702f99c2fbdb"
+    },
+    {
+      "source_file": "dprose_321.csv",
+      "slug": "dprose_321",
+      "name": "processed/dprose/dprose_321/dprose_321__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_321/dprose_321__for_prompting.jsonl",
+      "size_bytes": 37970,
+      "sentence_count": 199,
+      "md5": "2f9646f3387df188e5fb4c535b32e72a"
+    },
+    {
+      "source_file": "dprose_425.csv",
+      "slug": "dprose_425",
+      "name": "processed/dprose/dprose_425/dprose_425__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_425/dprose_425__for_prompting.jsonl",
+      "size_bytes": 52263,
+      "sentence_count": 371,
+      "md5": "f941fb5d7005cb864e990d4e1883c6b6"
+    },
+    {
+      "source_file": "dprose_435.csv",
+      "slug": "dprose_435",
+      "name": "processed/dprose/dprose_435/dprose_435__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_435/dprose_435__for_prompting.jsonl",
+      "size_bytes": 36849,
+      "sentence_count": 271,
+      "md5": "7bc175ba8584c0ff198b838430983196"
+    },
+    {
+      "source_file": "dprose_454.csv",
+      "slug": "dprose_454",
+      "name": "processed/dprose/dprose_454/dprose_454__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_454/dprose_454__for_prompting.jsonl",
+      "size_bytes": 34686,
+      "sentence_count": 366,
+      "md5": "d247cb55b3a5ce96806e7dc80ecc276b"
+    },
+    {
+      "source_file": "dprose_459.csv",
+      "slug": "dprose_459",
+      "name": "processed/dprose/dprose_459/dprose_459__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_459/dprose_459__for_prompting.jsonl",
+      "size_bytes": 37131,
+      "sentence_count": 378,
+      "md5": "b9dedd2d5341af4469cc96d6d6bcfb29"
+    },
+    {
+      "source_file": "dprose_479.csv",
+      "slug": "dprose_479",
+      "name": "processed/dprose/dprose_479/dprose_479__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_479/dprose_479__for_prompting.jsonl",
+      "size_bytes": 33089,
+      "sentence_count": 320,
+      "md5": "db522d83d3842ebbc364d65c527df4de"
+    },
+    {
+      "source_file": "dprose_481.csv",
+      "slug": "dprose_481",
+      "name": "processed/dprose/dprose_481/dprose_481__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_481/dprose_481__for_prompting.jsonl",
+      "size_bytes": 44512,
+      "sentence_count": 401,
+      "md5": "987c7f1ebf3570c6ff0f2f8b9bf88e23"
+    },
+    {
+      "source_file": "dprose_510.csv",
+      "slug": "dprose_510",
+      "name": "processed/dprose/dprose_510/dprose_510__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_510/dprose_510__for_prompting.jsonl",
+      "size_bytes": 47112,
+      "sentence_count": 466,
+      "md5": "f81e8b1e3fa757205e1bba95386e6ec7"
+    },
+    {
+      "source_file": "dprose_511.csv",
+      "slug": "dprose_511",
+      "name": "processed/dprose/dprose_511/dprose_511__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_511/dprose_511__for_prompting.jsonl",
+      "size_bytes": 40363,
+      "sentence_count": 378,
+      "md5": "156b1038e1ef4bfe597bd5c9e6a825cd"
+    },
+    {
+      "source_file": "dprose_512.csv",
+      "slug": "dprose_512",
+      "name": "processed/dprose/dprose_512/dprose_512__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_512/dprose_512__for_prompting.jsonl",
+      "size_bytes": 62041,
+      "sentence_count": 535,
+      "md5": "e0393db39ea93d30d15ac5db9333e212"
+    },
+    {
+      "source_file": "dprose_516.csv",
+      "slug": "dprose_516",
+      "name": "processed/dprose/dprose_516/dprose_516__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_516/dprose_516__for_prompting.jsonl",
+      "size_bytes": 52760,
+      "sentence_count": 430,
+      "md5": "c3d5d4d84c9a69f792bba773bd444717"
+    },
+    {
+      "source_file": "dprose_521.csv",
+      "slug": "dprose_521",
+      "name": "processed/dprose/dprose_521/dprose_521__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_521/dprose_521__for_prompting.jsonl",
+      "size_bytes": 45398,
+      "sentence_count": 318,
+      "md5": "888d706c48f948e0239f61d714abcd53"
+    },
+    {
+      "source_file": "dprose_527.csv",
+      "slug": "dprose_527",
+      "name": "processed/dprose/dprose_527/dprose_527__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_527/dprose_527__for_prompting.jsonl",
+      "size_bytes": 49034,
+      "sentence_count": 417,
+      "md5": "ea84e354bb5bac27a902d7266fb0a868"
+    },
+    {
+      "source_file": "dprose_542.csv",
+      "slug": "dprose_542",
+      "name": "processed/dprose/dprose_542/dprose_542__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_542/dprose_542__for_prompting.jsonl",
+      "size_bytes": 45630,
+      "sentence_count": 309,
+      "md5": "aca1552c52b3cf411e7ea5b9042dc642"
+    },
+    {
+      "source_file": "dprose_546.csv",
+      "slug": "dprose_546",
+      "name": "processed/dprose/dprose_546/dprose_546__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_546/dprose_546__for_prompting.jsonl",
+      "size_bytes": 40863,
+      "sentence_count": 359,
+      "md5": "5b3934f83e05599876a0efb00e01f767"
+    },
+    {
+      "source_file": "dprose_547.csv",
+      "slug": "dprose_547",
+      "name": "processed/dprose/dprose_547/dprose_547__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_547/dprose_547__for_prompting.jsonl",
+      "size_bytes": 37477,
+      "sentence_count": 353,
+      "md5": "d4b36ed16c142f4ec3a502ad69edbd25"
+    },
+    {
+      "source_file": "dprose_555.csv",
+      "slug": "dprose_555",
+      "name": "processed/dprose/dprose_555/dprose_555__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_555/dprose_555__for_prompting.jsonl",
+      "size_bytes": 43750,
+      "sentence_count": 555,
+      "md5": "ed546002201cacc522998a171ffc3669"
+    },
+    {
+      "source_file": "dprose_561.csv",
+      "slug": "dprose_561",
+      "name": "processed/dprose/dprose_561/dprose_561__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_561/dprose_561__for_prompting.jsonl",
+      "size_bytes": 33808,
+      "sentence_count": 267,
+      "md5": "98ff240147668143d584611f76d5a5e1"
+    },
+    {
+      "source_file": "dprose_567.csv",
+      "slug": "dprose_567",
+      "name": "processed/dprose/dprose_567/dprose_567__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_567/dprose_567__for_prompting.jsonl",
+      "size_bytes": 30509,
+      "sentence_count": 293,
+      "md5": "a85914fa12a17b1d79ecaa2fb00d489b"
+    },
+    {
+      "source_file": "dprose_574.csv",
+      "slug": "dprose_574",
+      "name": "processed/dprose/dprose_574/dprose_574__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_574/dprose_574__for_prompting.jsonl",
+      "size_bytes": 29965,
+      "sentence_count": 255,
+      "md5": "a557a20482aa40fcc7a0398240cee0fa"
+    },
+    {
+      "source_file": "dprose_587.csv",
+      "slug": "dprose_587",
+      "name": "processed/dprose/dprose_587/dprose_587__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_587/dprose_587__for_prompting.jsonl",
+      "size_bytes": 40745,
+      "sentence_count": 363,
+      "md5": "e67ede148b6e00de9ed572807a1d0acf"
+    },
+    {
+      "source_file": "dprose_590.csv",
+      "slug": "dprose_590",
+      "name": "processed/dprose/dprose_590/dprose_590__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_590/dprose_590__for_prompting.jsonl",
+      "size_bytes": 35445,
+      "sentence_count": 189,
+      "md5": "6655ce79401fc06588c09ebcf557604b"
+    },
+    {
+      "source_file": "dprose_609.csv",
+      "slug": "dprose_609",
+      "name": "processed/dprose/dprose_609/dprose_609__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_609/dprose_609__for_prompting.jsonl",
+      "size_bytes": 34248,
+      "sentence_count": 354,
+      "md5": "1901c4e5f1b168560d4242ab688b3751"
+    },
+    {
+      "source_file": "dprose_611.csv",
+      "slug": "dprose_611",
+      "name": "processed/dprose/dprose_611/dprose_611__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_611/dprose_611__for_prompting.jsonl",
+      "size_bytes": 56298,
+      "sentence_count": 647,
+      "md5": "7198cd9e44aae2fbdbc378a07cfab2cf"
+    },
+    {
+      "source_file": "dprose_615.csv",
+      "slug": "dprose_615",
+      "name": "processed/dprose/dprose_615/dprose_615__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_615/dprose_615__for_prompting.jsonl",
+      "size_bytes": 50219,
+      "sentence_count": 542,
+      "md5": "eb011f7e3a9d208dd8aa0281dd6730f3"
+    },
+    {
+      "source_file": "dprose_642.csv",
+      "slug": "dprose_642",
+      "name": "processed/dprose/dprose_642/dprose_642__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_642/dprose_642__for_prompting.jsonl",
+      "size_bytes": 56605,
+      "sentence_count": 336,
+      "md5": "2a084d1c98e560b4c73df0a78324c196"
+    },
+    {
+      "source_file": "dprose_654.csv",
+      "slug": "dprose_654",
+      "name": "processed/dprose/dprose_654/dprose_654__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_654/dprose_654__for_prompting.jsonl",
+      "size_bytes": 31694,
+      "sentence_count": 426,
+      "md5": "b71095370c2e083f742310679863e4a6"
+    },
+    {
+      "source_file": "dprose_661.csv",
+      "slug": "dprose_661",
+      "name": "processed/dprose/dprose_661/dprose_661__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_661/dprose_661__for_prompting.jsonl",
+      "size_bytes": 34518,
+      "sentence_count": 514,
+      "md5": "d2f9f5930e75f46c1794afa9c408e051"
+    },
+    {
+      "source_file": "dprose_686.csv",
+      "slug": "dprose_686",
+      "name": "processed/dprose/dprose_686/dprose_686__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_686/dprose_686__for_prompting.jsonl",
+      "size_bytes": 58216,
+      "sentence_count": 569,
+      "md5": "f66862762977b9356672b53c558a8e25"
+    },
+    {
+      "source_file": "dprose_690.csv",
+      "slug": "dprose_690",
+      "name": "processed/dprose/dprose_690/dprose_690__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_690/dprose_690__for_prompting.jsonl",
+      "size_bytes": 59332,
+      "sentence_count": 476,
+      "md5": "627fd66a44334b273e76918303e63ed1"
+    },
+    {
+      "source_file": "dprose_691.csv",
+      "slug": "dprose_691",
+      "name": "processed/dprose/dprose_691/dprose_691__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_691/dprose_691__for_prompting.jsonl",
+      "size_bytes": 53064,
+      "sentence_count": 463,
+      "md5": "e7a3282db6dc2446e71557c0e8faecd5"
+    },
+    {
+      "source_file": "dprose_692.csv",
+      "slug": "dprose_692",
+      "name": "processed/dprose/dprose_692/dprose_692__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_692/dprose_692__for_prompting.jsonl",
+      "size_bytes": 45726,
+      "sentence_count": 345,
+      "md5": "032edefc99ca17705a34a362b2defe00"
+    },
+    {
+      "source_file": "dprose_693.csv",
+      "slug": "dprose_693",
+      "name": "processed/dprose/dprose_693/dprose_693__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_693/dprose_693__for_prompting.jsonl",
+      "size_bytes": 34147,
+      "sentence_count": 290,
+      "md5": "d4e6afe18db5f14ded5502aa8c206f5c"
+    },
+    {
+      "source_file": "dprose_695.csv",
+      "slug": "dprose_695",
+      "name": "processed/dprose/dprose_695/dprose_695__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_695/dprose_695__for_prompting.jsonl",
+      "size_bytes": 46163,
+      "sentence_count": 406,
+      "md5": "32017ffbad69bdfabd1f92c7523b276e"
+    },
+    {
+      "source_file": "dprose_696.csv",
+      "slug": "dprose_696",
+      "name": "processed/dprose/dprose_696/dprose_696__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_696/dprose_696__for_prompting.jsonl",
+      "size_bytes": 46313,
+      "sentence_count": 394,
+      "md5": "8d4ef15912c76717423d4c085d311a28"
+    },
+    {
+      "source_file": "dprose_697.csv",
+      "slug": "dprose_697",
+      "name": "processed/dprose/dprose_697/dprose_697__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_697/dprose_697__for_prompting.jsonl",
+      "size_bytes": 36105,
+      "sentence_count": 325,
+      "md5": "bd46d7af52c993c690ee9abd789c8e96"
+    },
+    {
+      "source_file": "dprose_700.csv",
+      "slug": "dprose_700",
+      "name": "processed/dprose/dprose_700/dprose_700__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_700/dprose_700__for_prompting.jsonl",
+      "size_bytes": 51812,
+      "sentence_count": 466,
+      "md5": "ecd42f6eb50bbed93b43ddc81f14737c"
+    },
+    {
+      "source_file": "dprose_701.csv",
+      "slug": "dprose_701",
+      "name": "processed/dprose/dprose_701/dprose_701__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_701/dprose_701__for_prompting.jsonl",
+      "size_bytes": 44358,
+      "sentence_count": 357,
+      "md5": "46ffc09d03494c65c018fb70a532cd82"
+    },
+    {
+      "source_file": "dprose_702.csv",
+      "slug": "dprose_702",
+      "name": "processed/dprose/dprose_702/dprose_702__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_702/dprose_702__for_prompting.jsonl",
+      "size_bytes": 51905,
+      "sentence_count": 423,
+      "md5": "51c5d1cd45d97fa78b703d0dbefb7d57"
+    },
+    {
+      "source_file": "dprose_719.csv",
+      "slug": "dprose_719",
+      "name": "processed/dprose/dprose_719/dprose_719__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_719/dprose_719__for_prompting.jsonl",
+      "size_bytes": 66945,
+      "sentence_count": 442,
+      "md5": "8460eec5cd132bdb80b286452ddef8b3"
+    },
+    {
+      "source_file": "dprose_721.csv",
+      "slug": "dprose_721",
+      "name": "processed/dprose/dprose_721/dprose_721__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_721/dprose_721__for_prompting.jsonl",
+      "size_bytes": 47676,
+      "sentence_count": 276,
+      "md5": "d3408deff25a5eeeee5523026051e196"
+    },
+    {
+      "source_file": "dprose_727.csv",
+      "slug": "dprose_727",
+      "name": "processed/dprose/dprose_727/dprose_727__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_727/dprose_727__for_prompting.jsonl",
+      "size_bytes": 38720,
+      "sentence_count": 261,
+      "md5": "0c550ee1844d3d88310c0b095837c8a8"
+    },
+    {
+      "source_file": "dprose_728.csv",
+      "slug": "dprose_728",
+      "name": "processed/dprose/dprose_728/dprose_728__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_728/dprose_728__for_prompting.jsonl",
+      "size_bytes": 56227,
+      "sentence_count": 449,
+      "md5": "7a93961e66cc4178fd82a55eaf2fabe5"
+    },
+    {
+      "source_file": "dprose_730.csv",
+      "slug": "dprose_730",
+      "name": "processed/dprose/dprose_730/dprose_730__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_730/dprose_730__for_prompting.jsonl",
+      "size_bytes": 40779,
+      "sentence_count": 239,
+      "md5": "5b29c0a743396a640b13b56ba33b23de"
+    },
+    {
+      "source_file": "dprose_737.csv",
+      "slug": "dprose_737",
+      "name": "processed/dprose/dprose_737/dprose_737__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_737/dprose_737__for_prompting.jsonl",
+      "size_bytes": 43756,
+      "sentence_count": 351,
+      "md5": "2cb9de425db687aad53da5b6aefeafb3"
+    },
+    {
+      "source_file": "dprose_738.csv",
+      "slug": "dprose_738",
+      "name": "processed/dprose/dprose_738/dprose_738__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_738/dprose_738__for_prompting.jsonl",
+      "size_bytes": 55738,
+      "sentence_count": 390,
+      "md5": "bc53c0a274dbde3ec672f45862cee4df"
+    },
+    {
+      "source_file": "dprose_739.csv",
+      "slug": "dprose_739",
+      "name": "processed/dprose/dprose_739/dprose_739__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_739/dprose_739__for_prompting.jsonl",
+      "size_bytes": 63295,
+      "sentence_count": 262,
+      "md5": "492e735e73a40e5f364c1ecc662b3d64"
+    },
+    {
+      "source_file": "dprose_753.csv",
+      "slug": "dprose_753",
+      "name": "processed/dprose/dprose_753/dprose_753__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_753/dprose_753__for_prompting.jsonl",
+      "size_bytes": 54398,
+      "sentence_count": 653,
+      "md5": "262e1bfa9ed4bddb841296ec1ce30866"
+    },
+    {
+      "source_file": "dprose_755.csv",
+      "slug": "dprose_755",
+      "name": "processed/dprose/dprose_755/dprose_755__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_755/dprose_755__for_prompting.jsonl",
+      "size_bytes": 47230,
+      "sentence_count": 448,
+      "md5": "15b1034c0b53ea9f8e145595117f751d"
+    },
+    {
+      "source_file": "dprose_756.csv",
+      "slug": "dprose_756",
+      "name": "processed/dprose/dprose_756/dprose_756__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_756/dprose_756__for_prompting.jsonl",
+      "size_bytes": 37931,
+      "sentence_count": 389,
+      "md5": "314d032be363d1f5d4abc5b6698dcca7"
+    },
+    {
+      "source_file": "dprose_757.csv",
+      "slug": "dprose_757",
+      "name": "processed/dprose/dprose_757/dprose_757__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_757/dprose_757__for_prompting.jsonl",
+      "size_bytes": 45088,
+      "sentence_count": 575,
+      "md5": "ec9b3f0e04d749250fd77a6f61e18a0d"
+    },
+    {
+      "source_file": "dprose_764.csv",
+      "slug": "dprose_764",
+      "name": "processed/dprose/dprose_764/dprose_764__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_764/dprose_764__for_prompting.jsonl",
+      "size_bytes": 47450,
+      "sentence_count": 527,
+      "md5": "73acbff371e49987241838394c7d7065"
+    },
+    {
+      "source_file": "dprose_782.csv",
+      "slug": "dprose_782",
+      "name": "processed/dprose/dprose_782/dprose_782__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_782/dprose_782__for_prompting.jsonl",
+      "size_bytes": 63587,
+      "sentence_count": 583,
+      "md5": "f810062bbd6ffe6efc1a74609e64460e"
+    },
+    {
+      "source_file": "dprose_797.csv",
+      "slug": "dprose_797",
+      "name": "processed/dprose/dprose_797/dprose_797__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_797/dprose_797__for_prompting.jsonl",
+      "size_bytes": 34112,
+      "sentence_count": 333,
+      "md5": "56d9cc74703022ef0aa5ddf73c345077"
+    },
+    {
+      "source_file": "dprose_802.csv",
+      "slug": "dprose_802",
+      "name": "processed/dprose/dprose_802/dprose_802__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_802/dprose_802__for_prompting.jsonl",
+      "size_bytes": 37492,
+      "sentence_count": 256,
+      "md5": "6d9bcbf41b1751c7c39b09a7d4f44833"
+    },
+    {
+      "source_file": "dprose_806.csv",
+      "slug": "dprose_806",
+      "name": "processed/dprose/dprose_806/dprose_806__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_806/dprose_806__for_prompting.jsonl",
+      "size_bytes": 64763,
+      "sentence_count": 752,
+      "md5": "7bd54ab25412bd313622b425d31c1e8d"
+    },
+    {
+      "source_file": "dprose_838.csv",
+      "slug": "dprose_838",
+      "name": "processed/dprose/dprose_838/dprose_838__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_838/dprose_838__for_prompting.jsonl",
+      "size_bytes": 39225,
+      "sentence_count": 424,
+      "md5": "c3c64be5cae7add9e71c9e36e7c95a50"
+    },
+    {
+      "source_file": "dprose_843.csv",
+      "slug": "dprose_843",
+      "name": "processed/dprose/dprose_843/dprose_843__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_843/dprose_843__for_prompting.jsonl",
+      "size_bytes": 46013,
+      "sentence_count": 419,
+      "md5": "a715cf16cd126ef170a6ab12055174c2"
+    },
+    {
+      "source_file": "dprose_853.csv",
+      "slug": "dprose_853",
+      "name": "processed/dprose/dprose_853/dprose_853__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_853/dprose_853__for_prompting.jsonl",
+      "size_bytes": 39728,
+      "sentence_count": 316,
+      "md5": "d5ddd6f5f5107a61d9bb3a1a87466ec9"
+    },
+    {
+      "source_file": "dprose_859.csv",
+      "slug": "dprose_859",
+      "name": "processed/dprose/dprose_859/dprose_859__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_859/dprose_859__for_prompting.jsonl",
+      "size_bytes": 36779,
+      "sentence_count": 421,
+      "md5": "54105f95f817d55622250e4073e7dbdf"
+    },
+    {
+      "source_file": "dprose_879.csv",
+      "slug": "dprose_879",
+      "name": "processed/dprose/dprose_879/dprose_879__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_879/dprose_879__for_prompting.jsonl",
+      "size_bytes": 51916,
+      "sentence_count": 683,
+      "md5": "5d040d8a64f28a87f6f4d6df2d94ecc1"
+    },
+    {
+      "source_file": "dprose_884.csv",
+      "slug": "dprose_884",
+      "name": "processed/dprose/dprose_884/dprose_884__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_884/dprose_884__for_prompting.jsonl",
+      "size_bytes": 49828,
+      "sentence_count": 518,
+      "md5": "7723eb74b4208904e87327a255db7965"
+    },
+    {
+      "source_file": "dprose_898.csv",
+      "slug": "dprose_898",
+      "name": "processed/dprose/dprose_898/dprose_898__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_898/dprose_898__for_prompting.jsonl",
+      "size_bytes": 35739,
+      "sentence_count": 516,
+      "md5": "07ae7564571ca43e49784418871c27b2"
+    },
+    {
+      "source_file": "dprose_904.csv",
+      "slug": "dprose_904",
+      "name": "processed/dprose/dprose_904/dprose_904__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_904/dprose_904__for_prompting.jsonl",
+      "size_bytes": 46675,
+      "sentence_count": 549,
+      "md5": "ccd012ae916783b35694bf49020458d5"
+    },
+    {
+      "source_file": "dprose_906.csv",
+      "slug": "dprose_906",
+      "name": "processed/dprose/dprose_906/dprose_906__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_906/dprose_906__for_prompting.jsonl",
+      "size_bytes": 34487,
+      "sentence_count": 353,
+      "md5": "ad454687e9c207a2b273aa669f4ac10a"
+    },
+    {
+      "source_file": "dprose_908.csv",
+      "slug": "dprose_908",
+      "name": "processed/dprose/dprose_908/dprose_908__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_908/dprose_908__for_prompting.jsonl",
+      "size_bytes": 51822,
+      "sentence_count": 553,
+      "md5": "c756a470940ce6f9b8e24050506af063"
+    },
+    {
+      "source_file": "dprose_926.csv",
+      "slug": "dprose_926",
+      "name": "processed/dprose/dprose_926/dprose_926__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_926/dprose_926__for_prompting.jsonl",
+      "size_bytes": 56164,
+      "sentence_count": 356,
+      "md5": "eaf4c417b907d3bea897854c2c8c75f7"
+    },
+    {
+      "source_file": "dprose_930.csv",
+      "slug": "dprose_930",
+      "name": "processed/dprose/dprose_930/dprose_930__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_930/dprose_930__for_prompting.jsonl",
+      "size_bytes": 34075,
+      "sentence_count": 189,
+      "md5": "4753253f7c077942a8c609360e5b8970"
+    },
+    {
+      "source_file": "dprose_938.csv",
+      "slug": "dprose_938",
+      "name": "processed/dprose/dprose_938/dprose_938__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_938/dprose_938__for_prompting.jsonl",
+      "size_bytes": 52490,
+      "sentence_count": 382,
+      "md5": "09c1bf18e856da0b64ccc456cd7279bd"
+    },
+    {
+      "source_file": "dprose_952.csv",
+      "slug": "dprose_952",
+      "name": "processed/dprose/dprose_952/dprose_952__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_952/dprose_952__for_prompting.jsonl",
+      "size_bytes": 43713,
+      "sentence_count": 191,
+      "md5": "d71f4ef5eb7725fb8d683cd795a5b6a6"
+    },
+    {
+      "source_file": "dprose_953.csv",
+      "slug": "dprose_953",
+      "name": "processed/dprose/dprose_953/dprose_953__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_953/dprose_953__for_prompting.jsonl",
+      "size_bytes": 61696,
+      "sentence_count": 327,
+      "md5": "4620e306d717452eb1646b8ed5bf9304"
+    },
+    {
+      "source_file": "dprose_965.csv",
+      "slug": "dprose_965",
+      "name": "processed/dprose/dprose_965/dprose_965__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_965/dprose_965__for_prompting.jsonl",
+      "size_bytes": 46573,
+      "sentence_count": 231,
+      "md5": "21908b6a8c2255c55be5611df8eec9f4"
+    },
+    {
+      "source_file": "dprose_979.csv",
+      "slug": "dprose_979",
+      "name": "processed/dprose/dprose_979/dprose_979__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_979/dprose_979__for_prompting.jsonl",
+      "size_bytes": 62266,
+      "sentence_count": 762,
+      "md5": "9d41a0cd78e10fbe4d78673183701260"
+    },
+    {
+      "source_file": "dprose_988.csv",
+      "slug": "dprose_988",
+      "name": "processed/dprose/dprose_988/dprose_988__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_988/dprose_988__for_prompting.jsonl",
+      "size_bytes": 50885,
+      "sentence_count": 351,
+      "md5": "7972c60d5086ba949863faf558c4f6a3"
+    },
+    {
+      "source_file": "dprose_989.csv",
+      "slug": "dprose_989",
+      "name": "processed/dprose/dprose_989/dprose_989__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_989/dprose_989__for_prompting.jsonl",
+      "size_bytes": 46067,
+      "sentence_count": 309,
+      "md5": "f29e7e9f56d1bfc27263c23aaf997fca"
+    },
+    {
+      "source_file": "dprose_1014.csv",
+      "slug": "dprose_1014",
+      "name": "processed/dprose/dprose_1014/dprose_1014__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1014/dprose_1014__for_prompting.jsonl",
+      "size_bytes": 40903,
+      "sentence_count": 375,
+      "md5": "bdfb1fd2eb2ec3d8d12c823bf440cd17"
+    },
+    {
+      "source_file": "dprose_1015.csv",
+      "slug": "dprose_1015",
+      "name": "processed/dprose/dprose_1015/dprose_1015__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1015/dprose_1015__for_prompting.jsonl",
+      "size_bytes": 33413,
+      "sentence_count": 310,
+      "md5": "c25713c529450be52ad32fdc58f37128"
+    },
+    {
+      "source_file": "dprose_1018.csv",
+      "slug": "dprose_1018",
+      "name": "processed/dprose/dprose_1018/dprose_1018__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1018/dprose_1018__for_prompting.jsonl",
+      "size_bytes": 31466,
+      "sentence_count": 318,
+      "md5": "65d234fa65e4f271ad5ea4446b32cd0d"
+    },
+    {
+      "source_file": "dprose_1019.csv",
+      "slug": "dprose_1019",
+      "name": "processed/dprose/dprose_1019/dprose_1019__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1019/dprose_1019__for_prompting.jsonl",
+      "size_bytes": 41672,
+      "sentence_count": 450,
+      "md5": "849830c82bd9128791f0509b849e8286"
+    },
+    {
+      "source_file": "dprose_1020.csv",
+      "slug": "dprose_1020",
+      "name": "processed/dprose/dprose_1020/dprose_1020__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1020/dprose_1020__for_prompting.jsonl",
+      "size_bytes": 33082,
+      "sentence_count": 395,
+      "md5": "e64124759599321bdae4e72c182a9dfd"
+    },
+    {
+      "source_file": "dprose_1021.csv",
+      "slug": "dprose_1021",
+      "name": "processed/dprose/dprose_1021/dprose_1021__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1021/dprose_1021__for_prompting.jsonl",
+      "size_bytes": 35418,
+      "sentence_count": 417,
+      "md5": "37d21e3b7687fca47457032bdec6a3b0"
+    },
+    {
+      "source_file": "dprose_1022.csv",
+      "slug": "dprose_1022",
+      "name": "processed/dprose/dprose_1022/dprose_1022__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1022/dprose_1022__for_prompting.jsonl",
+      "size_bytes": 55266,
+      "sentence_count": 538,
+      "md5": "5b1e59972fff24b0367d1911a0f620a1"
+    },
+    {
+      "source_file": "dprose_1023.csv",
+      "slug": "dprose_1023",
+      "name": "processed/dprose/dprose_1023/dprose_1023__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1023/dprose_1023__for_prompting.jsonl",
+      "size_bytes": 35926,
+      "sentence_count": 309,
+      "md5": "992c2bc43c89e49d3b16b978aa4f8420"
+    },
+    {
+      "source_file": "dprose_1029.csv",
+      "slug": "dprose_1029",
+      "name": "processed/dprose/dprose_1029/dprose_1029__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1029/dprose_1029__for_prompting.jsonl",
+      "size_bytes": 37875,
+      "sentence_count": 389,
+      "md5": "9f9787ccb0e3fcebcda9edca4646291f"
+    },
+    {
+      "source_file": "dprose_1040.csv",
+      "slug": "dprose_1040",
+      "name": "processed/dprose/dprose_1040/dprose_1040__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1040/dprose_1040__for_prompting.jsonl",
+      "size_bytes": 34318,
+      "sentence_count": 378,
+      "md5": "e8d059740cbc76ec67fdb58fd728332c"
+    },
+    {
+      "source_file": "dprose_1041.csv",
+      "slug": "dprose_1041",
+      "name": "processed/dprose/dprose_1041/dprose_1041__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1041/dprose_1041__for_prompting.jsonl",
+      "size_bytes": 36361,
+      "sentence_count": 392,
+      "md5": "275586ffaa0a12e73ffd472fc14391ba"
+    },
+    {
+      "source_file": "dprose_1045.csv",
+      "slug": "dprose_1045",
+      "name": "processed/dprose/dprose_1045/dprose_1045__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1045/dprose_1045__for_prompting.jsonl",
+      "size_bytes": 57834,
+      "sentence_count": 659,
+      "md5": "0ec71a9756f9cf1db16f8778e2516b26"
+    },
+    {
+      "source_file": "dprose_1046.csv",
+      "slug": "dprose_1046",
+      "name": "processed/dprose/dprose_1046/dprose_1046__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1046/dprose_1046__for_prompting.jsonl",
+      "size_bytes": 60884,
+      "sentence_count": 548,
+      "md5": "3ce34692b021a96ed3b9cc6cd37897ec"
+    },
+    {
+      "source_file": "dprose_1049.csv",
+      "slug": "dprose_1049",
+      "name": "processed/dprose/dprose_1049/dprose_1049__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1049/dprose_1049__for_prompting.jsonl",
+      "size_bytes": 41214,
+      "sentence_count": 452,
+      "md5": "1bb066d5e24fdc71e4c2fd904d142d0f"
+    },
+    {
+      "source_file": "dprose_1060.csv",
+      "slug": "dprose_1060",
+      "name": "processed/dprose/dprose_1060/dprose_1060__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1060/dprose_1060__for_prompting.jsonl",
+      "size_bytes": 50659,
+      "sentence_count": 522,
+      "md5": "9f2eebc302cbb19768b4a65fe8c1bb12"
+    },
+    {
+      "source_file": "dprose_1069.csv",
+      "slug": "dprose_1069",
+      "name": "processed/dprose/dprose_1069/dprose_1069__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1069/dprose_1069__for_prompting.jsonl",
+      "size_bytes": 43586,
+      "sentence_count": 294,
+      "md5": "3130a0c7079128668e1ce820989d1549"
+    },
+    {
+      "source_file": "dprose_1075.csv",
+      "slug": "dprose_1075",
+      "name": "processed/dprose/dprose_1075/dprose_1075__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1075/dprose_1075__for_prompting.jsonl",
+      "size_bytes": 43871,
+      "sentence_count": 388,
+      "md5": "0737a12c6f66d8ddc58d764900df2c94"
+    },
+    {
+      "source_file": "dprose_1088.csv",
+      "slug": "dprose_1088",
+      "name": "processed/dprose/dprose_1088/dprose_1088__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1088/dprose_1088__for_prompting.jsonl",
+      "size_bytes": 63772,
+      "sentence_count": 615,
+      "md5": "5099f9697d303e6ab3887f4a17744617"
+    },
+    {
+      "source_file": "dprose_1096.csv",
+      "slug": "dprose_1096",
+      "name": "processed/dprose/dprose_1096/dprose_1096__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1096/dprose_1096__for_prompting.jsonl",
+      "size_bytes": 52437,
+      "sentence_count": 400,
+      "md5": "8baef1296103a1f350de2545cfd640cc"
+    },
+    {
+      "source_file": "dprose_1113.csv",
+      "slug": "dprose_1113",
+      "name": "processed/dprose/dprose_1113/dprose_1113__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1113/dprose_1113__for_prompting.jsonl",
+      "size_bytes": 38301,
+      "sentence_count": 256,
+      "md5": "40f42c9d02fefaaf951ffc88c7d54215"
+    },
+    {
+      "source_file": "dprose_1156.csv",
+      "slug": "dprose_1156",
+      "name": "processed/dprose/dprose_1156/dprose_1156__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1156/dprose_1156__for_prompting.jsonl",
+      "size_bytes": 53141,
+      "sentence_count": 385,
+      "md5": "1deea175b20dbae4e144d3a47d7050af"
+    },
+    {
+      "source_file": "dprose_1265.csv",
+      "slug": "dprose_1265",
+      "name": "processed/dprose/dprose_1265/dprose_1265__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1265/dprose_1265__for_prompting.jsonl",
+      "size_bytes": 53476,
+      "sentence_count": 358,
+      "md5": "b6df0fa775d8f2d155d07262e1b46bf3"
+    },
+    {
+      "source_file": "dprose_1269.csv",
+      "slug": "dprose_1269",
+      "name": "processed/dprose/dprose_1269/dprose_1269__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1269/dprose_1269__for_prompting.jsonl",
+      "size_bytes": 32820,
+      "sentence_count": 216,
+      "md5": "27a0fba69607c3233b247c03f042a64b"
+    },
+    {
+      "source_file": "dprose_1272.csv",
+      "slug": "dprose_1272",
+      "name": "processed/dprose/dprose_1272/dprose_1272__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1272/dprose_1272__for_prompting.jsonl",
+      "size_bytes": 48343,
+      "sentence_count": 390,
+      "md5": "f1ef21caa780fd141772ffae42a9009e"
+    },
+    {
+      "source_file": "dprose_1277.csv",
+      "slug": "dprose_1277",
+      "name": "processed/dprose/dprose_1277/dprose_1277__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1277/dprose_1277__for_prompting.jsonl",
+      "size_bytes": 60276,
+      "sentence_count": 592,
+      "md5": "35f56503e106fe7b300d5b3ae741629f"
+    },
+    {
+      "source_file": "dprose_1280.csv",
+      "slug": "dprose_1280",
+      "name": "processed/dprose/dprose_1280/dprose_1280__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1280/dprose_1280__for_prompting.jsonl",
+      "size_bytes": 61247,
+      "sentence_count": 476,
+      "md5": "9b8d3a87445b79d9b202d4c29d4f3618"
+    },
+    {
+      "source_file": "dprose_1282.csv",
+      "slug": "dprose_1282",
+      "name": "processed/dprose/dprose_1282/dprose_1282__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1282/dprose_1282__for_prompting.jsonl",
+      "size_bytes": 39657,
+      "sentence_count": 244,
+      "md5": "172aaf6b9c55ecfaceec307e205ae36a"
+    },
+    {
+      "source_file": "dprose_1284.csv",
+      "slug": "dprose_1284",
+      "name": "processed/dprose/dprose_1284/dprose_1284__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1284/dprose_1284__for_prompting.jsonl",
+      "size_bytes": 41369,
+      "sentence_count": 294,
+      "md5": "1c55a66e694beb51bfcfb3e5e8b209ab"
+    },
+    {
+      "source_file": "dprose_1287.csv",
+      "slug": "dprose_1287",
+      "name": "processed/dprose/dprose_1287/dprose_1287__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1287/dprose_1287__for_prompting.jsonl",
+      "size_bytes": 48499,
+      "sentence_count": 363,
+      "md5": "d756cfbd32bc78fa5e625f8d2ec23e61"
+    },
+    {
+      "source_file": "dprose_1302.csv",
+      "slug": "dprose_1302",
+      "name": "processed/dprose/dprose_1302/dprose_1302__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1302/dprose_1302__for_prompting.jsonl",
+      "size_bytes": 48771,
+      "sentence_count": 382,
+      "md5": "f2f74440ca0ac72a38f7e32e89e0e277"
+    },
+    {
+      "source_file": "dprose_1303.csv",
+      "slug": "dprose_1303",
+      "name": "processed/dprose/dprose_1303/dprose_1303__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1303/dprose_1303__for_prompting.jsonl",
+      "size_bytes": 43355,
+      "sentence_count": 322,
+      "md5": "ea64f3600e535f08fcc878e46f48fb7c"
+    },
+    {
+      "source_file": "dprose_1306.csv",
+      "slug": "dprose_1306",
+      "name": "processed/dprose/dprose_1306/dprose_1306__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1306/dprose_1306__for_prompting.jsonl",
+      "size_bytes": 54107,
+      "sentence_count": 407,
+      "md5": "b8505dc5ed689481380e2ced10dc04a4"
+    },
+    {
+      "source_file": "dprose_1307.csv",
+      "slug": "dprose_1307",
+      "name": "processed/dprose/dprose_1307/dprose_1307__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1307/dprose_1307__for_prompting.jsonl",
+      "size_bytes": 40968,
+      "sentence_count": 302,
+      "md5": "fc649533e1d8d0dcc164811df3851550"
+    },
+    {
+      "source_file": "dprose_1308.csv",
+      "slug": "dprose_1308",
+      "name": "processed/dprose/dprose_1308/dprose_1308__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1308/dprose_1308__for_prompting.jsonl",
+      "size_bytes": 35267,
+      "sentence_count": 259,
+      "md5": "54594b19f1da342503874ae19f8e819f"
+    },
+    {
+      "source_file": "dprose_1309.csv",
+      "slug": "dprose_1309",
+      "name": "processed/dprose/dprose_1309/dprose_1309__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1309/dprose_1309__for_prompting.jsonl",
+      "size_bytes": 41523,
+      "sentence_count": 360,
+      "md5": "7b699775fa9b36ddcbe39141d866d4d5"
+    },
+    {
+      "source_file": "dprose_1314.csv",
+      "slug": "dprose_1314",
+      "name": "processed/dprose/dprose_1314/dprose_1314__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1314/dprose_1314__for_prompting.jsonl",
+      "size_bytes": 35363,
+      "sentence_count": 229,
+      "md5": "261bb843fcc02f043af516a7737dcca5"
+    },
+    {
+      "source_file": "dprose_1318.csv",
+      "slug": "dprose_1318",
+      "name": "processed/dprose/dprose_1318/dprose_1318__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1318/dprose_1318__for_prompting.jsonl",
+      "size_bytes": 62853,
+      "sentence_count": 498,
+      "md5": "995944d4cfdf9b3795d0de0c9a8f88f1"
+    },
+    {
+      "source_file": "dprose_1319.csv",
+      "slug": "dprose_1319",
+      "name": "processed/dprose/dprose_1319/dprose_1319__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1319/dprose_1319__for_prompting.jsonl",
+      "size_bytes": 54130,
+      "sentence_count": 406,
+      "md5": "c2fd2b47db7578f1720417be106e5f53"
+    },
+    {
+      "source_file": "dprose_1332.csv",
+      "slug": "dprose_1332",
+      "name": "processed/dprose/dprose_1332/dprose_1332__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1332/dprose_1332__for_prompting.jsonl",
+      "size_bytes": 39476,
+      "sentence_count": 345,
+      "md5": "a0d516f8c6b7f86f74f64e56e8645899"
+    },
+    {
+      "source_file": "dprose_1333.csv",
+      "slug": "dprose_1333",
+      "name": "processed/dprose/dprose_1333/dprose_1333__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1333/dprose_1333__for_prompting.jsonl",
+      "size_bytes": 33655,
+      "sentence_count": 245,
+      "md5": "6fbc97ea825f6bf7f287aca7af518455"
+    },
+    {
+      "source_file": "dprose_1338.csv",
+      "slug": "dprose_1338",
+      "name": "processed/dprose/dprose_1338/dprose_1338__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1338/dprose_1338__for_prompting.jsonl",
+      "size_bytes": 58759,
+      "sentence_count": 466,
+      "md5": "17d98ccfa06947c586fe5edcf106f910"
+    },
+    {
+      "source_file": "dprose_1345.csv",
+      "slug": "dprose_1345",
+      "name": "processed/dprose/dprose_1345/dprose_1345__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1345/dprose_1345__for_prompting.jsonl",
+      "size_bytes": 56876,
+      "sentence_count": 494,
+      "md5": "46d0d29926a7dea546fb6407d4c303fd"
+    },
+    {
+      "source_file": "dprose_1347.csv",
+      "slug": "dprose_1347",
+      "name": "processed/dprose/dprose_1347/dprose_1347__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1347/dprose_1347__for_prompting.jsonl",
+      "size_bytes": 41904,
+      "sentence_count": 212,
+      "md5": "3cc2529efcad2ff7fe8cb7de75389313"
+    },
+    {
+      "source_file": "dprose_1353.csv",
+      "slug": "dprose_1353",
+      "name": "processed/dprose/dprose_1353/dprose_1353__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1353/dprose_1353__for_prompting.jsonl",
+      "size_bytes": 48376,
+      "sentence_count": 483,
+      "md5": "66fbbd5167c6e0f95d1cfb2aa8ce4b85"
+    },
+    {
+      "source_file": "dprose_1356.csv",
+      "slug": "dprose_1356",
+      "name": "processed/dprose/dprose_1356/dprose_1356__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1356/dprose_1356__for_prompting.jsonl",
+      "size_bytes": 53053,
+      "sentence_count": 440,
+      "md5": "a6818731c658a11c789395200badc9ba"
+    },
+    {
+      "source_file": "dprose_1363.csv",
+      "slug": "dprose_1363",
+      "name": "processed/dprose/dprose_1363/dprose_1363__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1363/dprose_1363__for_prompting.jsonl",
+      "size_bytes": 54540,
+      "sentence_count": 440,
+      "md5": "2227c6030fd912274a5364481ed85298"
+    },
+    {
+      "source_file": "dprose_1366.csv",
+      "slug": "dprose_1366",
+      "name": "processed/dprose/dprose_1366/dprose_1366__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1366/dprose_1366__for_prompting.jsonl",
+      "size_bytes": 53214,
+      "sentence_count": 528,
+      "md5": "3008bf61006933311968cf38d7818844"
+    },
+    {
+      "source_file": "dprose_1367.csv",
+      "slug": "dprose_1367",
+      "name": "processed/dprose/dprose_1367/dprose_1367__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1367/dprose_1367__for_prompting.jsonl",
+      "size_bytes": 36979,
+      "sentence_count": 260,
+      "md5": "6edfc074eec2aaf42fdd42f766be9356"
+    },
+    {
+      "source_file": "dprose_1392.csv",
+      "slug": "dprose_1392",
+      "name": "processed/dprose/dprose_1392/dprose_1392__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1392/dprose_1392__for_prompting.jsonl",
+      "size_bytes": 61388,
+      "sentence_count": 554,
+      "md5": "578d00fbd173f218b582d9a9bda492f6"
+    },
+    {
+      "source_file": "dprose_1404.csv",
+      "slug": "dprose_1404",
+      "name": "processed/dprose/dprose_1404/dprose_1404__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1404/dprose_1404__for_prompting.jsonl",
+      "size_bytes": 62467,
+      "sentence_count": 379,
+      "md5": "79819cf883d5f0c6b668cbcb3fcca0e9"
+    },
+    {
+      "source_file": "dprose_1443.csv",
+      "slug": "dprose_1443",
+      "name": "processed/dprose/dprose_1443/dprose_1443__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1443/dprose_1443__for_prompting.jsonl",
+      "size_bytes": 38830,
+      "sentence_count": 180,
+      "md5": "0b5e85b867ec7a740e4c3e35f25fc79a"
+    },
+    {
+      "source_file": "dprose_1462.csv",
+      "slug": "dprose_1462",
+      "name": "processed/dprose/dprose_1462/dprose_1462__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1462/dprose_1462__for_prompting.jsonl",
+      "size_bytes": 57904,
+      "sentence_count": 584,
+      "md5": "0cceaa0bea36bf635c2e66191cda4280"
+    },
+    {
+      "source_file": "dprose_1469.csv",
+      "slug": "dprose_1469",
+      "name": "processed/dprose/dprose_1469/dprose_1469__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1469/dprose_1469__for_prompting.jsonl",
+      "size_bytes": 46324,
+      "sentence_count": 240,
+      "md5": "62a0512e4a8087f85d69b8b171442a1c"
+    },
+    {
+      "source_file": "dprose_1472.csv",
+      "slug": "dprose_1472",
+      "name": "processed/dprose/dprose_1472/dprose_1472__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1472/dprose_1472__for_prompting.jsonl",
+      "size_bytes": 64169,
+      "sentence_count": 467,
+      "md5": "8faeb89daa3c35429004dc587c541f3e"
+    },
+    {
+      "source_file": "dprose_1474.csv",
+      "slug": "dprose_1474",
+      "name": "processed/dprose/dprose_1474/dprose_1474__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1474/dprose_1474__for_prompting.jsonl",
+      "size_bytes": 33385,
+      "sentence_count": 226,
+      "md5": "798c68c9117ba247f6c0951bef348bd9"
+    },
+    {
+      "source_file": "dprose_1506.csv",
+      "slug": "dprose_1506",
+      "name": "processed/dprose/dprose_1506/dprose_1506__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1506/dprose_1506__for_prompting.jsonl",
+      "size_bytes": 39206,
+      "sentence_count": 221,
+      "md5": "206b993ab2a8a776f1fdd921e7ae1620"
+    },
+    {
+      "source_file": "dprose_1514.csv",
+      "slug": "dprose_1514",
+      "name": "processed/dprose/dprose_1514/dprose_1514__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1514/dprose_1514__for_prompting.jsonl",
+      "size_bytes": 36345,
+      "sentence_count": 317,
+      "md5": "c0c45d1a0d0b8520fe3e49eed31f60df"
+    },
+    {
+      "source_file": "dprose_1516.csv",
+      "slug": "dprose_1516",
+      "name": "processed/dprose/dprose_1516/dprose_1516__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1516/dprose_1516__for_prompting.jsonl",
+      "size_bytes": 43893,
+      "sentence_count": 493,
+      "md5": "0a7179ff031d1be756c75601330c2342"
+    },
+    {
+      "source_file": "dprose_1518.csv",
+      "slug": "dprose_1518",
+      "name": "processed/dprose/dprose_1518/dprose_1518__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1518/dprose_1518__for_prompting.jsonl",
+      "size_bytes": 39324,
+      "sentence_count": 393,
+      "md5": "cc13f54f47799d976dd1dc77a8dd1a38"
+    },
+    {
+      "source_file": "dprose_1529.csv",
+      "slug": "dprose_1529",
+      "name": "processed/dprose/dprose_1529/dprose_1529__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1529/dprose_1529__for_prompting.jsonl",
+      "size_bytes": 54019,
+      "sentence_count": 268,
+      "md5": "ed4de0b3a3561751af3f2c26962acc85"
+    },
+    {
+      "source_file": "dprose_1530.csv",
+      "slug": "dprose_1530",
+      "name": "processed/dprose/dprose_1530/dprose_1530__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1530/dprose_1530__for_prompting.jsonl",
+      "size_bytes": 36206,
+      "sentence_count": 207,
+      "md5": "95579b2a602b516586acbb59a6c167a5"
+    },
+    {
+      "source_file": "dprose_1531.csv",
+      "slug": "dprose_1531",
+      "name": "processed/dprose/dprose_1531/dprose_1531__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1531/dprose_1531__for_prompting.jsonl",
+      "size_bytes": 43741,
+      "sentence_count": 242,
+      "md5": "37514755792fbafcfcf0e0b81a337361"
+    },
+    {
+      "source_file": "dprose_1534.csv",
+      "slug": "dprose_1534",
+      "name": "processed/dprose/dprose_1534/dprose_1534__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1534/dprose_1534__for_prompting.jsonl",
+      "size_bytes": 46648,
+      "sentence_count": 286,
+      "md5": "56acb3430f7b143ef9ec266b225e3675"
+    },
+    {
+      "source_file": "dprose_1535.csv",
+      "slug": "dprose_1535",
+      "name": "processed/dprose/dprose_1535/dprose_1535__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1535/dprose_1535__for_prompting.jsonl",
+      "size_bytes": 47083,
+      "sentence_count": 378,
+      "md5": "08f6e06b00febc6e2eddaeb3c5e0d4b9"
+    },
+    {
+      "source_file": "dprose_1537.csv",
+      "slug": "dprose_1537",
+      "name": "processed/dprose/dprose_1537/dprose_1537__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1537/dprose_1537__for_prompting.jsonl",
+      "size_bytes": 55713,
+      "sentence_count": 424,
+      "md5": "1ad4ccd3fb2e0700a5a51f166f3de745"
+    },
+    {
+      "source_file": "dprose_1545.csv",
+      "slug": "dprose_1545",
+      "name": "processed/dprose/dprose_1545/dprose_1545__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1545/dprose_1545__for_prompting.jsonl",
+      "size_bytes": 37040,
+      "sentence_count": 185,
+      "md5": "1c17fda071a5be23df366733f0ef3f22"
+    },
+    {
+      "source_file": "dprose_1580.csv",
+      "slug": "dprose_1580",
+      "name": "processed/dprose/dprose_1580/dprose_1580__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1580/dprose_1580__for_prompting.jsonl",
+      "size_bytes": 37461,
+      "sentence_count": 399,
+      "md5": "8a8165961678fbe80289dfbb7154d4ad"
+    },
+    {
+      "source_file": "dprose_1588.csv",
+      "slug": "dprose_1588",
+      "name": "processed/dprose/dprose_1588/dprose_1588__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1588/dprose_1588__for_prompting.jsonl",
+      "size_bytes": 62415,
+      "sentence_count": 400,
+      "md5": "439dad5568a2d49215f787c3b74f9a8d"
+    },
+    {
+      "source_file": "dprose_1593.csv",
+      "slug": "dprose_1593",
+      "name": "processed/dprose/dprose_1593/dprose_1593__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1593/dprose_1593__for_prompting.jsonl",
+      "size_bytes": 41992,
+      "sentence_count": 266,
+      "md5": "9e1ea66a07ba1f05b8dd6a21f00f3592"
+    },
+    {
+      "source_file": "dprose_1617.csv",
+      "slug": "dprose_1617",
+      "name": "processed/dprose/dprose_1617/dprose_1617__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1617/dprose_1617__for_prompting.jsonl",
+      "size_bytes": 39473,
+      "sentence_count": 489,
+      "md5": "b8808bb73477f80f00f9c751d09372c2"
+    },
+    {
+      "source_file": "dprose_1647.csv",
+      "slug": "dprose_1647",
+      "name": "processed/dprose/dprose_1647/dprose_1647__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1647/dprose_1647__for_prompting.jsonl",
+      "size_bytes": 63864,
+      "sentence_count": 493,
+      "md5": "866b94f559a26330f17b10965e5fea52"
+    },
+    {
+      "source_file": "dprose_1677.csv",
+      "slug": "dprose_1677",
+      "name": "processed/dprose/dprose_1677/dprose_1677__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1677/dprose_1677__for_prompting.jsonl",
+      "size_bytes": 38673,
+      "sentence_count": 337,
+      "md5": "75fa04a825462a1d38ff8215bd0489b6"
+    },
+    {
+      "source_file": "dprose_1690.csv",
+      "slug": "dprose_1690",
+      "name": "processed/dprose/dprose_1690/dprose_1690__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1690/dprose_1690__for_prompting.jsonl",
+      "size_bytes": 38308,
+      "sentence_count": 294,
+      "md5": "81c5afb4843411a9dc8e7b527635b184"
+    },
+    {
+      "source_file": "dprose_1695.csv",
+      "slug": "dprose_1695",
+      "name": "processed/dprose/dprose_1695/dprose_1695__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1695/dprose_1695__for_prompting.jsonl",
+      "size_bytes": 37644,
+      "sentence_count": 259,
+      "md5": "11d2c289a0883253fac7f635d0221fdc"
+    },
+    {
+      "source_file": "dprose_1700.csv",
+      "slug": "dprose_1700",
+      "name": "processed/dprose/dprose_1700/dprose_1700__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1700/dprose_1700__for_prompting.jsonl",
+      "size_bytes": 52138,
+      "sentence_count": 522,
+      "md5": "1d98178958a67032daad0dda9723dfa4"
+    },
+    {
+      "source_file": "dprose_1712.csv",
+      "slug": "dprose_1712",
+      "name": "processed/dprose/dprose_1712/dprose_1712__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1712/dprose_1712__for_prompting.jsonl",
+      "size_bytes": 62887,
+      "sentence_count": 569,
+      "md5": "c21ac844d2eeca5259113a9d2f392f0e"
+    },
+    {
+      "source_file": "dprose_1723.csv",
+      "slug": "dprose_1723",
+      "name": "processed/dprose/dprose_1723/dprose_1723__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1723/dprose_1723__for_prompting.jsonl",
+      "size_bytes": 61886,
+      "sentence_count": 306,
+      "md5": "de90874fe52dcf8361d88d40b9080183"
+    },
+    {
+      "source_file": "dprose_1724.csv",
+      "slug": "dprose_1724",
+      "name": "processed/dprose/dprose_1724/dprose_1724__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1724/dprose_1724__for_prompting.jsonl",
+      "size_bytes": 55500,
+      "sentence_count": 253,
+      "md5": "fcbdc8fc1cd1382714cbc8638b42a64a"
+    },
+    {
+      "source_file": "dprose_1726.csv",
+      "slug": "dprose_1726",
+      "name": "processed/dprose/dprose_1726/dprose_1726__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1726/dprose_1726__for_prompting.jsonl",
+      "size_bytes": 47035,
+      "sentence_count": 296,
+      "md5": "18053203fb63e93b0067c85915ca077a"
+    },
+    {
+      "source_file": "dprose_1729.csv",
+      "slug": "dprose_1729",
+      "name": "processed/dprose/dprose_1729/dprose_1729__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1729/dprose_1729__for_prompting.jsonl",
+      "size_bytes": 42832,
+      "sentence_count": 314,
+      "md5": "b3b6fa6293c6b2a20a3ccc4d9543e7ff"
+    },
+    {
+      "source_file": "dprose_1733.csv",
+      "slug": "dprose_1733",
+      "name": "processed/dprose/dprose_1733/dprose_1733__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1733/dprose_1733__for_prompting.jsonl",
+      "size_bytes": 60273,
+      "sentence_count": 384,
+      "md5": "004d0322a8419deabb786cb97a3fdcbb"
+    },
+    {
+      "source_file": "dprose_1734.csv",
+      "slug": "dprose_1734",
+      "name": "processed/dprose/dprose_1734/dprose_1734__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1734/dprose_1734__for_prompting.jsonl",
+      "size_bytes": 42794,
+      "sentence_count": 276,
+      "md5": "50f7b446b1689d9f0eaf2feff2b5b93d"
+    },
+    {
+      "source_file": "dprose_1735.csv",
+      "slug": "dprose_1735",
+      "name": "processed/dprose/dprose_1735/dprose_1735__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1735/dprose_1735__for_prompting.jsonl",
+      "size_bytes": 44835,
+      "sentence_count": 360,
+      "md5": "24da6d0c33e1a4dfa214aef8f478488b"
+    },
+    {
+      "source_file": "dprose_1740.csv",
+      "slug": "dprose_1740",
+      "name": "processed/dprose/dprose_1740/dprose_1740__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1740/dprose_1740__for_prompting.jsonl",
+      "size_bytes": 41023,
+      "sentence_count": 340,
+      "md5": "dde8667f584558c4512c987f0ede9a5a"
+    },
+    {
+      "source_file": "dprose_1757.csv",
+      "slug": "dprose_1757",
+      "name": "processed/dprose/dprose_1757/dprose_1757__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1757/dprose_1757__for_prompting.jsonl",
+      "size_bytes": 48233,
+      "sentence_count": 401,
+      "md5": "265893feaf4614711a535dcb5f47ecb3"
+    },
+    {
+      "source_file": "dprose_1768.csv",
+      "slug": "dprose_1768",
+      "name": "processed/dprose/dprose_1768/dprose_1768__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1768/dprose_1768__for_prompting.jsonl",
+      "size_bytes": 53412,
+      "sentence_count": 414,
+      "md5": "a51042f9b454835e48ada5faeb152208"
+    },
+    {
+      "source_file": "dprose_1772.csv",
+      "slug": "dprose_1772",
+      "name": "processed/dprose/dprose_1772/dprose_1772__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1772/dprose_1772__for_prompting.jsonl",
+      "size_bytes": 37891,
+      "sentence_count": 347,
+      "md5": "ab4d5e2410dd137c95bc25fce3f0b019"
+    },
+    {
+      "source_file": "dprose_1800.csv",
+      "slug": "dprose_1800",
+      "name": "processed/dprose/dprose_1800/dprose_1800__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1800/dprose_1800__for_prompting.jsonl",
+      "size_bytes": 49478,
+      "sentence_count": 464,
+      "md5": "d24c1bf87355f09b84b05da5caa7faab"
+    },
+    {
+      "source_file": "dprose_1801.csv",
+      "slug": "dprose_1801",
+      "name": "processed/dprose/dprose_1801/dprose_1801__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1801/dprose_1801__for_prompting.jsonl",
+      "size_bytes": 43989,
+      "sentence_count": 334,
+      "md5": "c0a4edd523927930d843c315300fdfa0"
+    },
+    {
+      "source_file": "dprose_1802.csv",
+      "slug": "dprose_1802",
+      "name": "processed/dprose/dprose_1802/dprose_1802__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1802/dprose_1802__for_prompting.jsonl",
+      "size_bytes": 46182,
+      "sentence_count": 456,
+      "md5": "e6b5fa7d1e12f6bc04ad380a1b92d4f3"
+    },
+    {
+      "source_file": "dprose_1808.csv",
+      "slug": "dprose_1808",
+      "name": "processed/dprose/dprose_1808/dprose_1808__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1808/dprose_1808__for_prompting.jsonl",
+      "size_bytes": 44636,
+      "sentence_count": 316,
+      "md5": "0c35d6ebae2393c321ba961e59fb8769"
+    },
+    {
+      "source_file": "dprose_1810.csv",
+      "slug": "dprose_1810",
+      "name": "processed/dprose/dprose_1810/dprose_1810__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1810/dprose_1810__for_prompting.jsonl",
+      "size_bytes": 37591,
+      "sentence_count": 480,
+      "md5": "0097c72ef263b5a6bdec2c213e13a5ce"
+    },
+    {
+      "source_file": "dprose_1811.csv",
+      "slug": "dprose_1811",
+      "name": "processed/dprose/dprose_1811/dprose_1811__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1811/dprose_1811__for_prompting.jsonl",
+      "size_bytes": 38229,
+      "sentence_count": 389,
+      "md5": "734c0fd36f16dd89a38a551dc7a3cbbe"
+    },
+    {
+      "source_file": "dprose_1814.csv",
+      "slug": "dprose_1814",
+      "name": "processed/dprose/dprose_1814/dprose_1814__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1814/dprose_1814__for_prompting.jsonl",
+      "size_bytes": 38942,
+      "sentence_count": 395,
+      "md5": "2b2454a9f8ef116500c601d61dc2983c"
+    },
+    {
+      "source_file": "dprose_1820.csv",
+      "slug": "dprose_1820",
+      "name": "processed/dprose/dprose_1820/dprose_1820__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1820/dprose_1820__for_prompting.jsonl",
+      "size_bytes": 39936,
+      "sentence_count": 284,
+      "md5": "e4232913ffca2d89a4370bb54a647acc"
+    },
+    {
+      "source_file": "dprose_1823.csv",
+      "slug": "dprose_1823",
+      "name": "processed/dprose/dprose_1823/dprose_1823__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1823/dprose_1823__for_prompting.jsonl",
+      "size_bytes": 45760,
+      "sentence_count": 447,
+      "md5": "c04fb9ab0c65a9e3ffc040aee67f722e"
+    },
+    {
+      "source_file": "dprose_1824.csv",
+      "slug": "dprose_1824",
+      "name": "processed/dprose/dprose_1824/dprose_1824__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1824/dprose_1824__for_prompting.jsonl",
+      "size_bytes": 39081,
+      "sentence_count": 251,
+      "md5": "023ab6d2971aa606b475428f9bce3b01"
+    },
+    {
+      "source_file": "dprose_1825.csv",
+      "slug": "dprose_1825",
+      "name": "processed/dprose/dprose_1825/dprose_1825__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1825/dprose_1825__for_prompting.jsonl",
+      "size_bytes": 58626,
+      "sentence_count": 422,
+      "md5": "7f04e350a18a075a6015d9fc56546ca7"
+    },
+    {
+      "source_file": "dprose_1830.csv",
+      "slug": "dprose_1830",
+      "name": "processed/dprose/dprose_1830/dprose_1830__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1830/dprose_1830__for_prompting.jsonl",
+      "size_bytes": 36036,
+      "sentence_count": 301,
+      "md5": "b0fc6c4e2beeb6207264d36779f7b0ef"
+    },
+    {
+      "source_file": "dprose_1831.csv",
+      "slug": "dprose_1831",
+      "name": "processed/dprose/dprose_1831/dprose_1831__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1831/dprose_1831__for_prompting.jsonl",
+      "size_bytes": 42940,
+      "sentence_count": 371,
+      "md5": "ce971826427c4181675755c1f223dd5e"
+    },
+    {
+      "source_file": "dprose_1834.csv",
+      "slug": "dprose_1834",
+      "name": "processed/dprose/dprose_1834/dprose_1834__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1834/dprose_1834__for_prompting.jsonl",
+      "size_bytes": 53968,
+      "sentence_count": 573,
+      "md5": "fc98bab6dadcdc8f1c41283e7222d590"
+    },
+    {
+      "source_file": "dprose_1835.csv",
+      "slug": "dprose_1835",
+      "name": "processed/dprose/dprose_1835/dprose_1835__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1835/dprose_1835__for_prompting.jsonl",
+      "size_bytes": 40264,
+      "sentence_count": 334,
+      "md5": "bfd004d370e7ca29de4e11e3718082b5"
+    },
+    {
+      "source_file": "dprose_1838.csv",
+      "slug": "dprose_1838",
+      "name": "processed/dprose/dprose_1838/dprose_1838__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1838/dprose_1838__for_prompting.jsonl",
+      "size_bytes": 61369,
+      "sentence_count": 303,
+      "md5": "945044bc9eef57c9231557148e02b842"
+    },
+    {
+      "source_file": "dprose_1839.csv",
+      "slug": "dprose_1839",
+      "name": "processed/dprose/dprose_1839/dprose_1839__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1839/dprose_1839__for_prompting.jsonl",
+      "size_bytes": 46364,
+      "sentence_count": 206,
+      "md5": "33f6b55be4bf1ab45bb85184d5d6e00b"
+    },
+    {
+      "source_file": "dprose_1848.csv",
+      "slug": "dprose_1848",
+      "name": "processed/dprose/dprose_1848/dprose_1848__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1848/dprose_1848__for_prompting.jsonl",
+      "size_bytes": 35027,
+      "sentence_count": 359,
+      "md5": "61363bbc56981d931fa3ccb7c7bf64e8"
+    },
+    {
+      "source_file": "dprose_1853.csv",
+      "slug": "dprose_1853",
+      "name": "processed/dprose/dprose_1853/dprose_1853__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1853/dprose_1853__for_prompting.jsonl",
+      "size_bytes": 43602,
+      "sentence_count": 369,
+      "md5": "3fce2e6771cd293d88e92e53a0896c72"
+    },
+    {
+      "source_file": "dprose_1854.csv",
+      "slug": "dprose_1854",
+      "name": "processed/dprose/dprose_1854/dprose_1854__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1854/dprose_1854__for_prompting.jsonl",
+      "size_bytes": 37670,
+      "sentence_count": 422,
+      "md5": "8443c5b0fa6ddd2aae3d09677d566c59"
+    },
+    {
+      "source_file": "dprose_1855.csv",
+      "slug": "dprose_1855",
+      "name": "processed/dprose/dprose_1855/dprose_1855__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1855/dprose_1855__for_prompting.jsonl",
+      "size_bytes": 53483,
+      "sentence_count": 294,
+      "md5": "544939ebfd305d7f5c38aad781493504"
+    },
+    {
+      "source_file": "dprose_1857.csv",
+      "slug": "dprose_1857",
+      "name": "processed/dprose/dprose_1857/dprose_1857__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1857/dprose_1857__for_prompting.jsonl",
+      "size_bytes": 37900,
+      "sentence_count": 348,
+      "md5": "7c4117a12f0e98c0190d6c9016d8a6cf"
+    },
+    {
+      "source_file": "dprose_1876.csv",
+      "slug": "dprose_1876",
+      "name": "processed/dprose/dprose_1876/dprose_1876__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1876/dprose_1876__for_prompting.jsonl",
+      "size_bytes": 30935,
+      "sentence_count": 308,
+      "md5": "ebee06826d5cc57333ea026ab6f6ff08"
+    },
+    {
+      "source_file": "dprose_1902.csv",
+      "slug": "dprose_1902",
+      "name": "processed/dprose/dprose_1902/dprose_1902__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1902/dprose_1902__for_prompting.jsonl",
+      "size_bytes": 52986,
+      "sentence_count": 440,
+      "md5": "dfdd7843ebcd7c7bd651d68db2ee2e2f"
+    },
+    {
+      "source_file": "dprose_1904.csv",
+      "slug": "dprose_1904",
+      "name": "processed/dprose/dprose_1904/dprose_1904__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1904/dprose_1904__for_prompting.jsonl",
+      "size_bytes": 53550,
+      "sentence_count": 359,
+      "md5": "aec5b052051d7c31f6c00a12857997e3"
+    },
+    {
+      "source_file": "dprose_1913.csv",
+      "slug": "dprose_1913",
+      "name": "processed/dprose/dprose_1913/dprose_1913__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1913/dprose_1913__for_prompting.jsonl",
+      "size_bytes": 34391,
+      "sentence_count": 169,
+      "md5": "bc347eddedd1688c643412108a6e290c"
+    },
+    {
+      "source_file": "dprose_1924.csv",
+      "slug": "dprose_1924",
+      "name": "processed/dprose/dprose_1924/dprose_1924__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1924/dprose_1924__for_prompting.jsonl",
+      "size_bytes": 34487,
+      "sentence_count": 230,
+      "md5": "a73a310fbe0a61a7561956cd58e6a1a1"
+    },
+    {
+      "source_file": "dprose_1925.csv",
+      "slug": "dprose_1925",
+      "name": "processed/dprose/dprose_1925/dprose_1925__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1925/dprose_1925__for_prompting.jsonl",
+      "size_bytes": 43904,
+      "sentence_count": 271,
+      "md5": "a463b80da9e7043207267d3e4ea2aeb0"
+    },
+    {
+      "source_file": "dprose_1927.csv",
+      "slug": "dprose_1927",
+      "name": "processed/dprose/dprose_1927/dprose_1927__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1927/dprose_1927__for_prompting.jsonl",
+      "size_bytes": 33508,
+      "sentence_count": 177,
+      "md5": "d3e78348bd1e242271686a7807543f85"
+    },
+    {
+      "source_file": "dprose_1928.csv",
+      "slug": "dprose_1928",
+      "name": "processed/dprose/dprose_1928/dprose_1928__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1928/dprose_1928__for_prompting.jsonl",
+      "size_bytes": 50026,
+      "sentence_count": 304,
+      "md5": "1c493ef0dd3b2355803786c0b78e53dd"
+    },
+    {
+      "source_file": "dprose_1930.csv",
+      "slug": "dprose_1930",
+      "name": "processed/dprose/dprose_1930/dprose_1930__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1930/dprose_1930__for_prompting.jsonl",
+      "size_bytes": 55301,
+      "sentence_count": 355,
+      "md5": "a83694ac6877b0629978b284dd9e57b7"
+    },
+    {
+      "source_file": "dprose_1937.csv",
+      "slug": "dprose_1937",
+      "name": "processed/dprose/dprose_1937/dprose_1937__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1937/dprose_1937__for_prompting.jsonl",
+      "size_bytes": 61276,
+      "sentence_count": 299,
+      "md5": "08e35d1a6ff857aa3d8f5ce509666b30"
+    },
+    {
+      "source_file": "dprose_1939.csv",
+      "slug": "dprose_1939",
+      "name": "processed/dprose/dprose_1939/dprose_1939__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1939/dprose_1939__for_prompting.jsonl",
+      "size_bytes": 35474,
+      "sentence_count": 213,
+      "md5": "9e3304c2dcf512f8b1e4dfc236184b9f"
+    },
+    {
+      "source_file": "dprose_1940.csv",
+      "slug": "dprose_1940",
+      "name": "processed/dprose/dprose_1940/dprose_1940__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1940/dprose_1940__for_prompting.jsonl",
+      "size_bytes": 46315,
+      "sentence_count": 297,
+      "md5": "c0b3835716ba50b51844bebcb3ce2130"
+    },
+    {
+      "source_file": "dprose_1942.csv",
+      "slug": "dprose_1942",
+      "name": "processed/dprose/dprose_1942/dprose_1942__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1942/dprose_1942__for_prompting.jsonl",
+      "size_bytes": 34362,
+      "sentence_count": 211,
+      "md5": "778920f698e9b4e2dd119c2854f7ef28"
+    },
+    {
+      "source_file": "dprose_1970.csv",
+      "slug": "dprose_1970",
+      "name": "processed/dprose/dprose_1970/dprose_1970__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1970/dprose_1970__for_prompting.jsonl",
+      "size_bytes": 56288,
+      "sentence_count": 407,
+      "md5": "f780cd5cbdf55859f71afe41c29e1f6e"
+    },
+    {
+      "source_file": "dprose_1983.csv",
+      "slug": "dprose_1983",
+      "name": "processed/dprose/dprose_1983/dprose_1983__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1983/dprose_1983__for_prompting.jsonl",
+      "size_bytes": 54239,
+      "sentence_count": 538,
+      "md5": "d8f38e3c905266b261afa9665037150f"
+    },
+    {
+      "source_file": "dprose_1984.csv",
+      "slug": "dprose_1984",
+      "name": "processed/dprose/dprose_1984/dprose_1984__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1984/dprose_1984__for_prompting.jsonl",
+      "size_bytes": 52960,
+      "sentence_count": 455,
+      "md5": "a3be9f5460462405b334291d2167086d"
+    },
+    {
+      "source_file": "dprose_1985.csv",
+      "slug": "dprose_1985",
+      "name": "processed/dprose/dprose_1985/dprose_1985__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1985/dprose_1985__for_prompting.jsonl",
+      "size_bytes": 40374,
+      "sentence_count": 370,
+      "md5": "bdde3588d38bcd53949d82975671bcaa"
+    },
+    {
+      "source_file": "dprose_1987.csv",
+      "slug": "dprose_1987",
+      "name": "processed/dprose/dprose_1987/dprose_1987__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1987/dprose_1987__for_prompting.jsonl",
+      "size_bytes": 42626,
+      "sentence_count": 346,
+      "md5": "219a6a33ed5bcf49ac21e0f91772f232"
+    },
+    {
+      "source_file": "dprose_1989.csv",
+      "slug": "dprose_1989",
+      "name": "processed/dprose/dprose_1989/dprose_1989__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_1989/dprose_1989__for_prompting.jsonl",
+      "size_bytes": 51808,
+      "sentence_count": 463,
+      "md5": "5d83706c8ee2aa1fa78e533f9f9c4816"
+    },
+    {
+      "source_file": "dprose_2003.csv",
+      "slug": "dprose_2003",
+      "name": "processed/dprose/dprose_2003/dprose_2003__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2003/dprose_2003__for_prompting.jsonl",
+      "size_bytes": 37866,
+      "sentence_count": 295,
+      "md5": "4c07af14dca4ecbb023c1fdffde7fe3b"
+    },
+    {
+      "source_file": "dprose_2004.csv",
+      "slug": "dprose_2004",
+      "name": "processed/dprose/dprose_2004/dprose_2004__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2004/dprose_2004__for_prompting.jsonl",
+      "size_bytes": 41113,
+      "sentence_count": 393,
+      "md5": "b261512f3f3e58b61dd985286a405c2b"
+    },
+    {
+      "source_file": "dprose_2005.csv",
+      "slug": "dprose_2005",
+      "name": "processed/dprose/dprose_2005/dprose_2005__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2005/dprose_2005__for_prompting.jsonl",
+      "size_bytes": 37315,
+      "sentence_count": 333,
+      "md5": "9dc5a1f3e28f806ae8052865840517b6"
+    },
+    {
+      "source_file": "dprose_2006.csv",
+      "slug": "dprose_2006",
+      "name": "processed/dprose/dprose_2006/dprose_2006__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2006/dprose_2006__for_prompting.jsonl",
+      "size_bytes": 43039,
+      "sentence_count": 400,
+      "md5": "2ec26f305dcaf1fd5b7d4b001d3df851"
+    },
+    {
+      "source_file": "dprose_2007.csv",
+      "slug": "dprose_2007",
+      "name": "processed/dprose/dprose_2007/dprose_2007__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2007/dprose_2007__for_prompting.jsonl",
+      "size_bytes": 39520,
+      "sentence_count": 266,
+      "md5": "a48273f50003cded999d6f0c7087b944"
+    },
+    {
+      "source_file": "dprose_2008.csv",
+      "slug": "dprose_2008",
+      "name": "processed/dprose/dprose_2008/dprose_2008__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2008/dprose_2008__for_prompting.jsonl",
+      "size_bytes": 42893,
+      "sentence_count": 361,
+      "md5": "091690a792a064b4ef1e6f67320f56c0"
+    },
+    {
+      "source_file": "dprose_2009.csv",
+      "slug": "dprose_2009",
+      "name": "processed/dprose/dprose_2009/dprose_2009__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2009/dprose_2009__for_prompting.jsonl",
+      "size_bytes": 41198,
+      "sentence_count": 333,
+      "md5": "cadd069a8a0706684486ca13b737b206"
+    },
+    {
+      "source_file": "dprose_2010.csv",
+      "slug": "dprose_2010",
+      "name": "processed/dprose/dprose_2010/dprose_2010__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2010/dprose_2010__for_prompting.jsonl",
+      "size_bytes": 64468,
+      "sentence_count": 516,
+      "md5": "c98b0d6ab169d7d50fa8ad365e933317"
+    },
+    {
+      "source_file": "dprose_2011.csv",
+      "slug": "dprose_2011",
+      "name": "processed/dprose/dprose_2011/dprose_2011__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2011/dprose_2011__for_prompting.jsonl",
+      "size_bytes": 52075,
+      "sentence_count": 367,
+      "md5": "73db83eb757a378010fa4ba22a6a4c9a"
+    },
+    {
+      "source_file": "dprose_2012.csv",
+      "slug": "dprose_2012",
+      "name": "processed/dprose/dprose_2012/dprose_2012__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2012/dprose_2012__for_prompting.jsonl",
+      "size_bytes": 48970,
+      "sentence_count": 349,
+      "md5": "061a8529dbc69dc80f6fd6ae15ce5d76"
+    },
+    {
+      "source_file": "dprose_2013.csv",
+      "slug": "dprose_2013",
+      "name": "processed/dprose/dprose_2013/dprose_2013__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2013/dprose_2013__for_prompting.jsonl",
+      "size_bytes": 34819,
+      "sentence_count": 256,
+      "md5": "3f4aef4ce7f07350c09fdd7cbe659ae6"
+    },
+    {
+      "source_file": "dprose_2014.csv",
+      "slug": "dprose_2014",
+      "name": "processed/dprose/dprose_2014/dprose_2014__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2014/dprose_2014__for_prompting.jsonl",
+      "size_bytes": 34346,
+      "sentence_count": 291,
+      "md5": "4843f5bf77097afef3ce10552f6c698e"
+    },
+    {
+      "source_file": "dprose_2015.csv",
+      "slug": "dprose_2015",
+      "name": "processed/dprose/dprose_2015/dprose_2015__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2015/dprose_2015__for_prompting.jsonl",
+      "size_bytes": 38272,
+      "sentence_count": 277,
+      "md5": "d02cc2ea3c657f6fd4878f6ff76a9c84"
+    },
+    {
+      "source_file": "dprose_2019.csv",
+      "slug": "dprose_2019",
+      "name": "processed/dprose/dprose_2019/dprose_2019__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2019/dprose_2019__for_prompting.jsonl",
+      "size_bytes": 39555,
+      "sentence_count": 261,
+      "md5": "8606f7bdd3edf12da56d5691385a5dee"
+    },
+    {
+      "source_file": "dprose_2020.csv",
+      "slug": "dprose_2020",
+      "name": "processed/dprose/dprose_2020/dprose_2020__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2020/dprose_2020__for_prompting.jsonl",
+      "size_bytes": 45135,
+      "sentence_count": 236,
+      "md5": "96970e39c8cacd011fa9ad99689ab783"
+    },
+    {
+      "source_file": "dprose_2028.csv",
+      "slug": "dprose_2028",
+      "name": "processed/dprose/dprose_2028/dprose_2028__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2028/dprose_2028__for_prompting.jsonl",
+      "size_bytes": 46029,
+      "sentence_count": 370,
+      "md5": "39a3b380f732fc67c300254c23156b31"
+    },
+    {
+      "source_file": "dprose_2035.csv",
+      "slug": "dprose_2035",
+      "name": "processed/dprose/dprose_2035/dprose_2035__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2035/dprose_2035__for_prompting.jsonl",
+      "size_bytes": 44867,
+      "sentence_count": 259,
+      "md5": "b11bfa33971996eca7a8ca52ebeff234"
+    },
+    {
+      "source_file": "dprose_2039.csv",
+      "slug": "dprose_2039",
+      "name": "processed/dprose/dprose_2039/dprose_2039__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2039/dprose_2039__for_prompting.jsonl",
+      "size_bytes": 55253,
+      "sentence_count": 333,
+      "md5": "88e3ca8bd9d9439932b0e3ab9cc4237a"
+    },
+    {
+      "source_file": "dprose_2050.csv",
+      "slug": "dprose_2050",
+      "name": "processed/dprose/dprose_2050/dprose_2050__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2050/dprose_2050__for_prompting.jsonl",
+      "size_bytes": 63186,
+      "sentence_count": 404,
+      "md5": "8307ac28346800545e60f960728084ab"
+    },
+    {
+      "source_file": "dprose_2051.csv",
+      "slug": "dprose_2051",
+      "name": "processed/dprose/dprose_2051/dprose_2051__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2051/dprose_2051__for_prompting.jsonl",
+      "size_bytes": 55032,
+      "sentence_count": 345,
+      "md5": "25823146d80fdf8591e3728d7819d72d"
+    },
+    {
+      "source_file": "dprose_2054.csv",
+      "slug": "dprose_2054",
+      "name": "processed/dprose/dprose_2054/dprose_2054__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2054/dprose_2054__for_prompting.jsonl",
+      "size_bytes": 60038,
+      "sentence_count": 317,
+      "md5": "2946d0c989e5c7ae638633a8df6662cb"
+    },
+    {
+      "source_file": "dprose_2055.csv",
+      "slug": "dprose_2055",
+      "name": "processed/dprose/dprose_2055/dprose_2055__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2055/dprose_2055__for_prompting.jsonl",
+      "size_bytes": 62121,
+      "sentence_count": 374,
+      "md5": "6c715ebd63d2472fb595111b6293634e"
+    },
+    {
+      "source_file": "dprose_2061.csv",
+      "slug": "dprose_2061",
+      "name": "processed/dprose/dprose_2061/dprose_2061__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2061/dprose_2061__for_prompting.jsonl",
+      "size_bytes": 61008,
+      "sentence_count": 438,
+      "md5": "28fd7e9c5ab0a990d885a112a1b98805"
+    },
+    {
+      "source_file": "dprose_2099.csv",
+      "slug": "dprose_2099",
+      "name": "processed/dprose/dprose_2099/dprose_2099__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2099/dprose_2099__for_prompting.jsonl",
+      "size_bytes": 36286,
+      "sentence_count": 338,
+      "md5": "d58b6492ca209a932a5380353e463614"
+    },
+    {
+      "source_file": "dprose_2100.csv",
+      "slug": "dprose_2100",
+      "name": "processed/dprose/dprose_2100/dprose_2100__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2100/dprose_2100__for_prompting.jsonl",
+      "size_bytes": 31855,
+      "sentence_count": 233,
+      "md5": "bb44e49bd42d3e047b1c2003c328cfb0"
+    },
+    {
+      "source_file": "dprose_2112.csv",
+      "slug": "dprose_2112",
+      "name": "processed/dprose/dprose_2112/dprose_2112__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2112/dprose_2112__for_prompting.jsonl",
+      "size_bytes": 42066,
+      "sentence_count": 484,
+      "md5": "0d71e5ea7008f0c74cde2ed9a0097a39"
+    },
+    {
+      "source_file": "dprose_2116.csv",
+      "slug": "dprose_2116",
+      "name": "processed/dprose/dprose_2116/dprose_2116__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2116/dprose_2116__for_prompting.jsonl",
+      "size_bytes": 37380,
+      "sentence_count": 326,
+      "md5": "e9df21e561543e2bc310a2ba041baa33"
+    },
+    {
+      "source_file": "dprose_2123.csv",
+      "slug": "dprose_2123",
+      "name": "processed/dprose/dprose_2123/dprose_2123__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2123/dprose_2123__for_prompting.jsonl",
+      "size_bytes": 29218,
+      "sentence_count": 241,
+      "md5": "b66a301b33d8b285ea0724398ebed7da"
+    },
+    {
+      "source_file": "dprose_2135.csv",
+      "slug": "dprose_2135",
+      "name": "processed/dprose/dprose_2135/dprose_2135__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2135/dprose_2135__for_prompting.jsonl",
+      "size_bytes": 43393,
+      "sentence_count": 410,
+      "md5": "c7495c3f2905caa3afc12b83e0e29c20"
+    },
+    {
+      "source_file": "dprose_2136.csv",
+      "slug": "dprose_2136",
+      "name": "processed/dprose/dprose_2136/dprose_2136__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2136/dprose_2136__for_prompting.jsonl",
+      "size_bytes": 34019,
+      "sentence_count": 326,
+      "md5": "a2b325c0b16da377d5ce6ad95c2425a3"
+    },
+    {
+      "source_file": "dprose_2145.csv",
+      "slug": "dprose_2145",
+      "name": "processed/dprose/dprose_2145/dprose_2145__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2145/dprose_2145__for_prompting.jsonl",
+      "size_bytes": 54107,
+      "sentence_count": 364,
+      "md5": "d3debb8d3dbb31d7792a355f4336012e"
+    },
+    {
+      "source_file": "dprose_2147.csv",
+      "slug": "dprose_2147",
+      "name": "processed/dprose/dprose_2147/dprose_2147__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2147/dprose_2147__for_prompting.jsonl",
+      "size_bytes": 30756,
+      "sentence_count": 227,
+      "md5": "d8288dcc64a63efb3ee6e379acbc6820"
+    },
+    {
+      "source_file": "dprose_2152.csv",
+      "slug": "dprose_2152",
+      "name": "processed/dprose/dprose_2152/dprose_2152__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2152/dprose_2152__for_prompting.jsonl",
+      "size_bytes": 57850,
+      "sentence_count": 561,
+      "md5": "89ca7e72b2d41d7bab10e98aa0782831"
+    },
+    {
+      "source_file": "dprose_2158.csv",
+      "slug": "dprose_2158",
+      "name": "processed/dprose/dprose_2158/dprose_2158__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2158/dprose_2158__for_prompting.jsonl",
+      "size_bytes": 30965,
+      "sentence_count": 76,
+      "md5": "4f7baafc9a3af622a2fc60ac3b4369a9"
+    },
+    {
+      "source_file": "dprose_2169.csv",
+      "slug": "dprose_2169",
+      "name": "processed/dprose/dprose_2169/dprose_2169__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2169/dprose_2169__for_prompting.jsonl",
+      "size_bytes": 53779,
+      "sentence_count": 514,
+      "md5": "90b4f6af278855d3800fa2e50e446ef8"
+    },
+    {
+      "source_file": "dprose_2177.csv",
+      "slug": "dprose_2177",
+      "name": "processed/dprose/dprose_2177/dprose_2177__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2177/dprose_2177__for_prompting.jsonl",
+      "size_bytes": 55108,
+      "sentence_count": 355,
+      "md5": "73b86c1b85e53e26d9cd930ca630790e"
+    },
+    {
+      "source_file": "dprose_2185.csv",
+      "slug": "dprose_2185",
+      "name": "processed/dprose/dprose_2185/dprose_2185__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2185/dprose_2185__for_prompting.jsonl",
+      "size_bytes": 31832,
+      "sentence_count": 211,
+      "md5": "9c54138727e4a25d3e6ddc46886347da"
+    },
+    {
+      "source_file": "dprose_2188.csv",
+      "slug": "dprose_2188",
+      "name": "processed/dprose/dprose_2188/dprose_2188__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2188/dprose_2188__for_prompting.jsonl",
+      "size_bytes": 39666,
+      "sentence_count": 327,
+      "md5": "8d6ca9a93a1bfa9adfdd0b16c70168f4"
+    },
+    {
+      "source_file": "dprose_2191.csv",
+      "slug": "dprose_2191",
+      "name": "processed/dprose/dprose_2191/dprose_2191__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2191/dprose_2191__for_prompting.jsonl",
+      "size_bytes": 41049,
+      "sentence_count": 227,
+      "md5": "aed6a9c7feeb001d19ed446ad7caf206"
+    },
+    {
+      "source_file": "dprose_2192.csv",
+      "slug": "dprose_2192",
+      "name": "processed/dprose/dprose_2192/dprose_2192__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2192/dprose_2192__for_prompting.jsonl",
+      "size_bytes": 63333,
+      "sentence_count": 451,
+      "md5": "d4d7529dfeff134fc4873ac55d04ab1a"
+    },
+    {
+      "source_file": "dprose_2219.csv",
+      "slug": "dprose_2219",
+      "name": "processed/dprose/dprose_2219/dprose_2219__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2219/dprose_2219__for_prompting.jsonl",
+      "size_bytes": 44836,
+      "sentence_count": 226,
+      "md5": "b7a9995c5b3289f5202a5cd0b8c8dab1"
+    },
+    {
+      "source_file": "dprose_2221.csv",
+      "slug": "dprose_2221",
+      "name": "processed/dprose/dprose_2221/dprose_2221__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2221/dprose_2221__for_prompting.jsonl",
+      "size_bytes": 58006,
+      "sentence_count": 397,
+      "md5": "05d187e825fe7873206aace1feb13c06"
+    },
+    {
+      "source_file": "dprose_2226.csv",
+      "slug": "dprose_2226",
+      "name": "processed/dprose/dprose_2226/dprose_2226__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2226/dprose_2226__for_prompting.jsonl",
+      "size_bytes": 36751,
+      "sentence_count": 196,
+      "md5": "d2cbbf9d410686dc1645780eeb96b951"
+    },
+    {
+      "source_file": "dprose_2230.csv",
+      "slug": "dprose_2230",
+      "name": "processed/dprose/dprose_2230/dprose_2230__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2230/dprose_2230__for_prompting.jsonl",
+      "size_bytes": 41980,
+      "sentence_count": 241,
+      "md5": "546f8a304539003e12bef0c1a28ddd0d"
+    },
+    {
+      "source_file": "dprose_2234.csv",
+      "slug": "dprose_2234",
+      "name": "processed/dprose/dprose_2234/dprose_2234__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2234/dprose_2234__for_prompting.jsonl",
+      "size_bytes": 39778,
+      "sentence_count": 242,
+      "md5": "14904f2d74c36de9588bc095da3211f6"
+    },
+    {
+      "source_file": "dprose_2236.csv",
+      "slug": "dprose_2236",
+      "name": "processed/dprose/dprose_2236/dprose_2236__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2236/dprose_2236__for_prompting.jsonl",
+      "size_bytes": 60950,
+      "sentence_count": 312,
+      "md5": "5be64e15bfa79241e5b4eecbd69eda08"
+    },
+    {
+      "source_file": "dprose_2266.csv",
+      "slug": "dprose_2266",
+      "name": "processed/dprose/dprose_2266/dprose_2266__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2266/dprose_2266__for_prompting.jsonl",
+      "size_bytes": 35645,
+      "sentence_count": 428,
+      "md5": "0ce48e992e7db1bed703cdb70bdfceb8"
+    },
+    {
+      "source_file": "dprose_2269.csv",
+      "slug": "dprose_2269",
+      "name": "processed/dprose/dprose_2269/dprose_2269__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2269/dprose_2269__for_prompting.jsonl",
+      "size_bytes": 42633,
+      "sentence_count": 422,
+      "md5": "f11f18f317e10efddfe1ac1f6ced6ce9"
+    },
+    {
+      "source_file": "dprose_2271.csv",
+      "slug": "dprose_2271",
+      "name": "processed/dprose/dprose_2271/dprose_2271__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2271/dprose_2271__for_prompting.jsonl",
+      "size_bytes": 61890,
+      "sentence_count": 665,
+      "md5": "105662112b4e0d376e77fa5925265ff8"
+    },
+    {
+      "source_file": "dprose_2288.csv",
+      "slug": "dprose_2288",
+      "name": "processed/dprose/dprose_2288/dprose_2288__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2288/dprose_2288__for_prompting.jsonl",
+      "size_bytes": 52219,
+      "sentence_count": 260,
+      "md5": "29d7a958a875f877a7357408794d6914"
+    },
+    {
+      "source_file": "dprose_2307.csv",
+      "slug": "dprose_2307",
+      "name": "processed/dprose/dprose_2307/dprose_2307__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2307/dprose_2307__for_prompting.jsonl",
+      "size_bytes": 33691,
+      "sentence_count": 311,
+      "md5": "f2de6aad433c72978e8359784d7bc533"
+    },
+    {
+      "source_file": "dprose_2308.csv",
+      "slug": "dprose_2308",
+      "name": "processed/dprose/dprose_2308/dprose_2308__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2308/dprose_2308__for_prompting.jsonl",
+      "size_bytes": 35376,
+      "sentence_count": 364,
+      "md5": "2cca60ecef9657aff3abc2f5834fc718"
+    },
+    {
+      "source_file": "dprose_2309.csv",
+      "slug": "dprose_2309",
+      "name": "processed/dprose/dprose_2309/dprose_2309__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2309/dprose_2309__for_prompting.jsonl",
+      "size_bytes": 33173,
+      "sentence_count": 343,
+      "md5": "e5943b312fb8f518f13d444999329c2b"
+    },
+    {
+      "source_file": "dprose_2312.csv",
+      "slug": "dprose_2312",
+      "name": "processed/dprose/dprose_2312/dprose_2312__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2312/dprose_2312__for_prompting.jsonl",
+      "size_bytes": 38181,
+      "sentence_count": 385,
+      "md5": "447b9f86bc0032136c78b4f87c2074a9"
+    },
+    {
+      "source_file": "dprose_2317.csv",
+      "slug": "dprose_2317",
+      "name": "processed/dprose/dprose_2317/dprose_2317__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2317/dprose_2317__for_prompting.jsonl",
+      "size_bytes": 53678,
+      "sentence_count": 450,
+      "md5": "931756455ff7e64d934f546b3cc5a7b7"
+    },
+    {
+      "source_file": "dprose_2318.csv",
+      "slug": "dprose_2318",
+      "name": "processed/dprose/dprose_2318/dprose_2318__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2318/dprose_2318__for_prompting.jsonl",
+      "size_bytes": 38061,
+      "sentence_count": 348,
+      "md5": "6e2e6078bf004452e617771bdc148ec8"
+    },
+    {
+      "source_file": "dprose_2319.csv",
+      "slug": "dprose_2319",
+      "name": "processed/dprose/dprose_2319/dprose_2319__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2319/dprose_2319__for_prompting.jsonl",
+      "size_bytes": 32335,
+      "sentence_count": 380,
+      "md5": "fb739f75f49495f509ed0cade7e6a20a"
+    },
+    {
+      "source_file": "dprose_2320.csv",
+      "slug": "dprose_2320",
+      "name": "processed/dprose/dprose_2320/dprose_2320__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2320/dprose_2320__for_prompting.jsonl",
+      "size_bytes": 61122,
+      "sentence_count": 381,
+      "md5": "4a2cec08e126c71f5e52afb65e2d0348"
+    },
+    {
+      "source_file": "dprose_2322.csv",
+      "slug": "dprose_2322",
+      "name": "processed/dprose/dprose_2322/dprose_2322__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2322/dprose_2322__for_prompting.jsonl",
+      "size_bytes": 49381,
+      "sentence_count": 478,
+      "md5": "7e8b20a973a759b70ede53891b897994"
+    },
+    {
+      "source_file": "dprose_2323.csv",
+      "slug": "dprose_2323",
+      "name": "processed/dprose/dprose_2323/dprose_2323__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2323/dprose_2323__for_prompting.jsonl",
+      "size_bytes": 39736,
+      "sentence_count": 389,
+      "md5": "9bcaa35447f37bfc9e256a5f09c5efa8"
+    },
+    {
+      "source_file": "dprose_2324.csv",
+      "slug": "dprose_2324",
+      "name": "processed/dprose/dprose_2324/dprose_2324__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2324/dprose_2324__for_prompting.jsonl",
+      "size_bytes": 37438,
+      "sentence_count": 443,
+      "md5": "c8aac7dddc4c41abf7fb247f4504827f"
+    },
+    {
+      "source_file": "dprose_2325.csv",
+      "slug": "dprose_2325",
+      "name": "processed/dprose/dprose_2325/dprose_2325__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2325/dprose_2325__for_prompting.jsonl",
+      "size_bytes": 35858,
+      "sentence_count": 347,
+      "md5": "57d58571470c4f4d1b6216894f068f9a"
+    },
+    {
+      "source_file": "dprose_2329.csv",
+      "slug": "dprose_2329",
+      "name": "processed/dprose/dprose_2329/dprose_2329__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2329/dprose_2329__for_prompting.jsonl",
+      "size_bytes": 59932,
+      "sentence_count": 493,
+      "md5": "6182d25422354e94aff431e06716d9f2"
+    },
+    {
+      "source_file": "dprose_2333.csv",
+      "slug": "dprose_2333",
+      "name": "processed/dprose/dprose_2333/dprose_2333__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2333/dprose_2333__for_prompting.jsonl",
+      "size_bytes": 52341,
+      "sentence_count": 520,
+      "md5": "500f50a571dbd8d8f8f1ebeae71c60b0"
+    },
+    {
+      "source_file": "dprose_2336.csv",
+      "slug": "dprose_2336",
+      "name": "processed/dprose/dprose_2336/dprose_2336__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2336/dprose_2336__for_prompting.jsonl",
+      "size_bytes": 43176,
+      "sentence_count": 289,
+      "md5": "8fdbbd2f93ce71d172ec38766d3b0757"
+    },
+    {
+      "source_file": "dprose_2340.csv",
+      "slug": "dprose_2340",
+      "name": "processed/dprose/dprose_2340/dprose_2340__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2340/dprose_2340__for_prompting.jsonl",
+      "size_bytes": 64191,
+      "sentence_count": 466,
+      "md5": "7ff1e13e00a288e952cfdc10a96302af"
+    },
+    {
+      "source_file": "dprose_2342.csv",
+      "slug": "dprose_2342",
+      "name": "processed/dprose/dprose_2342/dprose_2342__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2342/dprose_2342__for_prompting.jsonl",
+      "size_bytes": 50464,
+      "sentence_count": 503,
+      "md5": "8a033e83c1bbf39611e02da4d3f3cf0d"
+    },
+    {
+      "source_file": "dprose_2347.csv",
+      "slug": "dprose_2347",
+      "name": "processed/dprose/dprose_2347/dprose_2347__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2347/dprose_2347__for_prompting.jsonl",
+      "size_bytes": 56502,
+      "sentence_count": 308,
+      "md5": "0010a415c891629152f2e916f86bf4a6"
+    },
+    {
+      "source_file": "dprose_2348.csv",
+      "slug": "dprose_2348",
+      "name": "processed/dprose/dprose_2348/dprose_2348__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2348/dprose_2348__for_prompting.jsonl",
+      "size_bytes": 35819,
+      "sentence_count": 263,
+      "md5": "1a993b9187e2e985019880bab4a44bd9"
+    },
+    {
+      "source_file": "dprose_2380.csv",
+      "slug": "dprose_2380",
+      "name": "processed/dprose/dprose_2380/dprose_2380__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2380/dprose_2380__for_prompting.jsonl",
+      "size_bytes": 57632,
+      "sentence_count": 355,
+      "md5": "022b1b133254bb4459b96ce0604c6fe6"
+    },
+    {
+      "source_file": "dprose_2386.csv",
+      "slug": "dprose_2386",
+      "name": "processed/dprose/dprose_2386/dprose_2386__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2386/dprose_2386__for_prompting.jsonl",
+      "size_bytes": 31057,
+      "sentence_count": 236,
+      "md5": "fca36351a83732fa483d7c0b8fd286df"
+    },
+    {
+      "source_file": "dprose_2395.csv",
+      "slug": "dprose_2395",
+      "name": "processed/dprose/dprose_2395/dprose_2395__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2395/dprose_2395__for_prompting.jsonl",
+      "size_bytes": 56814,
+      "sentence_count": 385,
+      "md5": "a5561a3c38d63db22f4f97a4f730bda3"
+    },
+    {
+      "source_file": "dprose_2401.csv",
+      "slug": "dprose_2401",
+      "name": "processed/dprose/dprose_2401/dprose_2401__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2401/dprose_2401__for_prompting.jsonl",
+      "size_bytes": 32198,
+      "sentence_count": 284,
+      "md5": "63aef9f35f393f530ba64411b01e86df"
+    },
+    {
+      "source_file": "dprose_2402.csv",
+      "slug": "dprose_2402",
+      "name": "processed/dprose/dprose_2402/dprose_2402__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2402/dprose_2402__for_prompting.jsonl",
+      "size_bytes": 35334,
+      "sentence_count": 330,
+      "md5": "379ee83a1263b377ce095bc7577657f4"
+    },
+    {
+      "source_file": "dprose_2413.csv",
+      "slug": "dprose_2413",
+      "name": "processed/dprose/dprose_2413/dprose_2413__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2413/dprose_2413__for_prompting.jsonl",
+      "size_bytes": 62513,
+      "sentence_count": 557,
+      "md5": "5fa47de593e5724af6780e598a445183"
+    },
+    {
+      "source_file": "dprose_2417.csv",
+      "slug": "dprose_2417",
+      "name": "processed/dprose/dprose_2417/dprose_2417__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2417/dprose_2417__for_prompting.jsonl",
+      "size_bytes": 37357,
+      "sentence_count": 406,
+      "md5": "105bd7ac70aa27edea61764964861d32"
+    },
+    {
+      "source_file": "dprose_2439.csv",
+      "slug": "dprose_2439",
+      "name": "processed/dprose/dprose_2439/dprose_2439__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2439/dprose_2439__for_prompting.jsonl",
+      "size_bytes": 48204,
+      "sentence_count": 468,
+      "md5": "3d8996df9e36030ec4906af15463f1dc"
+    },
+    {
+      "source_file": "dprose_2441.csv",
+      "slug": "dprose_2441",
+      "name": "processed/dprose/dprose_2441/dprose_2441__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2441/dprose_2441__for_prompting.jsonl",
+      "size_bytes": 54612,
+      "sentence_count": 498,
+      "md5": "7e56c5d4efab6819414368f71afa4108"
+    },
+    {
+      "source_file": "dprose_2443.csv",
+      "slug": "dprose_2443",
+      "name": "processed/dprose/dprose_2443/dprose_2443__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2443/dprose_2443__for_prompting.jsonl",
+      "size_bytes": 59911,
+      "sentence_count": 564,
+      "md5": "b5aa1705bd35f4666d47884b1ec8d055"
+    },
+    {
+      "source_file": "dprose_2444.csv",
+      "slug": "dprose_2444",
+      "name": "processed/dprose/dprose_2444/dprose_2444__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2444/dprose_2444__for_prompting.jsonl",
+      "size_bytes": 55438,
+      "sentence_count": 404,
+      "md5": "9eef514c9bba78e7f042a5ba48b5a3bc"
+    },
+    {
+      "source_file": "dprose_2471.csv",
+      "slug": "dprose_2471",
+      "name": "processed/dprose/dprose_2471/dprose_2471__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2471/dprose_2471__for_prompting.jsonl",
+      "size_bytes": 43782,
+      "sentence_count": 195,
+      "md5": "caa361f5fdd1a77ec58d7772effdb654"
+    },
+    {
+      "source_file": "dprose_2472.csv",
+      "slug": "dprose_2472",
+      "name": "processed/dprose/dprose_2472/dprose_2472__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2472/dprose_2472__for_prompting.jsonl",
+      "size_bytes": 55676,
+      "sentence_count": 375,
+      "md5": "9a8133969a8833a3afb0a75308d2ef44"
+    },
+    {
+      "source_file": "dprose_2473.csv",
+      "slug": "dprose_2473",
+      "name": "processed/dprose/dprose_2473/dprose_2473__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2473/dprose_2473__for_prompting.jsonl",
+      "size_bytes": 41585,
+      "sentence_count": 206,
+      "md5": "7f26c860fa2c93fff47579fa353c0814"
+    },
+    {
+      "source_file": "dprose_2476.csv",
+      "slug": "dprose_2476",
+      "name": "processed/dprose/dprose_2476/dprose_2476__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2476/dprose_2476__for_prompting.jsonl",
+      "size_bytes": 49773,
+      "sentence_count": 246,
+      "md5": "ca20f5d8f1924b6d3d061035e2ac5514"
+    },
+    {
+      "source_file": "dprose_2505.csv",
+      "slug": "dprose_2505",
+      "name": "processed/dprose/dprose_2505/dprose_2505__for_prompting.txt",
+      "jsonl": "processed/dprose/dprose_2505/dprose_2505__for_prompting.jsonl",
+      "size_bytes": 40675,
+      "sentence_count": 279,
+      "md5": "3a3df4f95bb77245f93db554073b1b86"
+    }
+  ]
+}

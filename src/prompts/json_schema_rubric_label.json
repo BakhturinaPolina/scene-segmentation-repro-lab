@@ -1,0 +1,16 @@
+{
+  "name": "scene_boundary_rubric_label",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "time_shift": { "type": "boolean" },
+      "location_shift": { "type": "boolean" },
+      "character_shift": { "type": "boolean" },
+      "action_shift": { "type": "boolean" },
+      "label": { "type": "string", "enum": ["BORDER", "NOBORDER"] }
+    },
+    "required": ["time_shift", "location_shift", "character_shift", "action_shift", "label"],
+    "additionalProperties": false
+  }
+}

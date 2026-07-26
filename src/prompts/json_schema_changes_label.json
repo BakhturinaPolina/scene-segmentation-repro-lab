@@ -1,0 +1,23 @@
+{
+  "name": "scene_boundary_changes_label",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "changes": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "string", "enum": ["none", "minor", "significant"] },
+          "location": { "type": "string", "enum": ["none", "minor", "significant"] },
+          "characters": { "type": "string", "enum": ["none", "minor", "significant"] },
+          "action": { "type": "string", "enum": ["none", "minor", "significant"] }
+        },
+        "required": ["time", "location", "characters", "action"],
+        "additionalProperties": false
+      },
+      "label": { "type": "string", "enum": ["BORDER", "NOBORDER"] }
+    },
+    "required": ["changes", "label"],
+    "additionalProperties": false
+  }
+}

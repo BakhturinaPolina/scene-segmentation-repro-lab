@@ -350,3 +350,120 @@ Supports the draft's judgement that results are "sufficient" and bridges to the 
 | Context construction | [`context_builder.py`](../../../src/core/context_builder.py); [`classify.py`](../../../upstream/scene-segmentation/prompting/classify.py) lines 93–111 & 25 |
 | Pilot-vs-full + reasoning-off decision | [`decision__pilot-vs-full-and-reasoning-off-candidate.md`](../../../research_log/decisions/decision__pilot-vs-full-and-reasoning-off-candidate.md) |
 | Over-segmentation / post-processing | [`decision__postprocess-min-scene-len-3.md`](../../../research_log/decisions/decision__postprocess-min-scene-len-3.md) |
+
+---
+
+## 8. Gemini Batch API baseline for Family B (added 2026-07-22)
+
+This is a supplementary Model-Selection data point: Family B re-run on the two
+close-reading gold texts through the **official Gemini Batch API** (the same API
+path as the dProse production labelling), rather than the OpenRouter sync path
+that produced the headline numbers in §4. It confirms B's qualitative behaviour
+on the production API, and documents a config-driven difference the report author
+should be aware of before quoting numbers.
+
+Source: run [`2026-07-22__prompting__experiment__excel-gemini-batch-families.md`](../../../research_log/runs/2026-07-22__prompting__experiment__excel-gemini-batch-families.md); full analysis [`docs/prompting/EXCEL_GEMINI_BATCH_FAMILIES_REPORT.md`](../../prompting/EXCEL_GEMINI_BATCH_FAMILIES_REPORT.md); artefacts under `outputs/runs/prompting/2026-07-22-excel-gemini-batch-families/family_B/`.
+
+Fixed controls: `gemini-2.5-pro`, Gemini Batch API `mode=file`,
+`context_sentences=12` (production dProse window), `temperature=0`,
+`max_output_tokens=2048`, `thinking_budget=-1`, schema
+`json_schema_label_reason.json`, full evaluation (316 sentences).
+
+| Metric | Gemini Batch B (2026-07-22) | OpenRouter Excel B (§4, headline) |
+|--------|-----------------------------|-----------------------------------|
+| macro F1@0 | 0.3776 | 0.4981 |
+| macro F1@3 | 0.5373 | 0.7617 |
+| macro P@0 / R@0 | 0.2348 / 0.9643 | 0.3579 / 0.8215 |
+| over-prediction (x gold) | 4.10 | ~2.24 |
+| parse-fail | 0.000 | 0.000 |
+
+Per document (Gemini Batch B): Gaensemagd n=71, gold=7, pred=29, tol0
+P/R/F1=0.241/1.000/0.389, tol3 F1=0.583; Kleist n=245, gold=14, pred=57, tol0
+P/R/F1=0.228/0.929/0.366, tol3 F1=0.491.
+
+**Interpretation (quotable):** The qualitative signature is identical to §4 and §7
+— recall is very high (R@0=0.96) and the failure mode is *extra* borders, not
+missed ones. The lower absolute F1 versus the OpenRouter headline is best
+explained by the **wider context window** (12 sentences each side here vs a
+409-token budget in the §4 runs); a wider window invites more boundary calls and
+raises over-prediction (4.10x vs ~2.24x). This is a directional, not a same-config,
+comparison (the API path and reasoning/thinking control also differ). The report's
+headline B numbers should stay the §4 OpenRouter figures; this batch baseline is
+supporting evidence that B behaves consistently on the production API path.
+
+---
+
+## 9. FP-reduction variants K-Q on the gold texts -- FINAL REMARKS material, NOT Model Selection
+
+**Scope flag:** the following belongs to the report's **Final Remarks** section
+(draft lines 88-95, over-segmentation and optimisation), *not* to §Model
+Selection. K-Q are later precision-focused variants **of** Family B; they are not
+the A-J family competitors that were used to *select* B, and they must not be
+presented as a reason for choosing B. They are recorded here only because they
+were produced in the same 2026-07-22 batch run and are the natural evidence for
+the Final-Remarks over-segmentation point.
+
+Same fixed controls as §8 (Gemini Batch, 12-sentence context, T=0, thinking=-1,
+label+reason schema). Macro over both texts, ranked by relaxed F1 (tol3):
+
+| Family | Factor | F1@0 | F1@3 | over-pred (x gold) | parse-ok |
+|--------|--------|------|------|--------------------|----------|
+| L | strict MAJOR-discontinuity definition | 0.5844 | 0.7832 | 2.10 | 1.000 |
+| Q | combined N+L+M precision fix | 0.4838 | 0.6934 | 2.62 | 0.984 |
+| N | border-rarity prior (7%) | 0.4367 | 0.6601 | 3.24 | 1.000 |
+| K | negative examples | 0.3703 | 0.5555 | 4.10 | 1.000 |
+| M | FP-pattern guard | 0.3709 | 0.5393 | 3.95 | 0.997 |
+| B (baseline, for reference) | production prompt | 0.3776 | 0.5373 | 4.10 | 1.000 |
+| P | anti-example | 0.3433 | 0.5212 | 5.00 | 1.000 |
+| O | German-fairy few-shot | 0.3456 | 0.5133 | 4.81 | 0.981 |
+
+**Ready-to-use Final-Remarks points:**
+
+- **A stricter boundary *definition* is the most effective prompt-level lever
+  against over-segmentation.** Prompt L (which requires a *major* discontinuity)
+  roughly halves over-prediction (4.10x -> 2.10x gold) and lifts relaxed F1 from
+  0.54 to 0.78 on these two texts, while keeping recall high. This complements the
+  rule-based post-processing options (e.g. `min_scene_len_3`, no consecutive
+  borders) already noted in §7.
+- **Adding more instruction or examples did not help** under the wide-context
+  batch config: the anti-example (P) and German-fairy few-shot (O) variants
+  *increased* over-prediction (5.0x and 4.8x). This echoes the Phase-A headline
+  that "prompt shape matters more than prompt cleverness" (§2).
+- **The dominant error remains over-prediction, not missed borders** (recall
+  stays 0.89-1.00 across all variants), reinforcing the Final-Remarks framing that
+  the model is over-segmenting / more fine-grained rather than failing to find
+  scene changes.
+
+Source (Excel K–Q sweep): run/experiment notes above; comparison
+`outputs/runs/prompting/2026-07-22-excel-gemini-batch-families/comparison.csv`;
+per-family `score.json` in the sibling `family_*` folders.
+
+### 9b. Transfer check: Family L on four dProse spot-check texts (2026-07-22)
+
+Same Gemini Batch production config as the full corpus (Family B labels already
+on disk); only the prompt changed to L. Four contrasting texts from
+[`DPROSE_CORPUS_SPOT_CHECKS.md`](../DPROSE_CORPUS_SPOT_CHECKS.md) (high fairy-tale
+montage, structural consecutive-BORDER, low dialogue, pilot):
+
+| slug | B rate | L rate | Δ | B→L borders | L∩B F1 |
+|------|--------|--------|---|-------------|--------|
+| dprose_52 | 32.8% | 23.6% | −9.2pp | 75→54 | 0.760 |
+| dprose_119 | 28.2% | 16.8% | −11.4pp | 62→37 | 0.727 |
+| dprose_137 | 14.5% | 7.6% | −7.0pp | 48→25 | 0.630 |
+| dprose_100 | 30.4% | 23.0% | −7.4pp | 49→37 | 0.767 |
+
+Aggregate: 234 → 153 borders (−35%). Parse-ok 99.8%; cost $4.19 / 941 sents.
+
+**Final-Remarks add-ons:**
+
+- On production dProse texts, L also lowers BORDER rate by ~7–11 pp and is mostly
+  a subset of B (few L-only borders) — consistent with the Excel-gold precision
+  gain.
+- Dense montage / structural consecutive-BORDER clusters (e.g. dprose_52 idx
+  57–62, dprose_119 idx 155–161) are only partially thinned by L — **prompt-level
+  strictness complements, but does not replace, post-processing merge rules**.
+- Applying L to an already-conservative dialogue text (dprose_137) can push rates
+  very low (7.6%); treat as a precision/recall tradeoff, not a free upgrade.
+
+Source: [`2026-07-22__prompting__experiment__dprose-familyL-spot-rerun.md`](../../../research_log/runs/2026-07-22__prompting__experiment__dprose-familyL-spot-rerun.md);
+`outputs/runs/dprose_batch/2026-07-22-dprose-familyL-spot-rerun/B_vs_L_comparison.json`.

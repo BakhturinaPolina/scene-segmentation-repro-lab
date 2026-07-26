@@ -1,0 +1,26 @@
+{
+  "dataset": "excel_prompting_gold",
+  "source": "local/excel_sentence_level",
+  "retrieved_at": "2026-05-30",
+  "index_base": 1,
+  "note": "Close-reading gold texts (Gaensemagd + Kleist) in dProse batch manifest shape for the Gemini Batch API. Same processed inputs as EXCEL_PROMPTING_2026-05-30_REPORT.md. Sentence indices in the jsonl/gold CSV are 1-based (index_base=1); dProse jsonl is 0-based.",
+  "total_sentences": 316,
+  "files": [
+    {
+      "source_file": "Gaensemagd_sentence level.xlsx",
+      "slug": "gaensemagd_sentence_level",
+      "name": "processed/excel_prompting/gaensemagd_sentence_level/gaensemagd_sentence_level__for_prompting.txt",
+      "jsonl": "processed/excel_prompting/gaensemagd_sentence_level/gaensemagd_sentence_level__for_prompting.jsonl",
+      "gold_csv": "processed/excel_prompting/gaensemagd_sentence_level/gaensemagd_sentence_level__gold_labels.csv",
+      "sentence_count": 71
+    },
+    {
+      "source_file": "Kleist_sentence level.xlsx",
+      "slug": "kleist_sentence_level",
+      "name": "processed/excel_prompting/kleist_sentence_level/kleist_sentence_level__for_prompting.txt",
+      "jsonl": "processed/excel_prompting/kleist_sentence_level/kleist_sentence_level__for_prompting.jsonl",
+      "gold_csv": "processed/excel_prompting/kleist_sentence_level/kleist_sentence_level__gold_labels.csv",
+      "sentence_count": 245
+    }
+  ]
+}

@@ -37,6 +37,8 @@ Scene borders are **rare** compared with normal sentences. That matters when rea
 
 ---
 
+
+
 ## 2) Step 1 — Compare models (Prompt B, same settings)
 
 We ran several large models on the same two texts with Prompt B and scored predictions against the Excel gold borders.
@@ -66,11 +68,13 @@ Source runs: `outputs/runs/prompting/2026-05-31-excel-gemini-reasoning-on/` (Gem
 | 5    | Claude Sonnet 4 | off            | 0.35            | 0.50                 |
 
 
-*Recalculated from artifacts (2026-06-23): row 1 = macro F1 **0.4981** / **0.7617** (`google/gemini-2.5-pro`, reasoning on, seed 1337). A later stability rerun (`2026-06-16-excel-gemini-familyB-stability`) gives **0.5063** / **0.7707** — within ±0.02 of the May baseline.*
+*Recalculated from artifacts (2026-06-23): row 1 = macro F1 **0.4981** / **0.7617** (*`google/gemini-2.5-pro`*, reasoning on, seed 1337). A later stability rerun (*`2026-06-16-excel-gemini-familyB-stability`*) gives **0.5063** / **0.7707** — within ±0.02 of the May baseline.*
 
 **Takeaway:** **Gemini 2.5 Pro with reasoning turned on** gave the best results on these Excel texts. Turning reasoning from “low” to “on” helped especially for near-match quality (tol3 F1 **+0.043**, 0.7617 vs 0.7184). 
 
 ---
+
+
 
 ## 3) Step 2 — Post-processing experiment (Prompt B, Gemini 2.5 Pro)
 
@@ -100,13 +104,15 @@ Source runs: `outputs/runs/prompting/2026-05-31-excel-gemini-reasoning-on/` (Gem
 
 *(Exact macro source values: none P=0.3579 R=0.8215 F1=0.4981 tol3=0.7617 tol5=0.8007; min_gap_3 F1=0.5342 tol3=0.7707 tol5=0.8118; min_gap_5 F1=0.4726 tol3=0.7986 tol5=0.8493.)*
 
-- **Raw Gemini (`none`) matches Step 1** — exact F1 **0.50** and tol3 **0.76** are the same run, now scored consistently.
+- **Raw Gemini (**`none`**) matches Step 1** — exact F1 **0.50** and tol3 **0.76** are the same run, now scored consistently.
 - **Min-gap rules trade recall for precision.** A 3-sentence gap nudges exact F1 up to **0.53** on Gaensemagd but costs Kleist recall (gold borders can be 1 sentence apart). A 5-sentence gap pushes tol5 to **0.85** but exact F1 falls to **0.47**.
 - **Post-processing is optional, not clearly dominant:** tol3 is nearly flat; only tol5 gains meaningfully under the 5-sentence rule, at the cost of missing real borders.
 
 So post-processing helps only if reviewers care about **tol5** placement and accept lower recall; for exact or tol3 scoring, raw Gemini output remains the better default.
 
 ---
+
+
 
 ## 4) What went wrong (error pattern)
 
@@ -115,6 +121,8 @@ So post-processing helps only if reviewers care about **tol5** placement and acc
 - Errors often appear in **transition passages** (time/place/character shift), where the model is “almost” right.
 
 ---
+
+
 
 ## 5) Practical conclusions
 

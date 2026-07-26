@@ -1,0 +1,23 @@
+{
+  "name": "scene_boundary_analysis_label",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "analysis": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "string" },
+          "location": { "type": "string" },
+          "characters": { "type": "string" },
+          "action": { "type": "string" }
+        },
+        "required": ["time", "location", "characters", "action"],
+        "additionalProperties": false
+      },
+      "label": { "type": "string", "enum": ["BORDER", "NOBORDER"] }
+    },
+    "required": ["analysis", "label"],
+    "additionalProperties": false
+  }
+}

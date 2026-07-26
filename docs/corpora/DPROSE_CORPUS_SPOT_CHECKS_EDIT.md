@@ -336,7 +336,7 @@ Six of the seven sub-14% books are **Karl Hans Strobl detective novellas** featu
 | dprose_695 | 13.3% | 2 | 7.4 | Dramatic opening (fire in room) then extended dialogue; **70-sent gap** idx 72–142 |
 | dprose_696 | 14.5% | 3 | 6.8 | Frau Violet / husband subplot — same series, just above threshold |
 
-**Assessment:** Mirror image of Wave 2 low-BORDER realist novellas (`dprose_661`). The model correctly treats **one dinner/reception as one macro-scene** and only BORDERs on chapter titles, late arrivals (Dagobert), or time jumps (“Essenszeit geworden”). Conservative labeling is structurally plausible; optional post-process if film-level granularity is needed.
+**Assessment:** Mirror image of Wave 2 low-BORDER realist novellas (`dprose_661`). The model correctly treats **one dinner/reception as one macro-scene** and only BORDERs on chapter titles, late arrivals (Dagobert), or time jumps (“Essenszeit geworden”). Conservative labeling is structurally plausible; optional post-process if coarser scene granularity is needed.
 
 ---
 
@@ -386,7 +386,7 @@ Six of the seven sub-14% books are **Karl Hans Strobl detective novellas** featu
 
 **Findings:** **64%** short scenes. Cluster idx 354–360: rapid emotional reversals (throws light away → kneels → weeps → dialogue beats) — seven BORDERs in seven sentences during climax.
 
-**Assessment:** **Stichomythic/emotional dialogue** at scene peak — not a parsing error; merge candidate for film-level boundaries.
+**Assessment:** **Stichomythic/emotional dialogue** at scene peak — not a parsing error; merge candidate for coarser scene boundaries.
 
 ---
 

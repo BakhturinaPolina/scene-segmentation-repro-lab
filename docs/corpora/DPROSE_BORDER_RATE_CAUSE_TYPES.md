@@ -132,7 +132,7 @@ Satirical fairy tale about three princes. The trip home is told as a compressed 
 > **[61] BORDER** First manifesto: revive heroic past…  
 > **[62] BORDER** Constant calls to arms / endless war.
 
-**Why high rate:** Each sentence is a new chapter of plot in miniature — good for fine event labels, too dense for “film scenes.”
+**Why high rate:** Each sentence is a new chapter of plot in miniature — good for fine event labels, too dense for coarse narrative scenes.
 
 ### Example — fisherman fairy tale time jumps (`dprose_1913`, idx 17–19)
 
@@ -287,7 +287,7 @@ Davos social novel *Die überlaute Frau Bautz*. Overall rate ~20.5% (normal), bu
 > **[158] BORDER** *Er drehte den Kopf.* — He turned his head.  
 > **[159] BORDER** A girl in a blue sports jacket looks at him.
 
-**Why “too high” here:** One continuous walk would be one scene for film; the model cuts on every sensory beat.
+**Why “too high” here:** One continuous walk would be one narrative scene; the model cuts on every sensory beat.
 
 ### Example — disoriented journey home (`dprose_151`, idx 259–263)
 
@@ -373,7 +373,7 @@ Some texts are **low overall** but have a **high local run** (or the reverse).
 # D. Practical takeaway
 
 1. **Low outliers** are usually *long same-place dialogue* or *realist continuity* — often correct for coarse scenes.  
-2. **High outliers** are usually *montage / fairy summary / lyric / paratext / frame switches* — often correct for fine events, too dense for film-like scenes.  
+2. **High outliers** are usually *montage / fairy summary / lyric / paratext / frame switches* — often correct for fine events, too dense for coarse narrative scenes.  
 3. For coarse scene boundaries, the spot-checks repeatedly suggest **post-process merges** on consecutive BORDER runs (travel montage, frame coda + title, exit walks), not full re-runs.
 
 ---

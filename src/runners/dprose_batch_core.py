@@ -212,18 +212,33 @@ def build_generation_config(
     temperature: float,
     max_output_tokens: int,
     thinking_budget: int,
-    response_schema: dict[str, Any],
+    response_schema: dict[str, Any] | None,
+    response_mime_type: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    """Build a Gemini generation config.
+
+    When ``response_schema`` is provided (the default JSON path used by
+    Family B and all json-label families), the config enforces a structured
+    JSON response. When ``response_schema`` is ``None`` (used by the
+    plain-text families A and H), no schema is attached and the mime type
+    defaults to ``text/plain`` unless overridden.
+    """
+    if response_schema is not None:
+        mime = response_mime_type or "application/json"
+    else:
+        mime = response_mime_type or "text/plain"
+    cfg: dict[str, Any] = {
         "temperature": temperature,
         "max_output_tokens": max_output_tokens,
-        "response_mime_type": "application/json",
-        "response_schema": response_schema,
+        "response_mime_type": mime,
         "thinking_config": {
             "thinking_budget": thinking_budget,
             "include_thoughts": True,
         },
     }
+    if response_schema is not None:
+        cfg["response_schema"] = response_schema
+    return cfg
 
 
 def build_inline_request(
@@ -274,7 +289,16 @@ def prepare_requests(
     generation_config: dict[str, Any],
     max_sentences: int | None = None,
     keys_filter: set[str] | None = None,
+    index_base: int = 0,
 ) -> tuple[list[SentenceRecord], list[dict[str, Any]]]:
+    """Build one per-sentence request per manifest sentence.
+
+    ``index_base`` accounts for corpora whose ``sentence_index`` is not
+    0-based. dProse jsonl is 0-based (``index_base=0``, default); the Excel
+    close-reading gold jsonl is 1-based (``index_base=1``). The record's
+    ``sentence_index`` is kept as-is (so it still joins with the gold CSV),
+    while the position used to slice the sentence list is shifted to 0-based.
+    """
     by_file = load_sentences_by_file(manifest, data_root)
     records: list[SentenceRecord] = []
     requests: list[dict[str, Any]] = []
@@ -285,7 +309,7 @@ def prepare_requests(
         if max_sentences is not None and len(records) >= max_sentences:
             break
         file_sentences = by_file[rec.source_file]
-        pos = rec.sentence_index
+        pos = rec.sentence_index - index_base
         if pos < 0 or pos >= len(file_sentences):
             pos = len(records) % len(file_sentences)
         sample_text = build_sample_text(
@@ -301,6 +325,119 @@ def prepare_requests(
             )
         )
     return records, requests
+
+
+def build_chunk_text(sentences: list[str], start: int, end: int) -> str:
+    """Render a numbered sentence chunk for the localization/scoring families.
+
+    Sentences are numbered 1..N within the chunk (matching the H/I prompt
+    contract). ``start``/``end`` are 0-based half-open bounds into
+    ``sentences``.
+    """
+    lines = []
+    for local_id, i in enumerate(range(start, end), start=1):
+        lines.append(f"{local_id}. {sentences[i]}")
+    return "\n".join(lines)
+
+
+def prepare_chunk_requests(
+    manifest: dict[str, Any],
+    data_root: Path,
+    *,
+    prompt_family: str,
+    template_text: str,
+    chunk_window: int,
+    generation_config: dict[str, Any],
+    index_base: int = 0,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Build one request per centered chunk for the H/I chunk families.
+
+    Each target sentence gets a chunk of ``2*chunk_window + 1`` sentences
+    centered on it; the target's 1-based position inside the chunk is stored
+    in ``chunk_meta`` so results can be mapped back to a sentence-level label.
+
+    Returns ``(chunk_meta, requests)`` where each ``chunk_meta`` entry has
+    ``key``, ``slug``, ``source_file``, ``sentence_index`` (original, joinable
+    with gold), ``target_local_id`` (1-based within chunk), and
+    ``chunk_len``. This is a prepared-but-unused path (Phase 3): the Wave-1
+    sweep does not submit H/I jobs.
+    """
+    by_file = load_sentences_by_file(manifest, data_root)
+    chunk_meta: list[dict[str, Any]] = []
+    requests: list[dict[str, Any]] = []
+
+    for rec in iter_sentences(manifest, data_root):
+        file_sentences = by_file[rec.source_file]
+        pos = rec.sentence_index - index_base
+        if pos < 0 or pos >= len(file_sentences):
+            continue
+        start = max(0, pos - chunk_window)
+        end = min(len(file_sentences), pos + chunk_window + 1)
+        target_local_id = pos - start + 1  # 1-based within the chunk
+        chunk_sentences = build_chunk_text(file_sentences, start, end)
+        prompt_text = render_prompt_for_family(
+            prompt_family,
+            template_text,
+            sample_text="",
+            chunk_sentences=chunk_sentences,
+        )
+        key = rec.key
+        chunk_meta.append(
+            {
+                "key": key,
+                "slug": key.split(":", 1)[0],
+                "source_file": rec.source_file,
+                "sentence_index": rec.sentence_index,
+                "target_local_id": target_local_id,
+                "chunk_len": end - start,
+            }
+        )
+        requests.append(
+            build_inline_request(
+                prompt_text,
+                key=key,
+                generation_config=generation_config,
+            )
+        )
+    return chunk_meta, requests
+
+
+def map_chunk_result_to_label(
+    prompt_family: str,
+    payload: Any,
+    *,
+    target_local_id: int,
+    score_threshold: float = 50.0,
+) -> str | None:
+    """Map an H/I chunk output onto a BORDER/NOBORDER label for the target.
+
+    H: the returned sentence id (or NONE) is compared against the target's
+    local id -> BORDER iff they match.
+    I: the score array is looked up for the target's local id -> BORDER iff
+    ``score >= score_threshold``.
+    Returns ``None`` when the payload cannot be interpreted.
+    """
+    family = prompt_family.upper()
+    if family == "H":
+        if payload is None:
+            return None
+        token = str(payload).strip().upper()
+        if token == "NONE":
+            return "NOBORDER"
+        try:
+            return "BORDER" if int(token) == target_local_id else "NOBORDER"
+        except (TypeError, ValueError):
+            return None
+    if family == "I":
+        if not isinstance(payload, list):
+            return None
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            if int(item.get("sentence_id", -1)) == target_local_id:
+                return "BORDER" if float(item.get("score", 0)) >= score_threshold else "NOBORDER"
+        return None
+    return None
 
 
 def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
