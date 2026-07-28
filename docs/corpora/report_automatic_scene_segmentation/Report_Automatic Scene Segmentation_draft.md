@@ -95,23 +95,25 @@ Return JSON only:
 
 On the gold evaluation texts, models were compared under temperature 0, a fixed seed, and a shared context budget around each target sentence (token-budget mode inherited from Zehe et al., ~409 tokens of surrounding context). For the dProse corpus run we switched to a fixed **12 sentences of context on each side**, still with temperature 0 and the same Family B + JSON schema contract.
 
-Evaluation was conducted on the three manually annotated gold texts. Following Zehe et al. (2025), we report relaxed F1 (t = 3) as the main metric, since it allows near-boundary predictions within three sentences, alongside exact F1 (t = 0) for transparency. All runs used Prompt Family B with identical decoding (temperature 0, seed 1337, token-budget context ~409, JSON schema).
+Evaluation was conducted on the three manually annotated gold texts, *The Earthquake in Chile*, *The Goose Girl*, and *The Godfather*. Following Zehe et al. (2025), we report relaxed F1 with (t = 3) as the main metric, because it allows near-boundary predictions within three sentences. For transparency, we also report exact F1 with (t = 0), which only counts the precise boundary sentence as correct.
 
-We first ranked candidate models on the two longer texts (macro-averaged F1). Gemini 2.5 Pro with reasoning on was best (exact 0.50, relaxed 0.76), ahead of Gemini 2.5 Pro reasoning-low (0.49 / 0.72), Claude Opus 4 (0.44 / 0.61), GPT-4.1 (0.42 / 0.62), and Claude Sonnet 4 (0.35 / 0.50). We adopted it as the production configuration and then evaluated it on all three gold texts:
+The primary model ranking below was established on the original two longer gold texts (*The Earthquake in Chile* and *The Goose Girl*; macro-averaged F1). We later evaluated the winning configuration on *The Godfather* under the same Prompt Family B settings (temperature 0, seed 1337, token-budget context ~409, JSON schema) via OpenRouter.
 
 
-| Text                      | Sentences | Gold   | Pred.  | Over-pred. | F1 (t = 0) | F1 (t = 1) | F1 (t = 3) |
-| ------------------------- | --------- | ------ | ------ | ---------- | ---------- | ---------- | ---------- |
-| *The Earthquake in Chile* | 245       | 14     | 34     | 2.4×       | 0.54       | 0.62       | 0.70       |
-| *The Goose Girl*          | 71        | 7      | 15     | 2.1×       | 0.45       | 0.74       | 0.82       |
-| *The Godfather*           | 32        | 5      | 6      | 1.2×       | 0.36       | 0.80       | 0.91       |
-| **Macro average**         | **348**   | **26** | **55** | **2.1×**   | **0.45**   | **0.72**   | **0.81**   |
+| Model           | Reasoning mode | Exact F1 (t = 0) | Relaxed F1 (t = 3) |
+| --------------- | -------------- | ---------------- | ------------------ |
+| Gemini 2.5 Pro  | On             | 0.50             | 0.76               |
+| Gemini 2.5 Pro  | Low            | 0.49             | 0.72               |
+| Claude Opus 4   | Off            | 0.44             | 0.61               |
+| GPT-4.1         | Off            | 0.42             | 0.62               |
+| Claude Sonnet 4 | Off            | 0.35             | 0.50               |
 
-*Per-text metrics recomputed from each run's `review_*.jsonl` against the Excel gold via `src/eval/excel_gold_scoring.py`. Over-prediction = predicted / gold borders; source runs `2026-05-31-excel-gemini-reasoning-on` (Kleist, Gaensemagd) and `2026-07-28-excel-gevatter-gemini-reasoning-on` (Gevatter).*
 
-The results are consistent across all three texts despite their differences in genre and length. Relaxed recall is perfect everywhere (t = 3 recall = 1.00): the model never misses a true boundary by more than three sentences, so relaxed F1 is limited only by false positives. Exact F1 is held down by over-prediction (roughly 2× the gold borders on the longer texts) and by borders placed one to three sentences off, which is why scores climb steeply as the tolerance widens (e.g. *The Godfather* 0.36 → 0.80 → 0.91).
+*Macro-averaged over The Earthquake in Chile + The Goose Girl. Source run for Gemini reasoning on: `outputs/runs/prompting/2026-05-31-excel-gemini-reasoning-on/` (exact F1 0.4981, relaxed F1 0.7617).*
 
-We therefore keep Gemini 2.5 Pro with reasoning on as the production setting. Its three-text relaxed F1 of 0.81 is above Zehe et al.'s zero-shot benchmark and their supervised result, though the comparison is only directional because the test corpora differ. The consistent over-segmentation seen here also foreshadows the same tendency at corpus scale on dProse (below).
+On *The Godfather* alone (32 sentences, 5 gold borders; run `2026-07-28-excel-gevatter-gemini-reasoning-on`), Gemini 2.5 Pro with reasoning on scored exact F1 **0.36** and relaxed F1 **0.91** (tol 3). Exact match is harder on this short text (several near-miss borders), but every gold border is recovered within three sentences and over-prediction is modest (6 predicted vs 5 gold borders, ratio 1.2×). Including *The Godfather* in a three-text macro average with the May baseline yields exact F1 **0.45** and relaxed F1 **0.81**.
+
+Gemini 2.5 Pro with reasoning mode on achieved the best overall result on the original two-text ranking, with a relaxed F1 of 0.76, and remains the production setting after the *Godfather* check (three-text relaxed F1 0.81). This is above Zehe et al.'s reported zero-shot benchmark and also above their supervised result, although the comparison is only directional because the test corpora are different. We therefore use Gemini 2.5 Pro with reasoning mode on as the production setting.
 
 ### Application to dProse-Dataset
 
