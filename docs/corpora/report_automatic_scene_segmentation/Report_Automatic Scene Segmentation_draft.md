@@ -110,7 +110,15 @@ We ranked the same five candidate configurations on all three gold texts (macro-
 
 *Two-text macros from `2026-05-31-excel-gemini-reasoning-on`, `2026-05-30-excel-3model-sweep`, and `2026-05-30-excel-opus4`. Godfather scores from `2026-07-28-excel-gevatter-gemini-reasoning-on` (Gemini on) and `2026-07-28-excel-gevatter-model-sweep` (other four). Three-text macros average per-document F1 over Kleist, Gaensemagd, and Gevatter.*
 
-On the headline relaxed metric, Gemini 2.5 Pro with reasoning on remains first after adding *The Godfather* (three-text relaxed F1 **0.81**). Several models reach the same *Godfather* relaxed F1 of 0.91, so that short text alone does not separate them; the longer texts still drive the ranking. Claude Opus 4 is a notable exception on exact match: its strong *Godfather* exact F1 (0.67) lifts the three-text exact score above Gemini’s, but its relaxed F1 stays lower (0.71 vs 0.81) because it over-predicts more on the longer texts. We therefore keep Gemini 2.5 Pro with reasoning on as the production configuration.
+![Figure 2: Model ranking before and after adding The Godfather](Report_Automatic_Scene_Segmentation_assets/fig_model_ranking_2text_vs_3text.png)
+
+Figure 2: Model ranking before and after adding *The Godfather*. Left: relaxed F1 (t = 3); right: exact F1 (t = 0). Bars compare the two-text macro average with the three-text average.
+
+On the headline relaxed metric, Gemini 2.5 Pro with reasoning on remains first after adding *The Godfather* (three-text relaxed F1 **0.81**). Several models reach the same *Godfather* relaxed F1 of 0.91, so that short text alone does not separate them; the longer texts still drive the ranking. Claude Opus 4 is a notable exception on exact match: its strong *Godfather* exact F1 (0.67) lifts the three-text exact score above Gemini’s, but its relaxed F1 stays lower (0.71 vs 0.81) because it over-predicts more on the longer texts. Figure 3 makes this split explicit. We therefore keep Gemini 2.5 Pro with reasoning on as the production configuration.
+
+![Figure 3: Why Godfather alone does not decide the ranking](Report_Automatic_Scene_Segmentation_assets/fig_ranking_inconsistencies.png)
+
+Figure 3: Why *The Godfather* alone does not decide the ranking. (A) On this short text, four models tie at relaxed F1 0.91, while Opus leads exact match (0.67). (B) On the three-text macro, Gemini with reasoning on leads relaxed F1; Opus leads exact F1 — the production choice follows the headline relaxed metric.
 
 Per-text results for this production setting:
 
@@ -124,7 +132,15 @@ Per-text results for this production setting:
 
 *Per-text metrics recomputed from each run's `review_*.jsonl` against the Excel gold via `src/eval/excel_gold_scoring.py`. Over-prediction = predicted / gold borders.*
 
-The results are consistent across all three texts despite their differences in genre and length. Relaxed recall is perfect everywhere for the production model (t = 3 recall = 1.00): it never misses a true boundary by more than three sentences, so relaxed F1 is limited only by false positives. Exact F1 is held down by over-prediction (roughly 2× the gold borders on the longer texts) and by borders placed one to three sentences off, which is why scores climb steeply as the tolerance widens (e.g. *The Godfather* 0.36 → 0.80 → 0.91).
+![Figure 4: F1 vs matching tolerance for the production model](Report_Automatic_Scene_Segmentation_assets/fig_tolerance_curves_production.png)
+
+Figure 4: Production model (Gemini 2.5 Pro, reasoning on) — F1 vs matching tolerance for each gold text. Exact match (t = 0) is hardest; near-miss (t = 1) and relaxed (t = 3) recover most of the score, especially on *The Godfather* (0.36 → 0.80 → 0.91).
+
+![Figure 5: Gold vs predicted borders for the production model](Report_Automatic_Scene_Segmentation_assets/fig_overprediction_production.png)
+
+Figure 5: Gold vs predicted borders under the production model. Over-prediction is roughly 2× on the longer texts and milder on *The Godfather* (1.2×).
+
+The results are consistent across all three texts despite their differences in genre and length. Relaxed recall is perfect everywhere for the production model (t = 3 recall = 1.00): it never misses a true boundary by more than three sentences, so relaxed F1 is limited only by false positives (Figures 4–5). Exact F1 is held down by over-prediction and by borders placed one to three sentences off.
 
 Its three-text relaxed F1 of 0.81 is above Zehe et al.'s zero-shot benchmark and their supervised result, though the comparison is only directional because the test corpora differ. The consistent over-segmentation seen here also foreshadows the same tendency at corpus scale on dProse (below).
 
