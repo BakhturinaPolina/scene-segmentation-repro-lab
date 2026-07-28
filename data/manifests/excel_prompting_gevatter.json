@@ -1,0 +1,12 @@
+{
+  "dataset": "excel_prompting_inputs",
+  "source": "local/excel_sentence_level",
+  "retrieved_at": "2026-07-28",
+  "files": [
+    {
+      "name": "processed/excel_prompting/gevatter_sentences/gevatter_sentences__for_prompting.txt",
+      "size_bytes": 3314,
+      "md5": "6b3b5c6badd1c87772ec11e7fb05fe08"
+    }
+  ]
+}

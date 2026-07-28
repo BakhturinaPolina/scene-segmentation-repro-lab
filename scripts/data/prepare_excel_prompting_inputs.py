@@ -71,6 +71,9 @@ def infer_scene_column(columns: list[str]) -> str:
         lc = c.lower()
         if "scene" in lc and "id" in lc:
             return c
+    for c in columns:
+        if "scene" in c.lower():
+            return c
     raise ValueError(f"Could not infer scene column from: {columns}")
 
 
@@ -90,7 +93,7 @@ def infer_sentence_id_column(columns: list[str]) -> str:
 
 def infer_text_column(columns: list[str]) -> str:
     lowered = {c.lower(): c for c in columns}
-    for preferred in ("sent_text", "sentence_text", "text"):
+    for preferred in ("sent_text", "sentence_text", "text", "sentence"):
         if preferred in lowered:
             return lowered[preferred]
     for c in columns:

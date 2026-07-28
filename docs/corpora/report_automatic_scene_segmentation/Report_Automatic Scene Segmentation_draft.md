@@ -10,11 +10,11 @@ This report stands in the context of our CHR-conference submission *EmoEvent: *x
 
 #### Close-reading texts (labelled gold standard)
 
-For the close-reading validation sample, we use two short German-language narratives that differ strongly in genre, length, and explicitness of narrative structure: Heinrich von Kleist's novella *The Earthquake in Chile* (*Das Erdbeben in Chili*, 1807) and the Brothers Grimm fairy tale *The Goose Girl* (*Die Gänsemagd*), from *Children's and Household Tales* (*Kinder- und Hausmärchen*, edition XXXX).^[TODO-colleagues: specify exact edition of *The Goose Girl* (*Die Gänsemagd*).]
+For the close-reading validation sample, we use three short German-language narratives that differ strongly in genre, length, and explicitness of narrative structure: Heinrich von Kleist's novella *The Earthquake in Chile* (*Das Erdbeben in Chili*, 1807) and two Brothers Grimm fairy tales from *Children's and Household Tales* (*Kinder- und Hausmärchen*, edition XXXX) — *The Goose Girl* (*Die Gänsemagd*) and *The Godfather* (*Der Gevatter*, KHM 42).^[TODO-colleagues: specify exact edition of the Grimm tales.]
 
-The pairing is deliberately contrastive. As a novella, *The Earthquake in Chile* compresses novelistic density into a narrow textual space: the earthquake interrupts Jeronimo's suicide mid-sentence, the lovers' survival and pastoral reunion give way to mob lynching inside a single cathedral scene — all without chapter breaks or transitional formulae. *The Goose Girl*, by contrast, signals every episode boundary through spatial relocation, formulaic refrains ("O du Falada, da du hangest" / "O Falada, hanging there"), and dialogue ritual. This contrast tests the model on two segmentation problems: recognising conventional, explicitly cued boundaries in a fairy tale, and detecting implicit transitions in compressed prose where setting, pacing, and perspective shift without surface markers.
+The set is deliberately contrastive. As a novella, *The Earthquake in Chile* compresses novelistic density into a narrow textual space: the earthquake interrupts Jeronimo's suicide mid-sentence, the lovers' survival and pastoral reunion give way to mob lynching inside a single cathedral scene — all without chapter breaks or transitional formulae. *The Goose Girl*, by contrast, signals every episode boundary through spatial relocation, formulaic refrains ("O du Falada, da du hangest" / "O Falada, hanging there"), and dialogue ritual. *The Godfather* is the shortest of the three (32 sentences, 5 scenes): a poor man takes a mysterious stranger as godfather, receives a healing water that makes him famous, and later climbs the godfather's house past eerie wonders on each floor (fighting brooms, dead fingers, skulls, self-frying fish) before the godfather denies it all and the man flees. Its value for evaluation is as a short-text edge case where scene changes are abrupt and sparsely cued, rather than ritualised like *The Goose Girl*. Together, the three texts test the model on recognising conventional fairy-tale boundaries, detecting implicit transitions in compressed prose, and handling very short narratives with uneven scene lengths.
 
-For *The Earthquake in Chile*, we reused manual scene annotations created in the context of the GermAn Prose dataset (Hatzel et al. 2026). For *The Goose Girl*, we used the same annotation guidelines and collected the respective annotation data.^[TODO-colleagues: describe annotation setup for *The Goose Girl* (*Die Gänsemagd*) — number of annotators, adjudication procedure, and IAA (if computed).]
+For *The Earthquake in Chile*, we reused manual scene annotations created in the context of the GermAn Prose dataset (Hatzel et al. 2026). For *The Goose Girl* and *The Godfather*, we used the same annotation guidelines and collected the respective annotation data.^[TODO-colleagues: describe annotation setup for the Grimm tales — number of annotators, adjudication procedure, and IAA (if computed).]
 
 The labelling task is binary at the sentence level: each sentence is assigned either BORDER (a new scene starts at this sentence) or NOBORDER (the current scene continues). By convention, the first sentence of each text is counted as a scene boundary (it opens scene 1).
 
@@ -23,7 +23,8 @@ The labelling task is binary at the sentence level: each sentence is assigned ei
 | --------------------------------------------------- | --------- | ------ | ---------- | ---------------- | ------------------ |
 | *The Earthquake in Chile* (*Das Erdbeben in Chili*) | 245       | 14     | 5.7%       | 17.5             | 11.5               |
 | *The Goose Girl* (*Die Gänsemagd*)                  | 71        | 7      | 9.9%       | 10.1             | 7                  |
-| **Both**                                            | **316**   | **21** | **6.6%**   | **15.0**         | **7**              |
+| *The Godfather* (*Der Gevatter*)                    | 32        | 5      | 15.6%      | 6.4              | 4                  |
+| **All three**                                       | **348**   | **26** | **7.5%**   | **13.4**         | **7**              |
 
 
 **Note on annotation format.** Manual annotations assign each sentence a numbered scene ID; a change in this number marks a new scene. For the LLM-based labelling pipeline, this was converted into a binary BORDER/NOBORDER format: BORDER if the scene ID changes from the previous sentence, NOBORDER otherwise. The output columns `is_scene_boundary` and `scene_id` are reconstructed from these binary labels, so both formats are equivalent, while evaluation and prompting use the binary scheme.
@@ -94,7 +95,9 @@ Return JSON only:
 
 On the gold evaluation texts, models were compared under temperature 0, a fixed seed, and a shared context budget around each target sentence (token-budget mode inherited from Zehe et al., ~409 tokens of surrounding context). For the dProse corpus run we switched to a fixed **12 sentences of context on each side**, still with temperature 0 and the same Family B + JSON schema contract.
 
-Evaluation was conducted on the two manually annotated gold texts, *The Earthquake in Chile* and *The Goose Girl*. Following Zehe et al. (2025), we report relaxed F1 with (t = 3) as the main metric, because it allows near-boundary predictions within three sentences. For transparency, we also report exact F1 with (t = 0), which only counts the precise boundary sentence as correct.
+Evaluation was conducted on the three manually annotated gold texts, *The Earthquake in Chile*, *The Goose Girl*, and *The Godfather*. Following Zehe et al. (2025), we report relaxed F1 with (t = 3) as the main metric, because it allows near-boundary predictions within three sentences. For transparency, we also report exact F1 with (t = 0), which only counts the precise boundary sentence as correct.
+
+The primary model ranking below was established on the original two longer gold texts (*The Earthquake in Chile* and *The Goose Girl*; macro-averaged F1). We later evaluated the winning configuration on *The Godfather* under the same Prompt Family B settings (temperature 0, seed 1337, token-budget context ~409, JSON schema) via OpenRouter.
 
 
 | Model           | Reasoning mode | Exact F1 (t = 0) | Relaxed F1 (t = 3) |
@@ -106,7 +109,11 @@ Evaluation was conducted on the two manually annotated gold texts, *The Earthqua
 | Claude Sonnet 4 | Off            | 0.35             | 0.50               |
 
 
-Gemini 2.5 Pro with reasoning mode on achieved the best overall result, with a relaxed F1 of 0.76. This is above Zehe et al.'s reported zero-shot benchmark and also above their supervised result, although the comparison is only directional because the test corpora are different. We therefore use Gemini 2.5 Pro with reasoning mode on as the production setting.
+*Macro-averaged over The Earthquake in Chile + The Goose Girl. Source run for Gemini reasoning on: `outputs/runs/prompting/2026-05-31-excel-gemini-reasoning-on/` (exact F1 0.4981, relaxed F1 0.7617).*
+
+On *The Godfather* alone (32 sentences, 5 gold borders; run `2026-07-28-excel-gevatter-gemini-reasoning-on`), Gemini 2.5 Pro with reasoning on scored exact F1 **0.36** and relaxed F1 **0.91** (tol 3). Exact match is harder on this short text (several near-miss borders), but every gold border is recovered within three sentences and over-prediction is modest (6 predicted vs 5 gold borders, ratio 1.2×). Including *The Godfather* in a three-text macro average with the May baseline yields exact F1 **0.45** and relaxed F1 **0.81**.
+
+Gemini 2.5 Pro with reasoning mode on achieved the best overall result on the original two-text ranking, with a relaxed F1 of 0.76, and remains the production setting after the *Godfather* check (three-text relaxed F1 0.81). This is above Zehe et al.'s reported zero-shot benchmark and also above their supervised result, although the comparison is only directional because the test corpora are different. We therefore use Gemini 2.5 Pro with reasoning mode on as the production setting.
 
 ### Application to dProse-Dataset
 
@@ -114,7 +121,7 @@ We applied the production pipeline (Gemini 2.5 Pro with reasoning on, Prompt Fam
 
 Across the 327 books, the median BORDER rate is **24.0%** (range 8.9%–41.4%), the corpus-median of per-book median scene lengths is **2 sentences**, and on average **54%** of inferred scenes span only one or two sentences — a first signal that the model tends to segment more finely than coarse narrative scenes.
 
-To verify that Gemini's segmentation approximates our preceding analyses with the other two texts, we took random samples from dProse and checked the annotations manually for plausibility.
+To verify that Gemini's segmentation approximates our preceding analyses with the three gold texts, we took random samples from dProse and checked the annotations manually for plausibility.
 
 ### Final Remarks
 
